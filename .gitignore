@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Hidden directories
+.config
+.backups
+.cache
+
 # Version files
 _version.py
 
