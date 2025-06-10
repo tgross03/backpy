@@ -48,6 +48,8 @@ dependencies = [
   "toml",
   "rich",
   "pandas",
+  "click",
+  "fuzzyfinder",
 ]
 
 [project.optional-dependencies]

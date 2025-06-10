@@ -16,10 +16,10 @@ class TOMLConfiguration:
             raise TypeError("The given configuration file has to be a TOML file!")
 
         if create_if_not_exists:
+            self._path.parent.mkdir(exist_ok=True, parents=True)
             self._path.touch(exist_ok=True)
 
     def __getitem__(self, item: str):
-
         if not self._path.is_file():
             raise FileNotFoundError(
                 "The variable configuration could not be "
@@ -42,7 +42,6 @@ class TOMLConfiguration:
         return content
 
     def __setitem__(self, key: str, value: str):
-
         if not self._path.is_file():
             raise FileNotFoundError(
                 "The variable configuration could not "

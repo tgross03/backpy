@@ -9,7 +9,6 @@ class Backup:
 
 class FileBackup:
     def __init__(self, path: str, exclude_paths: list[str] | None = None):
-
         self._uuid: uuid.UUID = uuid.uuid4()
         self._origin_path: Path = Path(path)
 
