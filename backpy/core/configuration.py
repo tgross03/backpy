@@ -16,11 +16,13 @@ class TOMLConfiguration:
             raise TypeError("The given configuration file has to be a TOML file!")
 
         if create_if_not_exists:
-            self._path.parent.mkdir(exist_ok=True, parents=True)
-            self._path.touch(exist_ok=True)
+            self.create()
+
+    def is_valid(self) -> bool:
+        return self._path.is_file() and self._path.suffix == ".toml"
 
     def __getitem__(self, item: str):
-        if not self._path.is_file():
+        if not self.is_valid():
             raise FileNotFoundError(
                 "The variable configuration could not be "
                 f"found at location {str(self._path)}!"
@@ -42,7 +44,7 @@ class TOMLConfiguration:
         return content
 
     def __setitem__(self, key: str, value: str):
-        if not self._path.is_file():
+        if not self.is_valid():
             raise FileNotFoundError(
                 "The variable configuration could not "
                 f"be found at location {str(self._path)}!"
@@ -79,9 +81,34 @@ class TOMLConfiguration:
             return False
         return True
 
-    def dump_dict(self, content: dict):
+    def create(self, create_parents: bool = True) -> None:
+        if create_parents:
+            self._path.parent.mkdir(exist_ok=True, parents=True)
+
+        self._path.touch(exist_ok=True)
+
+    def dump_dict(self, content: dict) -> None:
         with open(self._path, "w") as file:
             toml.dump(o=content, f=file)
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         return toml.load(self._path)
+
+    def prepend_comments(
+        self, comments: list[str] | str, linebreak: bool = True
+    ) -> None:
+        if isinstance(comments, str):
+            comments = [comments]
+
+        # Adapted from https://stackoverflow.com/a/5917395
+        with open(self._path, "r+") as file:
+            content = file.read()
+            file.seek(0, 0)
+            file.write(
+                "\n".join([("# " + comment) for comment in comments])
+                + "\n" * (2 if linebreak else 1)
+                + content
+            )
+
+    def get_path(self) -> Path:
+        return self._path
