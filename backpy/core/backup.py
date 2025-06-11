@@ -1,4 +1,5 @@
 import uuid
+import warnings
 from datetime import datetime
 from enum import Enum
 from hashlib import file_digest
@@ -52,7 +53,20 @@ class BackupSpace:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def get_backups(self) -> list["Backup"]:
-        None
+        archive_files = [
+            file if file.is_file() else None
+            for file in self._backup_dir.glob(f"*{self._compression_algorithm}")
+        ]
+
+        backups = []
+
+        for archive_file in archive_files:
+            try:
+                backups.append(Backup.load_by_uuid(self, uuid.UUID(archive_file.stem)))
+            except FileNotFoundError:
+                continue
+
+        return backups
 
     @classmethod
     def load_by_uuid(cls, unique_id: uuid.UUID):
@@ -68,7 +82,7 @@ class BackupSpace:
         if not config.is_valid():
             raise FileNotFoundError(
                 "The BackupSpace could not be loaded because its"
-                "'config.toml' is missing!"
+                "'config.toml' is invalid or missing!"
             )
 
         cls = cls(
@@ -134,6 +148,9 @@ class BackupSpace:
     def get_compression_algorithm(self) -> str:
         return self._compression_algorithm
 
+    def get_archive_suffix(self) -> str:
+        return COMPRESSION_ALGORITHMS[self._compression_algorithm]
+
     def get_backup_dir(self) -> Path:
         return self._backup_dir
 
@@ -184,9 +201,42 @@ class Backup:
 
     @classmethod
     def load_by_uuid(cls, backup_space: BackupSpace, unique_id: uuid.UUID):
-        # toml = backup_space.get_backup_dir()
-        None
+        path = backup_space.get_backup_dir() / (
+            str(unique_id) + backup_space.get_archive_suffix()
+        )
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"The Backup with UUID '{unique_id}' does not exist."
+            )
+
+        config = TOMLConfiguration(
+            backup_space.get_backup_dir() / (str(unique_id) + ".toml")
+        )
+
+        if not config.is_valid():
+            raise FileNotFoundError(
+                f"The Backup with UUID '{unique_id}' could not be loaded because its"
+                "'config.toml' is invalid or missing!"
+            )
+
+        cls = cls(
+            path=path,
+            backup_space=backup_space,
+            unique_id=unique_id,
+            sha256sum=config["hash"],
+            created_at=config["created_at"],
+        )
+
+        if not cls.check_hash():
+            warnings.warn(
+                f"IMPORTANT! The SHA256 of the loaded backup with UUID {unique_id} "
+                "is not identical with the one saved in its configuration. This could "
+                "mean, that the file is corrupted or was changed."
+            )
+
+        return cls
 
     @classmethod
-    def new(cls):
+    def new(cls, path: Path, backup_space: BackupSpace):
         None
