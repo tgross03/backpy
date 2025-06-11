@@ -10,13 +10,18 @@ class VariableLibrary:
         )
         self._config = backpy.TOMLConfiguration(self._path, create_if_not_exists=True)
 
-    def generate(self, regenerate: bool = False):
+        self.generate(regenerate=True)
+
+    def generate(self, regenerate: bool = False) -> None:
         self._path.parent.mkdir(exist_ok=True, parents=True)
 
         if regenerate:
             self._path.unlink(missing_ok=True)
 
-        self._path.touch(exist_ok=True)
+        if not self.exists():
+            self._path.touch()
+
+        current_content = self._config.as_dict()
 
         content = {
             "paths": {
@@ -35,7 +40,7 @@ class VariableLibrary:
             },
         }
 
-        self._config.dump_dict(content)
+        self._config.dump_dict(content if regenerate else content | current_content)
         self._config.prepend_comments(
             [
                 "======================================"
@@ -50,5 +55,8 @@ class VariableLibrary:
     def get_variable(self, key: str):
         return self._config[key]
 
-    def set_variable(self, key: str, value: str):
+    def set_variable(self, key: str, value: str) -> None:
         self._config[key] = value
+
+    def exists(self) -> bool:
+        return self._config.is_valid()

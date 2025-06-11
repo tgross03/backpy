@@ -1,13 +1,13 @@
+import shutil
+import time
 import uuid
 import warnings
-from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from hashlib import file_digest
 from pathlib import Path
 
-from backpy import TOMLConfiguration, VariableLibrary
-from backpy.core import compression
-from backpy.core.compression import CompressionAlgorithm
+from backpy import TimeObject, TOMLConfiguration, VariableLibrary, compression
 
 
 class BackupSpaceType(Enum):
@@ -19,6 +19,12 @@ class BackupSpaceType(Enum):
         "name": "FILE_SYSTEM",
         "description": "Backup-Space of one or more files or directories.",
     }
+
+
+def _calculate_sha256sum(path: Path) -> str:
+    with open(path, "rb") as f:
+        digest = file_digest(f, "sha256")
+    return digest.hexdigest()
 
 
 class BackupSpace:
@@ -33,11 +39,13 @@ class BackupSpace:
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
         self._type: BackupSpaceType = space_type
-        self._compression_algorithm: CompressionAlgorithm = compression_algorithm
+        self._compression_algorithm: compression.CompressionAlgorithm = (
+            compression_algorithm
+        )
         self._compression_level: int = compression_level
         self._backup_dir: Path = Path(
-            VariableLibrary().get_variable("backup_directory") / str(self._uuid)
-        )
+            VariableLibrary().get_variable("paths.backup_directory")
+        ) / str(self._uuid)
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=self._backup_dir / "config.toml"
         )
@@ -72,7 +80,9 @@ class BackupSpace:
 
     @classmethod
     def load_by_uuid(cls, unique_id: uuid.UUID):
-        path = Path(VariableLibrary().get_variable("backup_directory") / str(unique_id))
+        path = Path(
+            VariableLibrary().get_variable("paths.backup_directory") / str(unique_id)
+        )
 
         if not path.is_dir():
             raise NotADirectoryError(
@@ -104,13 +114,13 @@ class BackupSpace:
         name: str,
         space_type: BackupSpaceType,
         compression_algorithm: str = VariableLibrary().get_variable(
-            "default_compression_algorithm"
+            "backup.states.default_compression_algorithm"
         ),
         compression_level: int = VariableLibrary().get_variable(
-            "default_compression_level"
+            "backup.states.default_compression_level"
         ),
     ):
-        if compression.is_algorithm_available(compression_algorithm):
+        if not compression.is_algorithm_available(compression_algorithm):
             raise KeyError(
                 f"The compression algorithm '{compression_algorithm}' is not available!"
             )
@@ -162,6 +172,9 @@ class BackupSpace:
     def get_compression_algorithm(self) -> compression.CompressionAlgorithm:
         return self._compression_algorithm
 
+    def get_compression_level(self) -> int:
+        return self._compression_level
+
     def get_backup_dir(self) -> Path:
         return self._backup_dir
 
@@ -176,13 +189,13 @@ class Backup:
         backup_space: BackupSpace,
         unique_id: uuid.UUID,
         sha256sum: str,
-        created_at: datetime,
+        created_at: TimeObject,
     ):
         self._path: Path = path
         self._backup_space: BackupSpace = backup_space
         self._uuid: uuid.UUID = unique_id
         self._hash: str = sha256sum
-        self._created_at: datetime = created_at
+        self._created_at: TimeObject = created_at
         self._config: TOMLConfiguration = TOMLConfiguration(
             path.parent / (str(unique_id) + ".toml")
         )
@@ -194,14 +207,12 @@ class Backup:
                 "uuid": str(self._uuid),
                 "backup_space": str(self._backup_space.get_uuid()),
                 "hash": self._hash,
-                "created_at": str(self._created_at),
+                "created_at": self._created_at.isoformat(),
             }
         )
 
     def calculate_hash(self) -> str:
-        with open(self._path, "rb") as f:
-            digest = file_digest(f, "sha256")
-        return digest.hexdigest()
+        return _calculate_sha256sum(self._path)
 
     def check_hash(self) -> bool:
         return self.calculate_hash() == self._hash
@@ -242,7 +253,7 @@ class Backup:
             backup_space=backup_space,
             unique_id=unique_id,
             sha256sum=config["hash"],
-            created_at=config["created_at"],
+            created_at=TimeObject.fromisoformat(config["created_at"]),
         )
 
         if not cls.check_hash():
@@ -269,8 +280,41 @@ class Backup:
         exclude: list[Path] | None = None,
         verbosity_level: int = 1,
     ):
+
+        start_time = time.time()
+
         if exclude is None:
             exclude = []
 
-        # unique_id = uuid.uuid4()
-        # path = compression.compress()
+        unique_id = uuid.uuid4()
+        created_at = TimeObject.localnow()
+
+        if verbosity_level >= 1:
+            print(f"Creating Backup with UUID '{unique_id}'...")
+
+        archive_path = compression.compress(
+            root_path=source_path,
+            archive_name=str(unique_id),
+            fmt=backup_space.get_compression_algorithm().name,
+            level=backup_space.get_compression_level(),
+            exclude=exclude,
+            verbosity_level=verbosity_level,
+            overwrite=True,
+        )
+        shutil.move(archive_path, backup_space.get_backup_dir())
+
+        cls = cls(
+            path=archive_path,
+            backup_space=backup_space,
+            unique_id=unique_id,
+            sha256sum=_calculate_sha256sum(archive_path),
+            created_at=created_at,
+        )
+
+        if verbosity_level >= 1:
+            print(
+                f"Created Backup with UUID '{unique_id}'. "
+                f"Took {timedelta(seconds=time.time() - start_time)} seconds!"
+            )
+
+        return cls

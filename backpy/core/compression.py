@@ -95,7 +95,7 @@ def _compress_zip(
 
     target_path = root_path.parent / (archive_name + ".zip")
 
-    if verbosity_level > 1:
+    if verbosity_level >= 1:
         print(f"Creating archive {target_path} ...")
 
     files, size = _filter_files(root_path=root_path, exclude=exclude)
