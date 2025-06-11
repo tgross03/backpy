@@ -110,7 +110,7 @@ def _compress_zip(
             files, description="Compressing files ", disable=verbosity_level < 1
         ):
             if verbosity_level > 1:
-                print(f"Compressing file {file}")
+                print(f"Compressing file '{file}'")
 
             zipf.write(
                 filename=file,
@@ -122,7 +122,11 @@ def _compress_zip(
     if verbosity_level >= 1:
         compression_ratio = 1 - (target_path.stat().st_size / size)
         print(f"Finished compression to {target_path}.")
-        print(f"File size reduced by {np.round(compression_ratio * 100, 2)} %")
+        print(
+            f"File size reduced by {np.round(compression_ratio * 100, 2)} %  "
+            f"({np.round(size * 1e-6, 4)} MB -> "
+            f"{np.round(target_path.stat().st_size * 1e-6, 4)} MB)"
+        )
 
     return target_path
 

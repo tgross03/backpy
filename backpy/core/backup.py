@@ -7,6 +7,8 @@ from datetime import timedelta
 from hashlib import file_digest
 from pathlib import Path
 
+import numpy as np
+
 from backpy import TimeObject, TOMLConfiguration, VariableLibrary, compression
 
 
@@ -68,7 +70,7 @@ class BackupSpace:
     def restore_state(self, unique_id: uuid.UUID) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
-    def get_backups(self) -> list["Backup"]:
+    def get_backups(self, sort_by: str | None = None) -> list["Backup"]:
         archive_files = [
             file if file.is_file() else None
             for file in self._backup_dir.glob(
@@ -83,6 +85,15 @@ class BackupSpace:
                 backups.append(Backup.load_by_uuid(self, archive_file.stem))
             except FileNotFoundError:
                 continue
+
+        if sort_by is not None:
+            match sort_by:
+                case "date":
+                    backups.sort(
+                        key=lambda b: b.get_created_at().get_datetime(), reverse=True
+                    )
+                case "size":
+                    backups.sort(key=lambda b: b.get_file_size(), reverse=True)
 
         return backups
 
@@ -115,13 +126,35 @@ class BackupSpace:
         cls = cls(
             name=config["name"],
             unique_id=unique_id,
-            space_type=BackupSpaceType.from_name(config["space_type"]),
+            space_type=BackupSpaceType.from_name(config["type"]),
             compression_algorithm=compression.CompressionAlgorithm.from_name(
                 config["compression_algorithm"]
             ),
             compression_level=config["compression_level"],
         )
         return cls
+
+    @classmethod
+    def load_by_name(cls, name: str):
+        for tomlf in Path(
+            VariableLibrary().get_variable("paths.backup_directory")
+        ).rglob("config.toml"):
+            config = TOMLConfiguration(tomlf, create_if_not_exists=False)
+
+            if not config.is_valid():
+                continue
+
+            if name != config["name"]:
+                continue
+
+            try:
+                return BackupSpace.load_by_uuid(config["uuid"])
+            except NotADirectoryError:
+                break
+
+        raise FileNotFoundError(
+            f"There is no valid BackupSpace present with the name '{name}'."
+        )
 
     @classmethod
     def new(
@@ -153,7 +186,7 @@ class BackupSpace:
         cls._config.dump_dict(
             {
                 "name": cls._name,
-                "uuid": cls._uuid,
+                "uuid": str(cls._uuid),
                 "type": cls._type.name,
                 "compression_algorithm": cls._compression_algorithm.name,
                 "compression_level": cls._compression_level,
@@ -196,6 +229,9 @@ class BackupSpace:
     def get_config(self) -> dict:
         return self._config.as_dict()
 
+    def get_disk_usage(self) -> int:
+        return np.sum([backup.get_file_size() for backup in self.get_backups()])
+
 
 class Backup:
     def __init__(
@@ -215,18 +251,6 @@ class Backup:
         self._created_at: TimeObject = created_at
         self._config: TOMLConfiguration = TOMLConfiguration(
             path.parent / (str(unique_id) + ".toml")
-        )
-
-    def create_config(self) -> None:
-        self._config.create()
-        self._config.dump_dict(
-            {
-                "uuid": str(self._uuid),
-                "backup_space": str(self._backup_space.get_uuid()),
-                "hash": self._hash,
-                "comment": self._comment,
-                "created_at": self._created_at.isoformat(),
-            }
         )
 
     def calculate_hash(self) -> str:
@@ -274,22 +298,20 @@ class Backup:
             backup_space=backup_space,
             unique_id=unique_id,
             sha256sum=config["hash"],
+            comment=config["comment"],
             created_at=TimeObject.fromisoformat(config["created_at"]),
         )
 
         if not cls.check_hash():
+            err_msg = (
+                f"IMPORTANT! The SHA256 of the loaded backup with UUID '{unique_id}' "
+                "is not identical with the one saved in its configuration. "
+                "This could mean, that the file is corrupted or was changed."
+            )
             if not fail_invalid:
-                warnings.warn(
-                    f"IMPORTANT! The SHA256 of the loaded backup with UUID {unique_id} "
-                    "is not identical with the one saved in its configuration. "
-                    "This could mean, that the file is corrupted or was changed."
-                )
+                warnings.warn(err_msg)
             else:
-                raise ValueError(
-                    f"The SHA256 of the loaded backup with UUID {unique_id} "
-                    "is not identical with the one saved in its configuration. "
-                    "This could mean, that the file is corrupted or was changed."
-                )
+                raise ValueError(err_msg)
 
         return cls
 
@@ -299,9 +321,15 @@ class Backup:
         source_path: Path,
         backup_space: BackupSpace,
         comment: str = "",
-        exclude: list[Path] | None = None,
+        exclude: list[str] | None = None,
         verbosity_level: int = 1,
     ):
+
+        if not source_path.exists(follow_symlinks=True):
+            raise FileNotFoundError(
+                "The given source path could not be found at path "
+                f"'{source_path.absolute()}'!"
+            )
 
         start_time = time.time()
 
@@ -334,12 +362,55 @@ class Backup:
             created_at=created_at,
         )
 
-        cls.create_config()
+        cls._config.create()
+        cls._config.dump_dict(
+            {
+                "uuid": str(cls._uuid),
+                "backup_space": str(cls._backup_space.get_uuid()),
+                "hash": cls._hash,
+                "comment": cls._comment,
+                "created_at": cls._created_at.isoformat(),
+            }
+        )
+        cls._config.prepend_comments(
+            [
+                "======================================"
+                "======================================",
+                "   WARNING! DO NOT EDIT THIS FILE MANUALLY! "
+                "THIS COULD BREAK YOUR BACKPY!",
+                "======================================"
+                "======================================",
+            ]
+        )
 
         if verbosity_level >= 1:
             print(
                 f"Created Backup with UUID '{unique_id}'. "
                 f"Took {timedelta(seconds=time.time() - start_time)} seconds!"
             )
+        if verbosity_level >= 2:
+            print(f"SHA256 Hash: {cls.get_hash()}")
 
         return cls
+
+    #####################
+    #       GETTER      #
+    #####################
+
+    def get_uuid(self) -> uuid.UUID:
+        return self._uuid
+
+    def get_hash(self) -> str:
+        return self._hash
+
+    def get_comment(self) -> str:
+        return self._comment
+
+    def get_created_at(self) -> TimeObject:
+        return self._created_at
+
+    def get_config(self) -> dict:
+        return self._config.as_dict()
+
+    def get_file_size(self) -> float:
+        return self._path.stat().st_size

@@ -15,6 +15,9 @@ class TimeObject:
     def printformat(self) -> str:
         return self._datetime.strftime("%Y-%m-%d %H:%M:%S.%f")
 
+    def get_datetime(self) -> datetime.datetime:
+        return self._datetime
+
     @classmethod
     def utcnow(cls) -> "TimeObject":
         return cls(datetime.datetime.now(datetime.UTC))
