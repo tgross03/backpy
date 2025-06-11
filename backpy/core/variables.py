@@ -30,6 +30,7 @@ class VariableLibrary:
             "backup": {
                 "states": {
                     "default_compression_algorithm": "zip",
+                    "default_compression_level": 6,
                 }
             },
         }

@@ -28,11 +28,13 @@ class BackupSpace:
         unique_id: uuid.UUID,
         space_type: BackupSpaceType,
         compression_algorithm: compression.CompressionAlgorithm,
+        compression_level: int,
     ):
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
         self._type: BackupSpaceType = space_type
         self._compression_algorithm: CompressionAlgorithm = compression_algorithm
+        self._compression_level: int = compression_level
         self._backup_dir: Path = Path(
             VariableLibrary().get_variable("backup_directory") / str(self._uuid)
         )
@@ -92,6 +94,7 @@ class BackupSpace:
             compression_algorithm=compression.CompressionAlgorithm.from_name(
                 config["compression_algorithm"]
             ),
+            compression_level=config["compression_level"],
         )
         return cls
 
@@ -103,10 +106,13 @@ class BackupSpace:
         compression_algorithm: str = VariableLibrary().get_variable(
             "default_compression_algorithm"
         ),
+        compression_level: int = VariableLibrary().get_variable(
+            "default_compression_level"
+        ),
     ):
         if compression.is_algorithm_available(compression_algorithm):
             raise KeyError(
-                f"The compression algorithm ' {compression_algorithm}'is not available!"
+                f"The compression algorithm '{compression_algorithm}' is not available!"
             )
 
         cls = cls(
@@ -116,6 +122,7 @@ class BackupSpace:
             compression_algorithm=compression.CompressionAlgorithm.from_name(
                 compression_algorithm
             ),
+            compression_level=compression_level,
         )
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
         cls._config.dump_dict(
@@ -124,6 +131,7 @@ class BackupSpace:
                 "uuid": cls._uuid,
                 "type": cls._type,
                 "compression_algorithm": cls._compression_algorithm,
+                "compression_level": cls._compression_level,
             }
         )
         cls._config.prepend_comments(
@@ -259,6 +267,7 @@ class Backup:
         source_path: Path,
         backup_space: BackupSpace,
         exclude: list[Path] | None = None,
+        verbosity_level: int = 1,
     ):
         if exclude is None:
             exclude = []
