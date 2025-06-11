@@ -6,6 +6,8 @@ from hashlib import file_digest
 from pathlib import Path
 
 from backpy import TOMLConfiguration, VariableLibrary
+from backpy.core import compression
+from backpy.core.compression import CompressionAlgorithm
 
 
 class BackupSpaceType(Enum):
@@ -19,26 +21,18 @@ class BackupSpaceType(Enum):
     }
 
 
-COMPRESSION_ALGORITHMS = {
-    "zip": ".zip",
-    "gztar": ".tar.gz",
-    "bztar": ".tar.bz2",
-    "xztar": ".tar.xz",
-}
-
-
 class BackupSpace:
     def __init__(
         self,
         name: str,
         unique_id: uuid.UUID,
         space_type: BackupSpaceType,
-        compression_algorithm: str,
+        compression_algorithm: compression.CompressionAlgorithm,
     ):
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
         self._type: BackupSpaceType = space_type
-        self._compression_algorithm = compression_algorithm
+        self._compression_algorithm: CompressionAlgorithm = compression_algorithm
         self._backup_dir: Path = Path(
             VariableLibrary().get_variable("backup_directory") / str(self._uuid)
         )
@@ -55,7 +49,9 @@ class BackupSpace:
     def get_backups(self) -> list["Backup"]:
         archive_files = [
             file if file.is_file() else None
-            for file in self._backup_dir.glob(f"*{self._compression_algorithm}")
+            for file in self._backup_dir.glob(
+                f"*{self._compression_algorithm.extension}"
+            )
         ]
 
         backups = []
@@ -67,6 +63,10 @@ class BackupSpace:
                 continue
 
         return backups
+
+    #####################
+    #    CLASSMETHODS   #
+    #####################
 
     @classmethod
     def load_by_uuid(cls, unique_id: uuid.UUID):
@@ -89,7 +89,9 @@ class BackupSpace:
             name=config["name"],
             unique_id=unique_id,
             space_type=config["type"],
-            compression_algorithm=config["compression_algorithm"],
+            compression_algorithm=compression.CompressionAlgorithm.from_name(
+                config["compression_algorithm"]
+            ),
         )
         return cls
 
@@ -102,18 +104,18 @@ class BackupSpace:
             "default_compression_algorithm"
         ),
     ):
-
-        if compression_algorithm not in COMPRESSION_ALGORITHMS:
+        if compression.is_algorithm_available(compression_algorithm):
             raise KeyError(
-                f"The compression algorithm ' {compression_algorithm}'"
-                "is not available!"
+                f"The compression algorithm ' {compression_algorithm}'is not available!"
             )
 
         cls = cls(
             name=name,
             unique_id=uuid.uuid4(),
             space_type=space_type,
-            compression_algorithm=compression_algorithm,
+            compression_algorithm=compression.CompressionAlgorithm.from_name(
+                compression_algorithm
+            ),
         )
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
         cls._config.dump_dict(
@@ -136,6 +138,10 @@ class BackupSpace:
         )
         return cls
 
+    #####################
+    #       GETTER      #
+    #####################
+
     def get_uuid(self) -> uuid.UUID:
         return self._uuid
 
@@ -145,11 +151,8 @@ class BackupSpace:
     def get_type(self) -> BackupSpaceType:
         return self._type
 
-    def get_compression_algorithm(self) -> str:
+    def get_compression_algorithm(self) -> compression.CompressionAlgorithm:
         return self._compression_algorithm
-
-    def get_archive_suffix(self) -> str:
-        return COMPRESSION_ALGORITHMS[self._compression_algorithm]
 
     def get_backup_dir(self) -> Path:
         return self._backup_dir
@@ -199,10 +202,16 @@ class Backup:
         self._config.get_path().unlink()
         self._path.unlink()
 
+    #####################
+    #    CLASSMETHODS   #
+    #####################
+
     @classmethod
-    def load_by_uuid(cls, backup_space: BackupSpace, unique_id: uuid.UUID):
+    def load_by_uuid(
+        cls, backup_space: BackupSpace, unique_id: uuid.UUID, fail_invalid: bool = False
+    ):
         path = backup_space.get_backup_dir() / (
-            str(unique_id) + backup_space.get_archive_suffix()
+            str(unique_id) + backup_space.get_compression_algorithm().extension
         )
 
         if not path.exists():
@@ -229,14 +238,30 @@ class Backup:
         )
 
         if not cls.check_hash():
-            warnings.warn(
-                f"IMPORTANT! The SHA256 of the loaded backup with UUID {unique_id} "
-                "is not identical with the one saved in its configuration. This could "
-                "mean, that the file is corrupted or was changed."
-            )
+            if not fail_invalid:
+                warnings.warn(
+                    f"IMPORTANT! The SHA256 of the loaded backup with UUID {unique_id} "
+                    "is not identical with the one saved in its configuration. "
+                    "This could mean, that the file is corrupted or was changed."
+                )
+            else:
+                raise ValueError(
+                    f"The SHA256 of the loaded backup with UUID {unique_id} "
+                    "is not identical with the one saved in its configuration. "
+                    "This could mean, that the file is corrupted or was changed."
+                )
 
         return cls
 
     @classmethod
-    def new(cls, path: Path, backup_space: BackupSpace):
-        None
+    def new(
+        cls,
+        source_path: Path,
+        backup_space: BackupSpace,
+        exclude: list[Path] | None = None,
+    ):
+        if exclude is None:
+            exclude = []
+
+        # unique_id = uuid.uuid4()
+        # path = compression.compress()
