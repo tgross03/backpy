@@ -93,7 +93,7 @@ def _compress_zip(
     overwrite: bool = False,
 ) -> Path:
 
-    target_path = root_path.parent / (archive_name + ".zip")
+    target_path = root_path.absolute().parent / (archive_name + ".zip")
 
     if verbosity_level >= 1:
         print(f"Creating archive {target_path} ...")
@@ -122,7 +122,7 @@ def _compress_zip(
     if verbosity_level >= 1:
         compression_ratio = 1 - (target_path.stat().st_size / size)
         print(f"Finished compression to {target_path}.")
-        print(f"Compressed by {np.round(compression_ratio * 100, 2)} %")
+        print(f"File size reduced by {np.round(compression_ratio * 100, 2)} %")
 
     return target_path
 
@@ -165,6 +165,6 @@ def _compress_tar(
     if verbosity_level >= 1:
         compression_ratio = 1 - (target_path.stat().st_size / size)
         print(f"Finished compression to {target_path}.")
-        print(f"Compressed by {np.round(compression_ratio * 100, 2)} %")
+        print(f"File size reduced by {np.round(compression_ratio * 100, 2)} %")
 
     return target_path
