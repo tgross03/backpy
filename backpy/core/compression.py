@@ -183,7 +183,7 @@ def unpack(
     if target_path is None:
         target_path = archive_path.parent
 
-    if verbosity_level >= 1:
+    if verbosity_level >= 2:
         print(f"Unpacking archive '{archive_path}' ...")
 
     shutil.unpack_archive(

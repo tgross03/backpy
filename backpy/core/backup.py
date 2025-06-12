@@ -263,9 +263,19 @@ class Backup:
     def check_hash(self) -> bool:
         return self.calculate_hash() == self._hash
 
-    def delete(self) -> None:
+    def delete(self, verbosity_level: int = 1) -> None:
+
+        start_time = time.time()
+
         self._config.get_path().unlink()
         self._path.unlink()
+
+        if verbosity_level >= 1:
+            print(
+                f"Deleted backup with UUID '{self._uuid}'.\n"
+                f"Took {timedelta(seconds=time.time() - start_time).total_seconds()} "
+                "seconds."
+            )
 
     #####################
     #    CLASSMETHODS   #
