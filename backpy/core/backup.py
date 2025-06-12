@@ -64,7 +64,7 @@ class BackupSpace:
             path=self._backup_dir / "config.toml"
         )
 
-    def create_backup(self) -> None:
+    def create_backup(self, comment: str = "", verbosity_level: int = 1) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def restore_backup(

@@ -89,7 +89,9 @@ class FileBackupSpace(BackupSpace):
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "FileBackupSpace":
 
-        cls = BackupSpace.load_by_uuid(unique_id=unique_id)
+        parent = super(FileBackupSpace, cls).load_by_uuid(unique_id=unique_id)
+        cls = cls.__new__(cls)
+        cls.__dict__.update(parent.__dict__)
 
         if cls._type.name != "FILE_SYSTEM":
             raise TypeError("The loaded BackupSpace is not a FileBackupSpace!")
@@ -102,7 +104,9 @@ class FileBackupSpace(BackupSpace):
     @classmethod
     def load_by_name(cls, name: str) -> "FileBackupSpace":
 
-        cls = BackupSpace.load_by_name(name=name)
+        parent = super(FileBackupSpace, cls).load_by_name(name=name)
+        cls = cls.__new__(cls)
+        cls.__dict__.update(parent.__dict__)
 
         if cls._type.name != "FILE_SYSTEM":
             raise TypeError("The loaded BackupSpace is not a FileBackupSpace!")

@@ -189,3 +189,5 @@ def unpack(
     shutil.unpack_archive(
         filename=archive_path.absolute(), extract_dir=target_path.absolute()
     )
+
+    return target_path
