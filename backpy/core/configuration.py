@@ -43,6 +43,7 @@ class TOMLConfiguration:
 
         return content
 
+    # FIXME
     def __setitem__(self, key: str, value: str):
         if not self.is_valid():
             raise FileNotFoundError(

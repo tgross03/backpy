@@ -1,3 +1,4 @@
+import shutil
 import tarfile
 import zipfile
 from dataclasses import dataclass
@@ -110,7 +111,7 @@ def _compress_zip(
             files, description="Compressing files ", disable=verbosity_level < 1
         ):
             if verbosity_level > 1:
-                print(f"Compressing file '{file}'")
+                print(f"Adding '{file}'")
 
             zipf.write(
                 filename=file,
@@ -159,7 +160,7 @@ def _compress_tar(
             files, description="Compressing files ", disable=verbosity_level < 1
         ):
             if verbosity_level > 1:
-                print(f"Compressing file {file}")
+                print(f"Adding: {file}")
 
             tarf.add(
                 name=file,
@@ -172,3 +173,19 @@ def _compress_tar(
         print(f"File size reduced by {np.round(compression_ratio * 100, 2)} %")
 
     return target_path
+
+
+def unpack(
+    archive_path: Path,
+    target_path: Path | None,
+    verbosity_level: int,
+) -> Path:
+    if target_path is None:
+        target_path = archive_path.parent
+
+    if verbosity_level >= 1:
+        print(f"Unpacking archive '{archive_path}' ...")
+
+    shutil.unpack_archive(
+        filename=archive_path.absolute(), extract_dir=target_path.absolute()
+    )

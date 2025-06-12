@@ -67,7 +67,9 @@ class BackupSpace:
     def create_backup(self) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
-    def restore_state(self, unique_id: uuid.UUID) -> None:
+    def restore_backup(
+        self, unique_id: str, incremental: bool, force: bool = False
+    ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def get_backups(self, sort_by: str | None = None) -> list["Backup"]:
@@ -124,13 +126,13 @@ class BackupSpace:
             )
 
         cls = cls(
-            name=config["name"],
+            name=config["general.name"],
             unique_id=unique_id,
-            space_type=BackupSpaceType.from_name(config["type"]),
+            space_type=BackupSpaceType.from_name(config["general.type"]),
             compression_algorithm=compression.CompressionAlgorithm.from_name(
-                config["compression_algorithm"]
+                config["general.compression_algorithm"]
             ),
-            compression_level=config["compression_level"],
+            compression_level=config["general.compression_level"],
         )
         return cls
 
@@ -144,11 +146,11 @@ class BackupSpace:
             if not config.is_valid():
                 continue
 
-            if name != config["name"]:
+            if name != config["general.name"]:
                 continue
 
             try:
-                return BackupSpace.load_by_uuid(config["uuid"])
+                return BackupSpace.load_by_uuid(config["general.uuid"])
             except NotADirectoryError:
                 break
 
@@ -185,11 +187,13 @@ class BackupSpace:
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
         cls._config.dump_dict(
             {
-                "name": cls._name,
-                "uuid": str(cls._uuid),
-                "type": cls._type.name,
-                "compression_algorithm": cls._compression_algorithm.name,
-                "compression_level": cls._compression_level,
+                "general": {
+                    "name": cls._name,
+                    "uuid": str(cls._uuid),
+                    "type": cls._type.name,
+                    "compression_algorithm": cls._compression_algorithm.name,
+                    "compression_level": cls._compression_level,
+                }
             }
         )
         cls._config.prepend_comments(
@@ -304,12 +308,12 @@ class Backup:
 
         if not cls.check_hash():
             err_msg = (
-                f"IMPORTANT! The SHA256 of the loaded backup with UUID '{unique_id}' "
+                f"The SHA256 of the loaded backup with UUID '{unique_id}' "
                 "is not identical with the one saved in its configuration. "
                 "This could mean, that the file is corrupted or was changed."
             )
             if not fail_invalid:
-                warnings.warn(err_msg)
+                warnings.warn("IMPORTANT! " + err_msg)
             else:
                 raise ValueError(err_msg)
 
@@ -386,7 +390,8 @@ class Backup:
         if verbosity_level >= 1:
             print(
                 f"Created Backup with UUID '{unique_id}'. "
-                f"Took {timedelta(seconds=time.time() - start_time)} seconds!"
+                f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
+                " seconds!"
             )
         if verbosity_level >= 2:
             print(f"SHA256 Hash: {cls.get_hash()}")
@@ -396,6 +401,9 @@ class Backup:
     #####################
     #       GETTER      #
     #####################
+
+    def get_path(self) -> Path:
+        return self._path
 
     def get_uuid(self) -> uuid.UUID:
         return self._uuid
