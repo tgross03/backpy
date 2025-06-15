@@ -51,7 +51,8 @@ dependencies = [
   "click",
   "fuzzyfinder",
   "scp",
-  "paramiko"
+  "paramiko",
+  "mergedeep",
 ]
 
 [project.optional-dependencies]

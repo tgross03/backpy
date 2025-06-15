@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from mergedeep import merge
+
 import backpy
 
 
@@ -13,6 +15,7 @@ class VariableLibrary:
         self.generate(regenerate=False)
 
     def generate(self, regenerate: bool = False) -> None:
+
         self._path.parent.mkdir(exist_ok=True, parents=True)
 
         if regenerate:
@@ -37,8 +40,9 @@ class VariableLibrary:
             },
         }
 
-        # FIXME: The merging overwrites stuff it is not supposed to be overwriting!
-        self._config.dump_dict(content if regenerate else content | current_content)
+        self._config.dump_dict(
+            content if regenerate else merge({}, content, current_content)
+        )
         self._config.prepend_no_edit_warning()
 
     def get_variable(self, key: str):

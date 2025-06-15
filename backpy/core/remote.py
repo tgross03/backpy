@@ -1,10 +1,13 @@
+import shutil
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
 import paramiko
 from paramiko import SSHClient
+from paramiko.sftp_client import SFTPClient
 from paramiko.ssh_exception import SSHException
+from scp import SCPClient
 
 from backpy.core.configuration import TOMLConfiguration
 from backpy.core.variables import VariableLibrary
@@ -75,11 +78,14 @@ class Remote:
         self._client = SSHClient()
         self._client.set_missing_host_key_policy(paramiko.client.WarningPolicy)
 
-        try:
-            private_key = paramiko.rsakey.RSAKey(filename=self._ssh_key)
-        except SSHException:
-            private_key = paramiko.ed25519key.Ed25519Key(filename=self._ssh_key)
-        except FileNotFoundError:
+        if self._ssh_key:
+            try:
+                private_key = paramiko.rsakey.RSAKey(filename=self._ssh_key)
+            except SSHException:
+                private_key = paramiko.ed25519key.Ed25519Key(filename=self._ssh_key)
+            except FileNotFoundError:
+                private_key = None
+        else:
             private_key = None
 
         self._client.connect(
@@ -90,9 +96,126 @@ class Remote:
             look_for_keys=self._use_system_keys,
         )
 
+    def disconnect(self):
+        self._client.close()
+
     def test_connection(self):
         self.connect()
-        self._client.close()
+        self.disconnect()
+
+    def upload(
+        self,
+        source: Path,
+        target: str,
+        close_afterwards: bool = True,
+        verbosity_level: int = 1,
+    ):
+        self.connect()
+
+        match self._protocol.name:
+            case "sftp":
+                sftp_client = self._client.open_sftp()
+
+                self.mkdir(
+                    target, parents=True, close_afterwards=False, client=sftp_client
+                )
+                for root, dirs, files in Path(source).walk(follow_symlinks=False):
+                    self.mkdir(
+                        target=str(target / root),
+                        parents=True,
+                        close_afterwards=False,
+                        client=sftp_client,
+                    )
+
+                    for file in files:
+                        sftp_client.put(
+                            localpath=root / file,
+                            remotepath=target + "/" + str(root / file),
+                        )
+
+            case "scp":
+
+                scp_client = SCPClient(self._client.get_transport())
+                self.mkdir(
+                    target=target,
+                    parents=True,
+                    close_afterwards=False,
+                    client=scp_client,
+                )
+                scp_client.put(files=source, remote_path=target, recursive=True)
+
+        if close_afterwards:
+            self.disconnect()
+
+    def mkdir(
+        self,
+        target: str,
+        parents: bool = False,
+        close_afterwards: bool = True,
+        client: SFTPClient | SCPClient | None = None,
+    ):
+
+        if not client:
+            self.connect()
+
+        subdirs = target.split("/")
+
+        match self._protocol.name:
+            case "sftp":
+                sftp_client = (
+                    client
+                    if isinstance(client, SFTPClient)
+                    else self._client.open_sftp()
+                )
+
+                if parents:
+                    for i in range(len(subdirs)):
+                        try:
+                            sftp_client.mkdir(path="/".join(subdirs[: i + 1]))
+                        except OSError:
+                            pass
+                else:
+                    try:
+                        sftp_client.mkdir(path=target)
+                    except OSError:
+                        pass
+
+            case "scp":
+                scp_client = (
+                    client
+                    if isinstance(client, SCPClient)
+                    else SCPClient(self._client.get_transport())
+                )
+
+                # create a temporary version of the directory tree
+                path = Path(str(uuid.uuid4()))
+                while path.exists():
+                    path = Path(str(uuid.uuid4()))
+                path.mkdir()
+
+                directory = path / target
+                directory.mkdir(parents=True)
+
+                try:
+                    if parents:
+                        scp_client.put(
+                            files=str(path / subdirs[0]),
+                            remote_path=subdirs[0],
+                            recursive=True,
+                        )
+                    else:
+                        scp_client.put(
+                            files=str(directory), remote_path=target, recursive=True
+                        )
+                except Exception as e:
+                    shutil.rmtree(path)
+                    raise e
+
+                # delete the temporary tree
+                shutil.rmtree(path)
+
+        if close_afterwards:
+            self.disconnect()
 
     @classmethod
     def load_by_uuid(cls, unique_id: str):
