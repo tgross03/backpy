@@ -1,7 +1,10 @@
 import shutil
 import uuid
+import warnings
 from dataclasses import dataclass
+from hashlib import file_digest
 from pathlib import Path
+from stat import S_ISDIR
 
 import numpy as np
 import paramiko
@@ -15,6 +18,12 @@ from backpy.core.configuration import TOMLConfiguration
 from backpy.core.variables import VariableLibrary
 
 
+def _calculate_hash(path: Path) -> str:
+    with open(path, "rb") as f:
+        digest = file_digest(f, "sha256")
+    return digest.hexdigest()
+
+
 @dataclass
 class Protocol:
     name: str
@@ -22,7 +31,7 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str):
+    def from_name(cls, name: str) -> "Protocol":
         for protocol in _protocols:
             if protocol.name == name:
                 return protocol
@@ -56,6 +65,7 @@ class Remote:
         ssh_key: Path | None,
         use_system_keys: bool,
         root_dir: str,
+        sha256_cmd: str,
     ):
         self._name: str = name
         self._uuid: uuid.UUID = unique_id
@@ -71,8 +81,9 @@ class Remote:
 
         self._client: SSHClient | None = None
         self._root_dir: str = root_dir
+        self._sha256_cmd: str = sha256_cmd
 
-    def connect(self):
+    def connect(self, verbosity_level: int = 1) -> None:
 
         if self._client is not None:
             self._client.close()
@@ -98,25 +109,39 @@ class Remote:
             look_for_keys=self._use_system_keys,
         )
 
-    def disconnect(self):
+        if verbosity_level > 1:
+            print(f"Connected to {self._hostname} with user {self._username}.")
+
+    def disconnect(self, verbosity_level: int = 1) -> None:
         self._client.close()
 
-    def test_connection(self):
+        if verbosity_level > 1:
+            print(f"Connection to {self._hostname} was closed.")
+
+    def test_connection(self, verbosity_level: int = 1) -> None:
         self.connect()
         self.disconnect()
+
+        if verbosity_level > 1:
+            print(
+                f"Connection test to {self._hostname} with"
+                f"user {self._username} was successful."
+            )
 
     def upload(
         self,
         source: Path | str,
         target: str,
-        close_afterwards: bool = True,
+        check_hash: bool = True,
+        retry_on_hash_missmatch: bool = True,
+        max_retries: int = 3,
         verbosity_level: int = 1,
-    ):
+    ) -> None:
 
         if isinstance(source, str):
             source = Path(source)
 
-        self.connect()
+        self.connect(verbosity_level=verbosity_level)
         with Progress(
             *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
         ) as progress:
@@ -206,15 +231,49 @@ class Remote:
 
                     scp_client.put(files=source, remote_path=target, recursive=True)
 
-        if close_afterwards:
-            self.disconnect()
+        self.disconnect(verbosity_level=verbosity_level)
 
-    def download(self, source: str, target: Path | str, verbosity_level: int = 1):
+        if check_hash:
+            if (
+                _calculate_hash(source).lower()
+                != self.get_hash(target, verbosity_level).lower()
+            ):
+                if retry_on_hash_missmatch and max_retries > 0:
+                    warnings.warn(
+                        "The SHA256 of the downloaded file did not match the"
+                        "remote file. Retrying download."
+                    )
+                    self.remove(target)
+                    self.upload(
+                        source=source,
+                        target=target,
+                        check_hash=check_hash,
+                        retry_on_hash_missmatch=retry_on_hash_missmatch,
+                        max_retries=max_retries - 1,
+                        verbosity_level=verbosity_level,
+                    )
+                else:
+                    warnings.warn(
+                        "The SHA256 of the downloaded file did not match the "
+                        "remote file. Did not attempt retry."
+                    )
+            elif verbosity_level > 1:
+                print(f"Checksum matched: {_calculate_hash(source).lower()}")
+
+    def download(
+        self,
+        source: str,
+        target: Path | str,
+        check_hash: bool = True,
+        retry_on_hash_missmatch: bool = True,
+        max_retries: int = 3,
+        verbosity_level: int = 1,
+    ) -> None:
 
         if isinstance(target, str):
             target = Path(target)
 
-        self.connect()
+        self.connect(verbosity_level=verbosity_level)
 
         with Progress(
             *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
@@ -244,7 +303,34 @@ class Remote:
                     )
                     scp_client.get(remote_path=source, local_path=str(target))
 
-        self.disconnect()
+        self.disconnect(verbosity_level=verbosity_level)
+
+        if check_hash:
+            if (
+                _calculate_hash(target).lower()
+                != self.get_hash(source, verbosity_level).lower()
+            ):
+                if retry_on_hash_missmatch and max_retries > 0:
+                    warnings.warn(
+                        "The SHA256 of the downloaded file did not match the "
+                        "remote file. Retrying download."
+                    )
+                    target.unlink()
+                    self.download(
+                        source=source,
+                        target=target,
+                        check_hash=check_hash,
+                        retry_on_hash_missmatch=retry_on_hash_missmatch,
+                        max_retries=max_retries - 1,
+                        verbosity_level=retry_on_hash_missmatch,
+                    )
+                else:
+                    warnings.warn(
+                        "The SHA256 of the downloaded file did not match the "
+                        "remote file. Did not attempt retry."
+                    )
+            elif verbosity_level > 1:
+                print(f"Checksum matched: {_calculate_hash(target).lower()}")
 
     def mkdir(
         self,
@@ -252,10 +338,11 @@ class Remote:
         parents: bool = False,
         close_afterwards: bool = True,
         client: SFTPClient | SCPClient | None = None,
-    ):
+        verbosity_level: int = 1,
+    ) -> None:
 
         if not client:
-            self.connect()
+            self.connect(verbosity_level=verbosity_level)
 
         subdirs = target.split("/")
 
@@ -314,10 +401,96 @@ class Remote:
                 shutil.rmtree(path)
 
         if close_afterwards:
+            self.disconnect(verbosity_level=verbosity_level)
+
+        if verbosity_level > 1:
+            print(
+                f"Created directory {target} on {self._hostname}. "
+                f"(Including parent directories: {parents})"
+            )
+
+    def _is_dir(
+        self,
+        target: str,
+        sftp_client: SFTPClient | None = None,
+        close_afterwards: bool = True,
+    ) -> bool:
+
+        if not sftp_client:
+            self.connect()
+            sftp_client = self._client.open_sftp()
+
+        result = False
+        try:
+            result = S_ISDIR(sftp_client.stat(target).st_mode)
+        except IOError:
+            pass
+
+        if close_afterwards:
             self.disconnect()
 
+        return result
+
+    def remove(
+        self,
+        target: str,
+        sftp_client: SFTPClient | None = None,
+        close_afterwards: bool = True,
+        verbosity_level: int = 1,
+    ) -> None:
+
+        if not sftp_client:
+            self.connect(verbosity_level=verbosity_level)
+            sftp_client = self._client.open_sftp()
+
+        if not self._is_dir(target, sftp_client=sftp_client, close_afterwards=False):
+            sftp_client.remove(target)
+
+            if verbosity_level >= 1:
+                print(f"File at remote path '{target}' was removed.")
+        else:
+            files = sftp_client.listdir(path=target)
+
+            for f in files:
+                filepath = str(Path(target) / f)
+                if self._is_dir(
+                    filepath, sftp_client=sftp_client, close_afterwards=False
+                ):
+                    self.remove(
+                        filepath,
+                        sftp_client=sftp_client,
+                        verbosity_level=verbosity_level,
+                        close_afterwards=False,
+                    )
+                else:
+                    sftp_client.remove(filepath)
+                    if verbosity_level >= 1:
+                        print(f"File at remote path '{target}' was removed.")
+
+            sftp_client.rmdir(target)
+
+            if verbosity_level >= 1:
+                print(f"Directory at remote path '{target}' was removed.")
+
+        if close_afterwards:
+            self.disconnect(verbosity_level=verbosity_level)
+
+    def get_hash(self, target: str, verbosity_level: int = 1) -> str:
+        self.connect(verbosity_level=verbosity_level)
+
+        checksum = (
+            self._client.exec_command(self._sha256_cmd + " " + target)[1]
+            .read()
+            .decode()
+            .split(" ")[0]
+        )
+
+        self.disconnect(verbosity_level=verbosity_level)
+
+        return checksum
+
     @classmethod
-    def load_by_uuid(cls, unique_id: str):
+    def load_by_uuid(cls, unique_id: str) -> "Remote":
 
         unique_id = uuid.UUID(unique_id)
 
@@ -344,6 +517,7 @@ class Remote:
             else None,
             use_system_keys=config["use_system_keys"],
             root_dir=config["root_dir"],
+            sha256_cmd=config["sha256_cmd"],
         )
 
         return cls
@@ -383,7 +557,11 @@ class Remote:
         root_dir: str = VariableLibrary().get_variable(
             "backup.states.default_remote_root_dir"
         ),
-    ):
+        sha256_cmd: str = VariableLibrary().get_variable(
+            "backup.states.default_sha256_cmd"
+        ),
+        verbosity_level: int = 1,
+    ) -> "Remote":
 
         _protocol = Protocol.from_name(protocol)
 
@@ -416,6 +594,7 @@ class Remote:
             ssh_key=Path(ssh_key).expanduser().absolute() if ssh_key else None,
             use_system_keys=use_system_keys,
             root_dir=root_dir,
+            sha256_cmd=sha256_cmd,
         )
 
         cls._config = TOMLConfiguration(
@@ -435,10 +614,18 @@ class Remote:
                 "ssh_key": str(cls._ssh_key) if cls._ssh_key else "",
                 "use_system_keys": cls._use_system_keys,
                 "root_dir": cls._root_dir,
+                "sha256_cmd": cls._sha256_cmd,
             }
         )
         cls._config.prepend_no_edit_warning()
 
-        cls.test_connection()
+        cls.test_connection(verbosity_level=verbosity_level)
+
+        if verbosity_level >= 1:
+            print(
+                f"Created remote {cls._name} (Hostname: {cls._hostname}, "
+                f"User: {cls._username}).\n"
+                f"Using Protocol {cls._protocol.name}."
+            )
 
         return cls

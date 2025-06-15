@@ -36,6 +36,7 @@ class VariableLibrary:
                     "default_compression_algorithm": "zip",
                     "default_compression_level": 6,
                     "default_remote_root_dir": ".backpy",
+                    "default_sha256_cmd": "sha256sum",
                 }
             },
         }
