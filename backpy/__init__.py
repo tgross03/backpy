@@ -8,7 +8,7 @@ from backpy.core.times import TimeObject
 
 from backpy.core.backup import Backup, BackupSpace, BackupSpaceType
 from backpy.core.file_backups import FileBackupSpace
-from backpy.core.remote import Remote
+from backpy.core.remote import Remote, Protocol
 
 __all__ = [
     "VariableLibrary",
@@ -20,4 +20,5 @@ __all__ = [
     "compression",
     "TimeObject",
     "Remote",
+    "Protocol",
 ]

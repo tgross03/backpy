@@ -8,8 +8,9 @@ from hashlib import file_digest
 from pathlib import Path
 
 import numpy as np
+from mergedeep import merge
 
-from backpy import TimeObject, TOMLConfiguration, VariableLibrary, compression
+from backpy import Remote, TimeObject, TOMLConfiguration, VariableLibrary, compression
 
 
 @dataclass
@@ -49,6 +50,7 @@ class BackupSpace:
         space_type: BackupSpaceType,
         compression_algorithm: compression.CompressionAlgorithm,
         compression_level: int,
+        remote: Remote | None,
     ):
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
@@ -61,8 +63,9 @@ class BackupSpace:
             VariableLibrary().get_variable("paths.backup_directory")
         ) / str(self._uuid)
         self._config: TOMLConfiguration = TOMLConfiguration(
-            path=self._backup_dir / "config.toml"
+            path=self._backup_dir / "config.toml",
         )
+        self._remote = remote
 
     def create_backup(self, comment: str = "", verbosity_level: int = 1) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
@@ -99,6 +102,22 @@ class BackupSpace:
 
         return backups
 
+    def update_config(self):
+        current_content = self._config.as_dict()
+
+        content = {
+            "general": {
+                "name": self._name,
+                "uuid": str(self._uuid),
+                "remote": str(self._remote.get_uuid()) if self._remote else "",
+                "type": self._type.name,
+                "compression_algorithm": self._compression_algorithm.name,
+                "compression_level": self._compression_level,
+            }
+        }
+
+        self._config.dump_dict(dict(merge({}, content, current_content)))
+
     #####################
     #    CLASSMETHODS   #
     #####################
@@ -133,6 +152,7 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
+            remote=config["general.remote"],
         )
         return cls
 
@@ -169,6 +189,7 @@ class BackupSpace:
         compression_level: int = VariableLibrary().get_variable(
             "backup.states.default_compression_level"
         ),
+        remote: Remote = None,
     ):
         if not compression.is_algorithm_available(compression_algorithm):
             raise KeyError(
@@ -183,19 +204,12 @@ class BackupSpace:
                 compression_algorithm
             ),
             compression_level=compression_level,
+            remote=remote,
         )
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
-        cls._config.dump_dict(
-            {
-                "general": {
-                    "name": cls._name,
-                    "uuid": str(cls._uuid),
-                    "type": cls._type.name,
-                    "compression_algorithm": cls._compression_algorithm.name,
-                    "compression_level": cls._compression_level,
-                }
-            }
-        )
+
+        cls._config.create()
+        cls.update_config()
         cls._config.prepend_no_edit_warning()
 
         return cls
@@ -212,6 +226,9 @@ class BackupSpace:
 
     def get_type(self) -> BackupSpaceType:
         return self._type
+
+    def get_remote(self) -> Remote:
+        return self._remote
 
     def get_compression_algorithm(self) -> compression.CompressionAlgorithm:
         return self._compression_algorithm
@@ -238,6 +255,7 @@ class Backup:
         sha256sum: str,
         comment: str,
         created_at: TimeObject,
+        remote: Remote | None,
     ):
         self._path: Path = path
         self._backup_space: BackupSpace = backup_space
@@ -245,6 +263,7 @@ class Backup:
         self._hash: str = sha256sum
         self._comment: str = comment
         self._created_at: TimeObject = created_at
+        self._remote: Remote | None = remote
         self._config: TOMLConfiguration = TOMLConfiguration(
             path.parent / (str(unique_id) + ".toml")
         )
@@ -268,6 +287,19 @@ class Backup:
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()} "
                 "seconds."
             )
+
+    def update_config(self):
+        current_content = self._config.as_dict()
+
+        content = {
+            "uuid": str(self._uuid),
+            "backup_space": str(self._backup_space.get_uuid()),
+            "hash": self._hash,
+            "comment": self._comment,
+            "created_at": self._created_at.isoformat(),
+        }
+
+        self._config.dump_dict(dict(merge({}, content, current_content)))
 
     #####################
     #    CLASSMETHODS   #
@@ -306,6 +338,7 @@ class Backup:
             sha256sum=config["hash"],
             comment=config["comment"],
             created_at=TimeObject.fromisoformat(config["created_at"]),
+            remote=Remote.load_by_uuid(config["remote"]),
         )
 
         if not cls.check_hash():
@@ -366,18 +399,11 @@ class Backup:
             sha256sum=_calculate_sha256sum(moved_path),
             comment=comment,
             created_at=created_at,
+            remote=backup_space.get_remote(),
         )
 
         cls._config.create()
-        cls._config.dump_dict(
-            {
-                "uuid": str(cls._uuid),
-                "backup_space": str(cls._backup_space.get_uuid()),
-                "hash": cls._hash,
-                "comment": cls._comment,
-                "created_at": cls._created_at.isoformat(),
-            }
-        )
+        cls.update_config()
         cls._config.prepend_no_edit_warning()
 
         if verbosity_level >= 1:

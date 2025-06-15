@@ -31,7 +31,7 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str) -> "Protocol":
+    def from_name(cls, name: str) -> "Protocol" | None:
         for protocol in _protocols:
             if protocol.name == name:
                 return protocol
@@ -489,6 +489,10 @@ class Remote:
 
         return checksum
 
+    #####################
+    #    CLASSMETHODS   #
+    #####################
+
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "Remote":
 
@@ -629,3 +633,34 @@ class Remote:
             )
 
         return cls
+
+    #####################
+    #       GETTER      #
+    #####################
+
+    def get_name(self) -> str:
+        return self._name
+
+    def get_uuid(self) -> uuid.UUID:
+        return self._uuid
+
+    def get_protocol(self) -> Protocol:
+        return self._protocol
+
+    def get_hostname(self) -> str:
+        return self._hostname
+
+    def get_username(self) -> str:
+        return self._username
+
+    def get_ssh_key(self) -> Path:
+        return self._ssh_key
+
+    def should_use_system_keys(self) -> bool:
+        return self._use_system_keys
+
+    def get_root_dir(self) -> str:
+        return self._root_dir
+
+    def get_sha256_cmd(self) -> str:
+        return self._sha256_cmd
