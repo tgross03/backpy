@@ -43,7 +43,7 @@ class TOMLConfiguration:
 
         return content
 
-    def __setitem__(self, key: str, value: str):
+    def __setitem__(self, key: str, value: object):
         if not self.is_valid():
             raise FileNotFoundError(
                 "The variable configuration could not "

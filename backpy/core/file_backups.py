@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from backpy import Backup, BackupSpace, BackupSpaceType, compression
+from backpy.core.variables import VariableLibrary
 
 
 class FileBackupSpace(BackupSpace):
@@ -37,6 +38,7 @@ class FileBackupSpace(BackupSpace):
         self,
         unique_id: str,
         incremental: bool,
+        source: str = "local",
         force: bool = False,
         verbosity_level: int = 1,
     ) -> None:
@@ -45,15 +47,17 @@ class FileBackupSpace(BackupSpace):
             backup_space=self, unique_id=unique_id, fail_invalid=not force
         )
 
-        if not backup.check_hash() and force:
+        from_remote = source == "remote"
+
+        if verbosity_level >= 1:
+            print(f"Restoring backup '{backup.get_uuid()}' ...")
+
+        if not backup.check_hash(remote=from_remote) and force:
             raise warnings.warn(
                 "Forcing restore of possibly corrupted "
                 f"backup '{backup.get_uuid()}'. This can lead "
                 f"to unwanted behavior."
             )
-
-        if verbosity_level >= 1:
-            print(f"Restoring backup '{backup.get_uuid()}' ...")
 
         start_time = time.time()
 
@@ -68,19 +72,50 @@ class FileBackupSpace(BackupSpace):
             if was_dir:
                 self._file_path.mkdir(exist_ok=True, parents=True)
 
+        if from_remote:
+
+            archive_path = Path(
+                VariableLibrary().get_variable("paths.temporary_directory")
+            )
+            archive_path.mkdir(exist_ok=True, parents=True)
+            archive_path /= backup.get_path().name
+
+            if verbosity_level > 1:
+                print(f"Creating temporary copy of remote archive at '{archive_path}'.")
+
+            try:
+                backup.get_remote().download(
+                    source=backup.get_remote_archive_path(), target=archive_path
+                )
+            except IOError:
+                if force:
+                    raise warnings.warn(
+                        "Forcing restore of possibly corrupted "
+                        f"backup '{backup.get_uuid()}'. This can lead "
+                        f"to unwanted behavior."
+                    )
+        else:
+            archive_path = backup.get_path()
+
         compression.unpack(
-            archive_path=backup.get_path(),
+            archive_path=archive_path,
             target_path=self._file_path,
             verbosity_level=verbosity_level,
         )
 
         if verbosity_level >= 1:
             print(
-                f"Restored Backup with UUID '{unique_id}' "
+                f"Restored Backup with UUID '{unique_id}' from source {source}"
                 f"at location {self._file_path}\n"
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
                 " seconds!"
             )
+
+        if from_remote:
+            if verbosity_level > 1:
+                print(f"Removing temporary copy of remote archive '{archive_path}'.")
+
+            archive_path.unlink()
 
     #####################
     #    CLASSMETHODS   #
@@ -97,7 +132,7 @@ class FileBackupSpace(BackupSpace):
             raise TypeError("The loaded BackupSpace is not a FileBackupSpace!")
 
         cls._file_path = Path(cls._config["file_system.path"])
-        cls._default_exclude = list[str] = cls._config["file_system.default_exclude"]
+        cls._default_exclude = cls._config["file_system.default_exclude"]
 
         return cls
 
@@ -125,15 +160,18 @@ class FileBackupSpace(BackupSpace):
         **kwargs,
     ) -> "FileBackupSpace":
 
+        parent = super(FileBackupSpace, cls).new(
+            name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
+        )
+        cls = cls.__new__(cls)
+        cls.__dict__.update(parent.__dict__)
+
         if isinstance(file_path, str):
             file_path = Path(file_path).expanduser()
 
         if default_exclude is None:
             default_exclude = []
 
-        cls = BackupSpace.new(
-            name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
-        )
         cls._file_path = file_path.absolute()
         cls._default_exclude = default_exclude
 

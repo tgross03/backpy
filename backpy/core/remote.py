@@ -325,9 +325,9 @@ class Remote:
                         verbosity_level=retry_on_hash_missmatch,
                     )
                 else:
-                    warnings.warn(
+                    raise IOError(
                         "The SHA256 of the downloaded file did not match the "
-                        "remote file. Did not attempt retry."
+                        "remote file. Not retrying."
                     )
             elif verbosity_level > 1:
                 print(f"Checksum matched: {_calculate_hash(target).lower()}")

@@ -71,7 +71,11 @@ class BackupSpace:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def restore_backup(
-        self, unique_id: str, incremental: bool, force: bool = False
+        self,
+        unique_id: str,
+        incremental: bool,
+        source: str = "local",
+        force: bool = False,
     ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
@@ -88,7 +92,7 @@ class BackupSpace:
         for archive_file in archive_files:
             try:
                 backups.append(Backup.load_by_uuid(self, archive_file.stem))
-            except FileNotFoundError:
+            except Exception:
                 continue
 
         if sort_by is not None:
@@ -152,7 +156,7 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
-            remote=config["general.remote"],
+            remote=Remote.load_by_uuid(config["general.remote"]),
         )
         return cls
 
@@ -282,8 +286,14 @@ class Backup:
     def calculate_hash(self) -> str:
         return _calculate_sha256sum(self._path)
 
-    def check_hash(self) -> bool:
-        return self.calculate_hash() == self._hash
+    def check_hash(self, remote=False) -> bool:
+        if remote:
+            return (
+                self._remote.get_hash(target=self.get_remote_archive_path())
+                == self._hash
+            )
+        else:
+            return self.calculate_hash() == self._hash
 
     def delete(self, verbosity_level: int = 1) -> None:
 
@@ -291,6 +301,14 @@ class Backup:
 
         self._config.get_path().unlink()
         self._path.unlink()
+
+        if self._remote:
+            self._remote.remove(
+                target=self.get_remote_archive_path(), verbosity_level=verbosity_level
+            )
+            self._remote.remove(
+                target=self.get_remote_config_path(), verbosity_level=verbosity_level
+            )
 
         if verbosity_level >= 1:
             print(
@@ -308,6 +326,7 @@ class Backup:
             "hash": self._hash,
             "comment": self._comment,
             "created_at": self._created_at.isoformat(),
+            "remote": str(self._remote.get_uuid()),
         }
 
         self._config.dump_dict(dict(merge({}, content, current_content)))
@@ -429,15 +448,12 @@ class Backup:
         if cls._remote:
             cls._remote.upload(
                 source=moved_path,
-                target=str(Path(cls._backup_space.get_remote_path()) / moved_path.name),
+                target=cls.get_remote_archive_path(),
                 verbosity_level=verbosity_level,
             )
             cls._remote.upload(
                 source=cls._config.get_path(),
-                target=str(
-                    Path(cls._backup_space.get_remote_path())
-                    / cls._config.get_path().name
-                ),
+                target=cls.get_remote_config_path(),
                 verbosity_level=verbosity_level,
             )
 
@@ -449,6 +465,17 @@ class Backup:
 
     def get_path(self) -> Path:
         return self._path
+
+    def get_remote_archive_path(self) -> str:
+        return str(Path(self._backup_space.get_remote_path()) / self._path.name)
+
+    def get_remote_config_path(self) -> str:
+        return str(
+            Path(self._backup_space.get_remote_path()) / self._config.get_path().name
+        )
+
+    def get_remote(self) -> Remote:
+        return self._remote
 
     def get_uuid(self) -> uuid.UUID:
         return self._uuid
