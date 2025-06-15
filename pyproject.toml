@@ -50,6 +50,8 @@ dependencies = [
   "pandas",
   "click",
   "fuzzyfinder",
+  "scp",
+  "paramiko"
 ]
 
 [project.optional-dependencies]

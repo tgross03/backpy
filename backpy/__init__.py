@@ -4,6 +4,7 @@ from backpy.core.variables import VariableLibrary
 from backpy.core.configuration import TOMLConfiguration
 from backpy.core.backup import Backup, BackupSpace, BackupSpaceType
 from backpy.core.file_backups import FileBackupSpace
+from backpy.core.remote import Remote
 
 __all__ = [
     "VariableLibrary",
@@ -14,4 +15,5 @@ __all__ = [
     "Backup",
     "compression",
     "TimeObject",
+    "Remote",
 ]

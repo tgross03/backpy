@@ -126,7 +126,7 @@ class FileBackupSpace(BackupSpace):
     ) -> "FileBackupSpace":
 
         if isinstance(file_path, str):
-            file_path = Path(file_path)
+            file_path = Path(file_path).expanduser()
 
         if default_exclude is None:
             default_exclude = []
