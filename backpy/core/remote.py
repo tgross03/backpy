@@ -3,10 +3,12 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import paramiko
 from paramiko import SSHClient
 from paramiko.sftp_client import SFTPClient
 from paramiko.ssh_exception import SSHException
+from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
 from scp import SCPClient
 
 from backpy.core.configuration import TOMLConfiguration
@@ -76,7 +78,7 @@ class Remote:
             self._client.close()
 
         self._client = SSHClient()
-        self._client.set_missing_host_key_policy(paramiko.client.WarningPolicy)
+        self._client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy)
 
         if self._ssh_key:
             try:
@@ -105,47 +107,144 @@ class Remote:
 
     def upload(
         self,
-        source: Path,
+        source: Path | str,
         target: str,
         close_afterwards: bool = True,
         verbosity_level: int = 1,
     ):
+
+        if isinstance(source, str):
+            source = Path(source)
+
         self.connect()
+        with Progress(
+            *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
+        ) as progress:
 
-        match self._protocol.name:
-            case "sftp":
-                sftp_client = self._client.open_sftp()
+            task = progress.add_task(
+                f"Uploading {source}", visible=verbosity_level >= 1
+            )
 
-                self.mkdir(
-                    target, parents=True, close_afterwards=False, client=sftp_client
-                )
-                for root, dirs, files in Path(source).walk(follow_symlinks=False):
-                    self.mkdir(
-                        target=str(target / root),
-                        parents=True,
-                        close_afterwards=False,
-                        client=sftp_client,
-                    )
+            match self._protocol.name:
+                case "sftp":
+                    sftp_client = self._client.open_sftp()
 
-                    for file in files:
-                        sftp_client.put(
-                            localpath=root / file,
-                            remotepath=target + "/" + str(root / file),
+                    if source.is_file():
+                        size = source.stat().st_size
+                    else:
+                        size = int(
+                            np.sum(
+                                [
+                                    file.stat().st_size if file.is_file() else 0
+                                    for file in source.rglob("*")
+                                ]
+                            )
                         )
 
-            case "scp":
+                    progress.update(task, total=size)
+                    cur_file = source
+                    cur_sent = 0
+                    _progress = lambda sent, total: progress.update(
+                        task,
+                        completed=sent + cur_sent,
+                        total=size,
+                        description=f"Uploading {cur_file}",
+                    )
 
-                scp_client = SCPClient(self._client.get_transport())
-                self.mkdir(
-                    target=target,
-                    parents=True,
-                    close_afterwards=False,
-                    client=scp_client,
-                )
-                scp_client.put(files=source, remote_path=target, recursive=True)
+                    target_paths = target.split("/")
+
+                    if len(target_paths) > 1:
+                        self.mkdir(
+                            "/".join(target_paths[:-1]),
+                            parents=True,
+                            close_afterwards=False,
+                            client=sftp_client,
+                        )
+
+                    if source.is_file():
+                        sftp_client.put(
+                            localpath=source, remotepath=target, callback=_progress
+                        )
+                    else:
+                        for root, dirs, files in Path(source).walk(
+                            follow_symlinks=False
+                        ):
+
+                            self.mkdir(
+                                target=str(target / root),
+                                parents=True,
+                                close_afterwards=False,
+                                client=sftp_client,
+                            )
+
+                            for file in files:
+                                cur_file = str(root / file)
+                                cur_sent = progress._tasks[task].completed
+                                sftp_client.put(
+                                    localpath=root / file,
+                                    remotepath=target + "/" + str(root / file),
+                                    callback=_progress,
+                                )
+
+                case "scp":
+
+                    _progress = lambda filename, total, sent: progress.update(
+                        task, total=total, completed=sent
+                    )
+
+                    scp_client = SCPClient(
+                        self._client.get_transport(), progress=_progress
+                    )
+
+                    if len(target.split("/")) > 1:
+                        self.mkdir(
+                            target=target,
+                            parents=True,
+                            close_afterwards=False,
+                            client=scp_client,
+                        )
+
+                    scp_client.put(files=source, remote_path=target, recursive=True)
 
         if close_afterwards:
             self.disconnect()
+
+    def download(self, source: str, target: Path | str, verbosity_level: int = 1):
+
+        if isinstance(target, str):
+            target = Path(target)
+
+        self.connect()
+
+        with Progress(
+            *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
+        ) as progress:
+            task = progress.add_task(
+                f"Downloading {source}", visible=verbosity_level >= 1
+            )
+
+            match self._protocol.name:
+                case "sftp":
+                    _progress = lambda received, total: progress.update(
+                        task, total=total, completed=received
+                    )
+
+                    sftp_client = self._client.open_sftp()
+                    sftp_client.get(
+                        remotepath=source, localpath=target, callback=_progress
+                    )
+
+                case "scp":
+                    _progress = lambda filename, received, total: progress.update(
+                        task, total=total, completed=received
+                    )
+
+                    scp_client = SCPClient(
+                        self._client.get_transport(), progress=_progress
+                    )
+                    scp_client.get(remote_path=source, local_path=str(target))
+
+        self.disconnect()
 
     def mkdir(
         self,
