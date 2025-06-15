@@ -31,7 +31,7 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str) -> "Protocol" | None:
+    def from_name(cls, name: str):
         for protocol in _protocols:
             if protocol.name == name:
                 return protocol
@@ -664,3 +664,6 @@ class Remote:
 
     def get_sha256_cmd(self) -> str:
         return self._sha256_cmd
+
+    def get_relative_to_root(self, path: Path | str) -> str:
+        return str(Path(self.get_root_dir()) / path)

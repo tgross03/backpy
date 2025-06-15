@@ -190,6 +190,7 @@ class BackupSpace:
             "backup.states.default_compression_level"
         ),
         remote: Remote = None,
+        verbosity_level: int = 1,
     ):
         if not compression.is_algorithm_available(compression_algorithm):
             raise KeyError(
@@ -212,6 +213,13 @@ class BackupSpace:
         cls.update_config()
         cls._config.prepend_no_edit_warning()
 
+        if cls._remote:
+            cls._remote.mkdir(
+                target=cls.get_remote_path(),
+                parents=True,
+                verbosity_level=verbosity_level,
+            )
+
         return cls
 
     #####################
@@ -229,6 +237,9 @@ class BackupSpace:
 
     def get_remote(self) -> Remote:
         return self._remote
+
+    def get_remote_path(self) -> str:
+        return self._remote.get_relative_to_root("backups/" + str(self._uuid))
 
     def get_compression_algorithm(self) -> compression.CompressionAlgorithm:
         return self._compression_algorithm
@@ -414,6 +425,21 @@ class Backup:
             )
         if verbosity_level >= 2:
             print(f"SHA256 Hash: {cls.get_hash()}")
+
+        if cls._remote:
+            cls._remote.upload(
+                source=moved_path,
+                target=str(Path(cls._backup_space.get_remote_path()) / moved_path.name),
+                verbosity_level=verbosity_level,
+            )
+            cls._remote.upload(
+                source=cls._config.get_path(),
+                target=str(
+                    Path(cls._backup_space.get_remote_path())
+                    / cls._config.get_path().name
+                ),
+                verbosity_level=verbosity_level,
+            )
 
         return cls
 
