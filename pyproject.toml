@@ -32,14 +32,18 @@ name = "backpy"
 dynamic = ["version"]
 description = "A Python based CLI tool for backing up data and databases."
 readme = "README.md"
-authors = [{ name = "Tom Groß" }]
+authors = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
 maintainers = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
-license = { text = "GPL-3.0" }
+license = { text = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0" }
 classifiers = [
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GPL-3.0-only",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13",
+  "Environment :: Console",
+  "Operating System :: Unix",
+  "Natural Language :: English",
+  "Topic :: System :: Archiving :: Backup",
   "Development Status :: 4 - Beta",
 ]
 requires-python = ">=3.13"
@@ -53,6 +57,7 @@ dependencies = [
   "scp",
   "paramiko",
   "mergedeep",
+  "python-crontab",
 ]
 
 [project.optional-dependencies]
@@ -69,6 +74,11 @@ tests = [
 ]
 
 [project.scripts]
+backpy = "backpy.cli.cli:entry_point"
+
+[project.urls]
+Documentation = "https://github.com/tgross03/backpy"
+Repository = "https://github.com/tgross03/backpy"
 
 [tool.setuptools_scm]
 write_to = "backpy/_version.py"
