@@ -13,9 +13,6 @@ from .config import commands as config
 from .schedule import commands as schedule
 from .space import commands as space
 
-# file structure based on https://stackoverflow.com/a/39228156
-
-
 # ANSI color codes
 CYAN = "\033[96m"
 YELLOW = "\033[93m"
@@ -95,6 +92,10 @@ def _create_epilog(short):
             + f"More information on this license can be found under "
             f"{BOLD}{UNDERLINE}{CYAN}{lic['url']}{RESET}."
         )
+
+
+# Structure of the entry_point group and adding of the subcommands
+# taken from https://stackoverflow.com/a/39228156
 
 
 @click.group(epilog=_create_epilog(short=True))
