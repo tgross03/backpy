@@ -127,6 +127,18 @@ class BackupSpace:
     #####################
 
     @classmethod
+    def get_backup_spaces(cls) -> list["BackupSpace"]:
+        spaces = []
+        for directory in Path(
+            VariableLibrary().get_variable("paths.backup_directory")
+        ).glob("*"):
+            tomlf = directory / "config.toml"
+            if directory.is_dir() and TOMLConfiguration(tomlf).is_valid():
+                spaces.append(BackupSpace.load_by_uuid(directory.name))
+
+        return spaces
+
+    @classmethod
     def load_by_uuid(cls, unique_id: str):
 
         unique_id = uuid.UUID(unique_id)
@@ -156,7 +168,9 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
-            remote=Remote.load_by_uuid(config["general.remote"]),
+            remote=Remote.load_by_uuid(config["general.remote"])
+            if config["general.remote"] != ""
+            else None,
         )
         return cls
 

@@ -7,23 +7,14 @@ import click
 import backpy
 import backpy.version
 from backpy import TOMLConfiguration
+from backpy.cli.colors import EFFECTS, PALETTE, RESET
 
 from .backup import commands as backup
 from .config import commands as config
 from .schedule import commands as schedule
 from .space import commands as space
 
-# ANSI color codes
-CYAN = "\033[96m"
-YELLOW = "\033[93m"
-GREEN = "\033[92m"
-BLUE = "\033[94m"
-MAGENTA = "\033[95m"
-WHITE = "\033[97m"
-GRAY = "\033[90m"
-RESET = "\033[0m"
-BOLD = "\033[1m"
-UNDERLINE = "\033[4m"
+latte = PALETTE.latte
 
 
 def _print_version(ctx, param, value):
@@ -36,12 +27,12 @@ def _print_version(ctx, param, value):
     content = f"🐍 backpy ◆ v{version}"
     frame_width = len(content) + 2
 
-    print(f"{CYAN}{'─' * frame_width}{RESET}")
+    print(f"{latte.sky}{'─' * frame_width}{RESET}")
     print(
-        f" {BOLD}{MAGENTA}🐍 backpy{RESET} {YELLOW}◆{RESET} "
-        f"{BOLD}{GREEN}v{version}{RESET} "
+        f" {EFFECTS.bold.on}{latte.maroon}🐍 backpy{RESET} {latte.yellow}◆{RESET} "
+        f"{EFFECTS.bold.on}{latte.green}v{version}{RESET} "
     )
-    print(f"{CYAN}{'─' * frame_width}{RESET}")
+    print(f"{latte.sky}{'─' * frame_width}{RESET}")
 
     ctx.exit()
 
@@ -73,31 +64,31 @@ def _create_epilog(short):
 
     if short:
         return (
-            f"{WHITE}For more information on this package visit "
-            f"{BOLD}{UNDERLINE}{BLUE}{docu_url}{RESET}!\n\n"
-            f"Version {GREEN}{version}{RESET}"
+            f"{latte.base}For more information on this package visit "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.blue}{docu_url}{RESET}!\n\n"
+            f"Version {latte.green}{version}{RESET}"
         )
     else:
         return (
-            f"{GRAY}©️{RESET} {BOLD}{YELLOW}{year_str}{year}{RESET}, "
-            f"{BOLD}{MAGENTA}{authors}{RESET}\n\n"
-            + f"🐍 {WHITE}backpy version {BOLD}{GREEN}v{version}{RESET}\n\n"
-            + f"📦 {WHITE}The code repository for this Python package "
+            f"{latte.overlay1}©️{RESET} {EFFECTS.bold.on}{latte.yellow}"
+            f"{year_str}{year}{RESET}, "
+            f"{EFFECTS.bold.on}{latte.maroon}{authors}{RESET}\n\n"
+            + f"🐍 {latte.base}backpy version {EFFECTS.bold.on}{latte.green}"
+            f"v{version}{RESET}\n\n"
+            + f"📦 {latte.base}The code repository for this Python package "
             f"is available under "
-            f"{BOLD}{UNDERLINE}{CYAN}{repo_url}{RESET}.\n\n"
-            + f"📚 {WHITE}For more information on this package visit "
-            f"{BOLD}{UNDERLINE}{BLUE}{docu_url}{RESET}!\n\n"
-            + f"⚖️ {WHITE}This package is licensed under the "
-            f"{BOLD}{GREEN}{lic['text']}{RESET} {WHITE}license. "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.sky}{repo_url}{RESET}.\n\n"
+            + f"📚 {latte.base}For more information on this package visit "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.blue}{docu_url}{RESET}!\n\n"
+            + f"⚖️ {latte.base}This package is licensed under the "
+            f"{EFFECTS.bold.on}{latte.green}{lic['text']}{RESET} {latte.base}license. "
             + f"More information on this license can be found under "
-            f"{BOLD}{UNDERLINE}{CYAN}{lic['url']}{RESET}."
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.sky}{lic['url']}{RESET}."
         )
 
 
 # Structure of the entry_point group and adding of the subcommands
 # taken from https://stackoverflow.com/a/39228156
-
-
 @click.group(epilog=_create_epilog(short=True))
 @click.option(
     "--version",

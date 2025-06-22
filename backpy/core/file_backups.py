@@ -9,11 +9,6 @@ from backpy.core.variables import VariableLibrary
 
 
 class FileBackupSpace(BackupSpace):
-    def __init__(self, file_path: Path, default_exclude: list[str], **kwargs):
-        super().__init__(space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs)
-        self._file_path: Path = file_path
-        self._default_exclude: list[str] = default_exclude
-
     def create_backup(
         self,
         comment: str = "",
@@ -159,7 +154,6 @@ class FileBackupSpace(BackupSpace):
         default_exclude: list[str] | None = None,
         **kwargs,
     ) -> "FileBackupSpace":
-
         parent = super(FileBackupSpace, cls).new(
             name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
         )
