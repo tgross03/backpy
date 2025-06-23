@@ -7,14 +7,14 @@ import click
 import backpy
 import backpy.version
 from backpy import TOMLConfiguration
-from backpy.cli.colors import EFFECTS, PALETTE, RESET
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 
 from .backup import commands as backup
 from .config import commands as config
 from .schedule import commands as schedule
 from .space import commands as space
 
-latte = PALETTE.latte
+palette = get_default_palette()
 
 
 def _print_version(ctx, param, value):
@@ -27,12 +27,12 @@ def _print_version(ctx, param, value):
     content = f"🐍 backpy ◆ v{version}"
     frame_width = len(content) + 2
 
-    print(f"{latte.sky}{'─' * frame_width}{RESET}")
+    print(f"{palette.sky}{'─' * frame_width}{RESET}")
     print(
-        f" {EFFECTS.bold.on}{latte.maroon}🐍 backpy{RESET} {latte.yellow}◆{RESET} "
-        f"{EFFECTS.bold.on}{latte.green}v{version}{RESET} "
+        f" {EFFECTS.bold.on}{palette.maroon}🐍 backpy{RESET} {palette.yellow}◆{RESET} "
+        f"{EFFECTS.bold.on}{palette.green}v{version}{RESET} "
     )
-    print(f"{latte.sky}{'─' * frame_width}{RESET}")
+    print(f"{palette.sky}{'─' * frame_width}{RESET}")
 
     ctx.exit()
 
@@ -64,26 +64,26 @@ def _create_epilog(short):
 
     if short:
         return (
-            f"{latte.base}For more information on this package visit "
-            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.blue}{docu_url}{RESET}!\n\n"
-            f"Version {latte.green}{version}{RESET}"
+            f"{palette.base}For more information on this package visit "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{palette.blue}{docu_url}{RESET}!\n\n"
+            f"Version {palette.green}{version}{RESET}"
         )
     else:
         return (
-            f"{latte.overlay1}©️{RESET} {EFFECTS.bold.on}{latte.yellow}"
+            f"{palette.overlay1}©️{RESET} {EFFECTS.bold.on}{palette.yellow}"
             f"{year_str}{year}{RESET}, "
-            f"{EFFECTS.bold.on}{latte.maroon}{authors}{RESET}\n\n"
-            + f"🐍 {latte.base}backpy version {EFFECTS.bold.on}{latte.green}"
+            f"{EFFECTS.bold.on}{palette.maroon}{authors}{RESET}\n\n"
+            + f"🐍 {palette.base}backpy version {EFFECTS.bold.on}{palette.green}"
             f"v{version}{RESET}\n\n"
-            + f"📦 {latte.base}The code repository for this Python package "
+            + f"📦 {palette.base}The code repository for this Python package "
             f"is available under "
-            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.sky}{repo_url}{RESET}.\n\n"
-            + f"📚 {latte.base}For more information on this package visit "
-            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.blue}{docu_url}{RESET}!\n\n"
-            + f"⚖️ {latte.base}This package is licensed under the "
-            f"{EFFECTS.bold.on}{latte.green}{lic['text']}{RESET} {latte.base}license. "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{palette.sky}{repo_url}{RESET}.\n\n"
+            + f"📚 {palette.base}For more information on this package visit "
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{palette.blue}{docu_url}{RESET}!\n\n"
+            + f"⚖️ {palette.base}This package is licensed under the "
+            f"{EFFECTS.bold.on}{palette.green}{lic['text']}{RESET} {palette.base}license. "
             + f"More information on this license can be found under "
-            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{latte.sky}{lic['url']}{RESET}."
+            f"{EFFECTS.bold.on}{EFFECTS.underline.on}{palette.sky}{lic['url']}{RESET}."
         )
 
 

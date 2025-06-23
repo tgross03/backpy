@@ -1,10 +1,10 @@
 import click
-from fuzzyfinder import fuzzyfinder
 
 from backpy import BackupSpace
-from backpy.cli.colors import EFFECTS, PALETTE, RESET
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
+from backpy.cli.elements import TextInput
 
-latte = PALETTE.latte
+palette = get_default_palette()
 
 
 @click.group("backup", help="Actions related to creating and managing backups.")
@@ -12,13 +12,13 @@ def command():
     pass
 
 
-def create_interactive() -> None:
+def create_interactive(verbosity_level: int) -> None:
 
     spaces = BackupSpace.get_backup_spaces()
 
     if len(spaces) == 0:
         print(
-            f"{latte.red}There is no valid Backup Space present. "
+            f"{palette.red}There is no valid Backup Space present. "
             f"You have to create a Backup Space first. Use 'backpy --help' for help."
         )
         return
@@ -29,50 +29,31 @@ def create_interactive() -> None:
         space_names_uuids.append(str(space.get_uuid()))
         space_names_uuids.append(space.get_name())
 
-    found_space = False
-
-    space = None
-    matched = []
-
-    while not found_space:
-        space = input(
-            f"{latte.base}1. Enter the {latte.lavender}name{latte.base} "
-            f"or {latte.lavender}UUID{latte.base} of the {EFFECTS.underline.on}"
-            f"Backup Space{RESET}{latte.base}: "
-        )
-
-        matched = list(fuzzyfinder(space, space_names_uuids))
-
-        if len(matched) == 0:
-            print(
-                f"{latte.red}There is no Backup Space with "
-                f"{latte.maroon}name{latte.red} "
-                f"or {latte.maroon}UUID {EFFECTS.reverse.on}{latte.yellow}"
-                f"{space}{EFFECTS.reverse.off}"
-                f"{latte.red}. Please try again!"
-            )
-            continue
-
-        if matched[0] == space:
-            break
-
-        found_space = (
-            input(
-                f"{latte.base}Did you mean "
-                f"{list(fuzzyfinder(space, space_names_uuids, highlight=True))[0]}"
-                f"{latte.base}? (Y/n) "
-            )
-            or "Y"
-        ).lower() == "y"
-
-    space = matched[0]
+    space = TextInput(
+        message=f"{palette.base}1. Enter the {palette.lavender}name{palette.base} "
+        f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
+        f"Backup Space{RESET}{palette.base}: ",
+        invalid_error_message=f"{palette.red}There is no Backup Space with "
+        f"{palette.maroon}name{palette.red} "
+        f"or {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
+        "{value}"
+        f"{EFFECTS.reverse.off}"
+        f"{palette.red}. Please try again!",
+        suggest_matches=True,
+        suggestible_values=space_names_uuids,
+    ).prompt()
 
     try:
         space = BackupSpace.load_by_uuid(space)
-    except ValueError or NotADirectoryError:
+    except Exception:
         space = BackupSpace.load_by_name(space)
 
-    print(space)
+    print(space.get_uuid())
+    print(str(space.get_uuid()))
+
+    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+
+    print(space.get_config())
 
 
 @click.command(
@@ -103,7 +84,7 @@ def create(
 ) -> None:
 
     if interactive:
-        return create_interactive()
+        return create_interactive(verbosity_level=verbose)
 
     if backup_space is None:
         raise ValueError(

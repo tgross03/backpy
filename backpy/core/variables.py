@@ -40,6 +40,9 @@ class VariableLibrary:
                     "default_sha256_cmd": "sha256sum",
                 }
             },
+            "cli": {
+                "color_palette": "latte",
+            },
         }
 
         self._config.dump_dict(

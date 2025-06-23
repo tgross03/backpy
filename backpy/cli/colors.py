@@ -2,6 +2,8 @@ from enum import Enum
 
 from catppuccin.palette import PALETTE as _PALETTE
 
+from backpy import VariableLibrary
+
 
 # RGB to ANSI guide from
 # https://jakob-bagterp.github.io/colorist-for-python/ansi-escape-codes/rgb-colors/
@@ -28,7 +30,9 @@ for val in _PALETTE.__iter__():
     PALETTE[palette].__get__ = _get_value
 
 
-PALETTE = Enum("PALETTE", PALETTE)
+_palette_dict = PALETTE.copy()
+
+PALETTE = Enum("PALETTE", _palette_dict.copy())
 """
 A variant of the catppuccin color palette, which returns ANSI color codes instead
 of rgb / hex colors.
@@ -46,6 +50,8 @@ Examples
 
 """
 
+PALETTE._member_names_ = list(_palette_dict.keys())
+PALETTE._member_map_ = _palette_dict
 PALETTE.__get__ = _get_value
 
 
@@ -88,3 +94,7 @@ EFFECTS.__get__ = _get_value
 
 for effect in EFFECTS:
     effect.value.__get__ = _get_value
+
+
+def get_default_palette():
+    return PALETTE[VariableLibrary().get_variable("cli.color_palette")]

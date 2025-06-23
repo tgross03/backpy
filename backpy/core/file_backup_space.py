@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 import shutil
 import time
 import warnings
 from datetime import timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from backpy import Backup, BackupSpace, BackupSpaceType, compression
-from backpy.core.variables import VariableLibrary
+from backpy import BackupSpace, VariableLibrary
 from backpy.exceptions import InvalidBackupSpaceError, InvalidChecksumError
+
+from . import compression
+
+if TYPE_CHECKING:
+    from backpy import Backup, BackupSpaceType
 
 
 class FileBackupSpace(BackupSpace):

@@ -1,17 +1,18 @@
 from collections.abc import Callable
 
-# from fuzzyfinder import fuzzyfinder
+from fuzzyfinder import fuzzyfinder
 
-# from backpy.cli.colors import PALETTE
+from backpy.cli.colors import get_default_palette
+
+palette = get_default_palette()
 
 
-def _validate_always(**kwargs) -> bool:
+def _validate_always(value) -> bool:
     return True
 
 
-class Confirm:
-    def __init__(self, name: str, message: str, default_value: bool) -> None:
-        self.name: str = name
+class ConfirmInput:
+    def __init__(self, message: str, default_value: bool) -> None:
         self.message: str = message
         self.default_value: bool = default_value
 
@@ -36,15 +37,11 @@ class Confirm:
         while not valid_input:
             in_value = input(self._get_prompt())
 
-            if (
-                in_value.lower() != "y"
-                and in_value.lower() != "n"
-                and in_value is not None
-            ):
-                print("")
+            if in_value.lower() != "y" and in_value.lower() != "n" and in_value != "":
+                print(f"{palette.red}You have type y, n or nothing to proceed!")
                 continue
 
-            confirmation = (in_value) or self._get_default_input().lower() == "y"
+            confirmation = (in_value or self._get_default_input().lower()) == "y"
             valid_input = True
 
         return confirmation
@@ -53,34 +50,85 @@ class Confirm:
 class TextInput:
     def __init__(
         self,
-        name: str,
         message: str,
         default_value: str | None = None,
         validate: Callable[[str], bool] = _validate_always,
         suggest_matches: bool = False,
+        case_sensitive: bool = True,
         suggestible_values: list[str] | None = None,
         confirm_suggestion: bool = True,
-        only_suggestible: bool = True,
         highlight_suggestion: bool = True,
-        validation_policy: str = "retry",
+        invalid_error_message: str | None = None,
     ):
-        self.name: str = name
         self.message: str = message
         self.default_value: str | None = default_value
         self._validate: Callable[[str], bool] = validate
         self.suggest_matches: bool = suggest_matches
+        self.case_sensitive: bool = case_sensitive
         self.suggestible_values: list[str] = (
             [] if suggestible_values is None else suggestible_values
         )
         self.confirm_suggestion: bool = confirm_suggestion
-        self.only_suggestible: bool = only_suggestible
+        self.highlight_suggestion: bool = highlight_suggestion
+        self.invalid_error_message: str = (
+            invalid_error_message
+            if invalid_error_message
+            else f"{palette.red}Invalid input! Please try again."
+        )
 
     def _get_prompt(self) -> str:
-        return f"{self.message} "
+        return f"{self.message}" + (
+            f"(default: {self.default_value})" if self.default_value is not None else ""
+        )
 
     def prompt(self) -> str:
-        # value = input(self._get_prompt())
 
-        if self.suggest_matches:
-            None
-        # valid_input = self._validate(value)
+        valid_result = False
+
+        value = None
+
+        while not valid_result:
+            value = input(self._get_prompt())
+
+            valid_input = self._validate(value)
+
+            if not valid_input:
+                print(f"{palette.red}{self.invalid_error_message.format(value=value)}")
+                continue
+
+            if self.suggest_matches:
+                matched = list(fuzzyfinder(value, self.suggestible_values))
+
+                if len(matched) == 0:
+                    print(
+                        f"{palette.red}{self.invalid_error_message.format(value=value)}"
+                    )
+                    continue
+
+                if self.case_sensitive:
+                    if matched[0] == value:
+                        break
+                else:
+                    if matched[0].lower() == value.lower():
+                        break
+
+                best_match = list(
+                    fuzzyfinder(
+                        value,
+                        self.suggestible_values,
+                        highlight=self.highlight_suggestion,
+                    )
+                )[0]
+
+                valid_result = ConfirmInput(
+                    message=(
+                        f"{palette.base}Did you mean "
+                        f"{best_match}"
+                        f"{palette.base}?"
+                    ),
+                    default_value=True,
+                ).prompt()
+
+                value = matched[0]
+
+        return value
