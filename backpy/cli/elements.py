@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fuzzyfinder import fuzzyfinder
 
-from backpy.cli.colors import RESET, get_default_palette
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 
 palette = get_default_palette()
 
@@ -105,7 +105,7 @@ class TextInput:
 
     def _get_prompt(self) -> str:
         return f"{self.message}" + (
-            f"(default: {self.default_value}) "
+            f" (default: '{self.default_value}') "
             if self.default_value is not None
             else ""
         )
@@ -162,6 +162,37 @@ class TextInput:
             valid_result = True
 
         return value
+
+
+class EnumerationInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: str | None = None,
+        validate: Callable[[str], bool] = _validate_always,
+        invalid_error_message: str | None = None,
+    ):
+        super().__init__(
+            message=message,
+            default_value=default_value,
+            validate=validate,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.red}Invalid enumeration input! Enumerations "
+                f"have to have follow this syntax: "
+                f"{palette.maroon}{EFFECTS.reverse.on}val1,val2,val3 "
+                f"{EFFECTS.reverse.off}{palette.red}Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> list[str]:
+        prompt = super().prompt().split(",")
+
+        if prompt == [""]:
+            return []
+        else:
+            return prompt
 
 
 class FilePathInput(TextInput):

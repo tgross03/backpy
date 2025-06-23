@@ -13,7 +13,7 @@ from backpy.exceptions import InvalidBackupSpaceError, InvalidChecksumError
 from . import compression
 
 if TYPE_CHECKING:
-    from backpy import Backup, BackupSpaceType
+    from backpy import Backup
 
 
 class FileBackupSpace(BackupSpace):
@@ -23,6 +23,8 @@ class FileBackupSpace(BackupSpace):
         exclude: list[str] | None = None,
         verbosity_level: int = 1,
     ) -> Backup:
+
+        from backpy import Backup
 
         if exclude is None:
             exclude = []
@@ -45,6 +47,8 @@ class FileBackupSpace(BackupSpace):
         force: bool = False,
         verbosity_level: int = 1,
     ) -> None:
+
+        from backpy import Backup
 
         backup = Backup.load_by_uuid(
             backup_space=self, unique_id=unique_id, fail_invalid=not force
@@ -180,6 +184,9 @@ class FileBackupSpace(BackupSpace):
         default_exclude: list[str] | None = None,
         **kwargs,
     ) -> "FileBackupSpace":
+
+        from backpy import BackupSpaceType
+
         parent = super(FileBackupSpace, cls).new(
             name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
         )

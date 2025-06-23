@@ -44,7 +44,12 @@ class BackupSpace:
         )
         self._remote = remote
 
-    def create_backup(self, comment: str = "", verbosity_level: int = 1) -> None:
+    def create_backup(
+        self,
+        comment: str = "",
+        exclude: list[str] | None = None,
+        verbosity_level: int = 1,
+    ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def restore_backup(
@@ -53,6 +58,7 @@ class BackupSpace:
         incremental: bool,
         source: str = "local",
         force: bool = False,
+        verbosity_level: int = 1,
     ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 

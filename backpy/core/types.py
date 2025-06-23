@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 class BackupSpaceType:
     name: str
     description: str
+    use_exclusion: bool
     child_class: Type[BackupSpace]
 
     @classmethod
@@ -31,6 +32,7 @@ def _get_backups_space_type():
         BackupSpaceType(
             "FILE_SYSTEM",
             "Backup-Space of one or more files and/or directories.",
+            True,
             FileBackupSpace,
         ),
     ]

@@ -83,7 +83,7 @@ class Backup:
             "hash": self._hash,
             "comment": self._comment,
             "created_at": self._created_at.isoformat(),
-            "remote": str(self._remote.get_uuid()),
+            "remote": str(self._remote.get_uuid()) if self._remote else "",
         }
 
         self._config.dump_dict(dict(merge({}, content, current_content)))
