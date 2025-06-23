@@ -11,6 +11,12 @@ import numpy as np
 from mergedeep import merge
 
 from backpy import Remote, TimeObject, TOMLConfiguration, VariableLibrary, compression
+from backpy.exceptions import (
+    InvalidBackupError,
+    InvalidBackupSpaceError,
+    InvalidChecksumError,
+    UnsupportedCompressionAlgorithmError,
+)
 
 
 @dataclass
@@ -92,7 +98,7 @@ class BackupSpace:
         for archive_file in archive_files:
             try:
                 backups.append(Backup.load_by_uuid(self, archive_file.stem))
-            except Exception:
+            except InvalidBackupError:
                 continue
 
         if sort_by is not None:
@@ -148,14 +154,14 @@ class BackupSpace:
         )
 
         if not path.is_dir():
-            raise NotADirectoryError(
+            raise InvalidBackupSpaceError(
                 f"There is no BackupSpace present with the UUID '{unique_id}'."
             )
 
         config = TOMLConfiguration(path=path / "config.toml")
 
         if not config.is_valid():
-            raise FileNotFoundError(
+            raise InvalidBackupSpaceError(
                 "The BackupSpace could not be loaded because its"
                 "'config.toml' is invalid or missing!"
             )
@@ -189,10 +195,10 @@ class BackupSpace:
 
             try:
                 return BackupSpace.load_by_uuid(config["general.uuid"])
-            except NotADirectoryError:
+            except InvalidBackupSpaceError:
                 break
 
-        raise FileNotFoundError(
+        raise InvalidBackupSpaceError(
             f"There is no valid BackupSpace present with the name '{name}'."
         )
 
@@ -211,7 +217,7 @@ class BackupSpace:
         verbosity_level: int = 1,
     ):
         if not compression.is_algorithm_available(compression_algorithm):
-            raise KeyError(
+            raise UnsupportedCompressionAlgorithmError(
                 f"The compression algorithm '{compression_algorithm}' is not available!"
             )
 
@@ -361,7 +367,7 @@ class Backup:
         )
 
         if not path.exists():
-            raise FileNotFoundError(
+            raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' does not exist."
             )
 
@@ -370,7 +376,7 @@ class Backup:
         )
 
         if not config.is_valid():
-            raise FileNotFoundError(
+            raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' could not be loaded because its"
                 "'config.toml' is invalid or missing!"
             )
@@ -394,7 +400,7 @@ class Backup:
             if not fail_invalid:
                 warnings.warn(err_msg)
             else:
-                raise ValueError(err_msg)
+                raise InvalidChecksumError(err_msg)
 
         return cls
 

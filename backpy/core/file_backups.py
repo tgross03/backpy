@@ -6,6 +6,7 @@ from pathlib import Path
 
 from backpy import Backup, BackupSpace, BackupSpaceType, compression
 from backpy.core.variables import VariableLibrary
+from backpy.exceptions import InvalidBackupSpaceError, InvalidChecksumError
 
 
 class FileBackupSpace(BackupSpace):
@@ -47,12 +48,19 @@ class FileBackupSpace(BackupSpace):
         if verbosity_level >= 1:
             print(f"Restoring backup '{backup.get_uuid()}' ...")
 
-        if not backup.check_hash(remote=from_remote) and force:
-            raise warnings.warn(
-                "Forcing restore of possibly corrupted "
-                f"backup '{backup.get_uuid()}'. This can lead "
-                f"to unwanted behavior."
-            )
+        if not backup.check_hash(remote=from_remote):
+            if force:
+                warnings.warn(
+                    "Forcing restore of possibly corrupted "
+                    f"backup '{backup.get_uuid()}'. This can lead "
+                    f"to unwanted behavior."
+                )
+            else:
+                raise InvalidChecksumError(
+                    "The backup could not be restored,"
+                    "because its SHA256 sum could not be verified. "
+                    "Use --force / -f flag to force the restoring."
+                )
 
         start_time = time.time()
 
@@ -82,13 +90,20 @@ class FileBackupSpace(BackupSpace):
                 backup.get_remote().download(
                     source=backup.get_remote_archive_path(), target=archive_path
                 )
-            except IOError:
+            except InvalidChecksumError:
                 if force:
-                    raise warnings.warn(
+                    warnings.warn(
                         "Forcing restore of possibly corrupted "
                         f"backup '{backup.get_uuid()}'. This can lead "
                         f"to unwanted behavior."
                     )
+                else:
+                    raise InvalidChecksumError(
+                        "The backup could not be restored,"
+                        "because its SHA256 sum could not be verified. "
+                        "Use --force / -f flag to force the restoring."
+                    )
+
         else:
             archive_path = backup.get_path()
 
@@ -124,7 +139,9 @@ class FileBackupSpace(BackupSpace):
         cls.__dict__.update(parent.__dict__)
 
         if cls._type.name != "FILE_SYSTEM":
-            raise TypeError("The loaded BackupSpace is not a FileBackupSpace!")
+            raise InvalidBackupSpaceError(
+                "The loaded BackupSpace is not a FileBackupSpace!"
+            )
 
         cls._file_path = Path(cls._config["file_system.path"])
         cls._default_exclude = cls._config["file_system.default_exclude"]
@@ -139,7 +156,9 @@ class FileBackupSpace(BackupSpace):
         cls.__dict__.update(parent.__dict__)
 
         if cls._type.name != "FILE_SYSTEM":
-            raise TypeError("The loaded BackupSpace is not a FileBackupSpace!")
+            raise InvalidBackupSpaceError(
+                "The loaded BackupSpace is not a FileBackupSpace!"
+            )
 
         cls._file_path = Path(cls._config["file_system.path"])
         cls._default_exclude = cls._config["file_system.default_exclude"]

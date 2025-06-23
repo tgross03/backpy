@@ -2,6 +2,8 @@ from pathlib import Path
 
 import toml
 
+from backpy.exceptions import InvalidTOMLConfigurationError
+
 
 def _parse_key(key: str):
     key_components = key.split(".")
@@ -13,7 +15,9 @@ class TOMLConfiguration:
         self._path: Path = Path(path) if isinstance(path, str) else path
 
         if self._path.suffix != ".toml":
-            raise TypeError("The given configuration file has to be a TOML file!")
+            raise InvalidTOMLConfigurationError(
+                "The given configuration file has to be a TOML file!"
+            )
 
         if create_if_not_exists:
             self.create()
@@ -23,9 +27,8 @@ class TOMLConfiguration:
 
     def __getitem__(self, item: str):
         if not self.is_valid():
-            raise FileNotFoundError(
-                "The variable configuration could not be "
-                f"found at location {str(self._path)}!"
+            raise InvalidTOMLConfigurationError(
+                "The given configuration file is not valid!"
             )
 
         keys = _parse_key(item)
@@ -45,7 +48,7 @@ class TOMLConfiguration:
 
     def __setitem__(self, key: str, value: object):
         if not self.is_valid():
-            raise FileNotFoundError(
+            raise InvalidTOMLConfigurationError(
                 "The variable configuration could not "
                 f"be found at location {str(self._path)}!"
             )

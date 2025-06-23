@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 from rich.progress import track
 
+from backpy.exceptions import UnsupportedCompressionAlgorithmError
+
 
 @dataclass
 class CompressionAlgorithm:
@@ -49,7 +51,9 @@ def compress(
         root_path = Path(root_path)
 
     if not is_algorithm_available(fmt):
-        raise NotImplementedError(f"Compression algorithm '{fmt}' is not available!")
+        raise UnsupportedCompressionAlgorithmError(
+            f"Compression algorithm '{fmt}' is not available!"
+        )
 
     if fmt == "zip":
         return _compress_zip(

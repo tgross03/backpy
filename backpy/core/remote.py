@@ -14,8 +14,12 @@ from paramiko.ssh_exception import SSHException
 from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
 from scp import SCPClient
 
-from backpy.core.configuration import TOMLConfiguration
-from backpy.core.variables import VariableLibrary
+from backpy import TOMLConfiguration, VariableLibrary
+from backpy.exceptions import (
+    InvalidChecksumError,
+    InvalidRemoteError,
+    UnsupportedProtocolError,
+)
 
 
 def _calculate_hash(path: Path) -> str:
@@ -325,7 +329,7 @@ class Remote:
                         verbosity_level=retry_on_hash_missmatch,
                     )
                 else:
-                    raise IOError(
+                    raise InvalidChecksumError(
                         "The SHA256 of the downloaded file did not match the "
                         "remote file. Not retrying."
                     )
@@ -505,7 +509,7 @@ class Remote:
         )
 
         if not config.is_valid():
-            raise FileNotFoundError(
+            raise InvalidRemoteError(
                 f"The remote with UUID '{str(unique_id)}' could not be found!"
             )
 
@@ -541,10 +545,10 @@ class Remote:
 
             try:
                 return Remote.load_by_uuid(unique_id=config["uuid"])
-            except FileNotFoundError:
+            except InvalidRemoteError:
                 break
 
-        raise FileNotFoundError(
+        raise InvalidRemoteError(
             f"There is no valid remote present with the name '{name}'."
         )
 
@@ -570,7 +574,9 @@ class Remote:
         _protocol = Protocol.from_name(protocol)
 
         if protocol is None:
-            raise NameError(f"The protocol '{protocol}' is not supported!")
+            raise UnsupportedProtocolError(
+                f"The protocol '{protocol}' is not supported!"
+            )
 
         if username is None:
             raise ValueError("The username has to be specified!")

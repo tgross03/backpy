@@ -37,6 +37,7 @@ dependencies = [
   "paramiko",
   "mergedeep",
   "python-crontab",
+  "catppuccin",
 ]
 
 [project.optional-dependencies]
