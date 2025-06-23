@@ -1,13 +1,40 @@
 from collections.abc import Callable
+from pathlib import Path
 
 from fuzzyfinder import fuzzyfinder
 
-from backpy.cli.colors import get_default_palette
+from backpy.cli.colors import RESET, get_default_palette
 
 palette = get_default_palette()
 
 
-def _validate_always(value) -> bool:
+def _validate_always(value: str) -> bool:
+    return True
+
+
+def _validate_file_path(value: str) -> bool:
+    return Path(value).expanduser().is_file(follow_symlinks=True)
+
+
+def _validate_directory_path(value: str) -> bool:
+    return Path(value).expanduser().is_dir(follow_symlinks=True)
+
+
+def _validate_integer(value: str) -> bool:
+    try:
+        int(value)
+    except ValueError:
+        return False
+
+    return True
+
+
+def _validate_float(value: str) -> bool:
+    try:
+        float(value)
+    except ValueError:
+        return False
+
     return True
 
 
@@ -38,7 +65,7 @@ class ConfirmInput:
             in_value = input(self._get_prompt())
 
             if in_value.lower() != "y" and in_value.lower() != "n" and in_value != "":
-                print(f"{palette.red}You have type y, n or nothing to proceed!")
+                print(f"{palette.red}You have type y, n or nothing to proceed!{RESET}")
                 continue
 
             confirmation = (in_value or self._get_default_input().lower()) == "y"
@@ -73,12 +100,14 @@ class TextInput:
         self.invalid_error_message: str = (
             invalid_error_message
             if invalid_error_message
-            else f"{palette.red}Invalid input! Please try again."
+            else f"{palette.red}Invalid input! Please try again.{RESET}"
         )
 
     def _get_prompt(self) -> str:
         return f"{self.message}" + (
-            f"(default: {self.default_value})" if self.default_value is not None else ""
+            f"(default: {self.default_value}) "
+            if self.default_value is not None
+            else ""
         )
 
     def prompt(self) -> str:
@@ -124,11 +153,128 @@ class TextInput:
                     message=(
                         f"{palette.base}Did you mean "
                         f"{best_match}"
-                        f"{palette.base}?"
+                        f"{palette.base}?{RESET}"
                     ),
                     default_value=True,
                 ).prompt()
 
                 value = matched[0]
+            valid_result = True
 
         return value
+
+
+class FilePathInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: str | None = None,
+        validate: Callable[[str], bool] = _validate_file_path,
+        invalid_error_message: str | None = None,
+    ):
+        super().__init__(
+            message=message,
+            default_value=default_value,
+            validate=validate,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.red}Invalid file path input! Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> Path:
+        return Path(super().prompt())
+
+
+class DirectoryPathInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: str | None = None,
+        validate: Callable[[str], bool] = _validate_directory_path,
+        invalid_error_message: str | None = None,
+    ):
+        super().__init__(
+            message=message,
+            default_value=default_value,
+            validate=validate,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.red}Invalid directory path input! Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> Path:
+        return Path(super().prompt())
+
+
+class IntegerInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: int | None = None,
+        validate: Callable[[str], bool] = _validate_integer,
+        suggest_matches: bool = False,
+        suggestible_values: list[int] | None = None,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+        invalid_error_message: str | None = None,
+    ):
+
+        suggestible_values = [] if not suggestible_values else suggestible_values
+
+        super().__init__(
+            message=message,
+            default_value=str(default_value) if default_value else None,
+            validate=validate,
+            suggest_matches=suggest_matches,
+            case_sensitive=False,
+            suggestible_values=[str(val) for val in suggestible_values],
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.red}Invalid integer number input! Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> int:
+        return int(super().prompt())
+
+
+class FloatInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: float | None = None,
+        validate: Callable[[str], bool] = _validate_float,
+        suggest_matches: bool = False,
+        suggestible_values: list[float] | None = None,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+        invalid_error_message: str | None = None,
+    ):
+
+        suggestible_values = [] if not suggestible_values else suggestible_values
+
+        super().__init__(
+            message=message,
+            default_value=str(default_value) if default_value else None,
+            validate=validate,
+            suggest_matches=suggest_matches,
+            case_sensitive=False,
+            suggestible_values=[str(val) for val in suggestible_values],
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.red}Invalid floating number input! Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> float:
+        return float(super().prompt())

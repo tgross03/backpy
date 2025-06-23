@@ -19,7 +19,7 @@ def create_interactive(verbosity_level: int) -> None:
     if len(spaces) == 0:
         print(
             f"{palette.red}There is no valid Backup Space present. "
-            f"You have to create a Backup Space first. Use 'backpy --help' for help."
+            f"You have to create a Backup Space first. Use 'backpy --help' for help.{RESET}"
         )
         return
 
@@ -38,7 +38,7 @@ def create_interactive(verbosity_level: int) -> None:
         f"or {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
         "{value}"
         f"{EFFECTS.reverse.off}"
-        f"{palette.red}. Please try again!",
+        f"{palette.red}. Please try again!{RESET}",
         suggest_matches=True,
         suggestible_values=space_names_uuids,
     ).prompt()
@@ -47,9 +47,6 @@ def create_interactive(verbosity_level: int) -> None:
         space = BackupSpace.load_by_uuid(space)
     except Exception:
         space = BackupSpace.load_by_name(space)
-
-    print(space.get_uuid())
-    print(str(space.get_uuid()))
 
     space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
 
