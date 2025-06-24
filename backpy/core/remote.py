@@ -151,7 +151,7 @@ class Remote:
         ) as progress:
 
             task = progress.add_task(
-                f"Uploading {source}", visible=verbosity_level >= 1
+                f"Uploading {source.name}", visible=verbosity_level >= 1
             )
 
             match self._protocol.name:
@@ -177,7 +177,7 @@ class Remote:
                         task,
                         completed=sent + cur_sent,
                         total=size,
-                        description=f"Uploading {cur_file}",
+                        description=f"Uploading {cur_file.name}",
                     )
 
                     target_paths = target.split("/")

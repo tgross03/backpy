@@ -26,7 +26,7 @@ def create_interactive(verbosity_level: int) -> None:
         space_names_uuids.append(space.get_name())
 
     space = TextInput(
-        message=f"{palette.base}1. Enter the {palette.lavender}name{palette.base} "
+        message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
         f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
         f"Backup Space{RESET}{palette.base}: ",
         invalid_error_message=f"{palette.red}There is no Backup Space with "
@@ -46,15 +46,31 @@ def create_interactive(verbosity_level: int) -> None:
 
     space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
 
+    def _validate_location(value: str):
+        return value in ["all", "local", "remote"]
+
+    if space.get_remote():
+        location = TextInput(
+            message=f"{palette.base}> Enter at which {palette.lavender}locations{palette.base} "
+            f"the backup should be saved (options: 'all', 'remote', 'local'):{RESET}",
+            validate=_validate_location,
+            default_value="all",
+            invalid_error_message=f"{palette.red}The given value is not one of the options "
+            f"{palette.maroon}('all', 'remote', 'local'). "
+            f"{palette.red}Please try again.{RESET}",
+        ).prompt()
+    else:
+        location = "all"
+
     comment = TextInput(
-        message=f"{palette.base}2. Enter a {palette.lavender}custom comment{palette.base} "
+        message=f"{palette.base}> Enter a {palette.lavender}custom comment{palette.base} "
         f"(can be empty):{RESET}",
         default_value="",
     ).prompt()
 
     if space.get_type().use_exclusion:
         exclude = EnumerationInput(
-            message=f"{palette.base}2. Enter an comma-seperated enumeration of {palette.lavender}"
+            message=f"{palette.base}> Enter an comma-seperated enumeration of {palette.lavender}"
             f"elements that should be excluded from the backup{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (can be empty):{RESET}",
             default_value="",
@@ -63,7 +79,10 @@ def create_interactive(verbosity_level: int) -> None:
         exclude = []
 
     space.create_backup(
-        comment=comment, exclude=exclude, verbosity_level=verbosity_level
+        location=location,
+        comment=comment,
+        exclude=exclude,
+        verbosity_level=verbosity_level,
     )
 
 
@@ -73,6 +92,13 @@ def create_interactive(verbosity_level: int) -> None:
     "supplied in the argument 'BACKUP_SPACE'.",
 )
 @click.argument("backup_space", type=str, default=None, required=False)
+@click.option(
+    "--location",
+    "-l",
+    type=click.types.Choice(["all", "local", "remote"]),
+    default="all",
+    help="The location(s) to save the backup at.",
+)
 @click.option(
     "--comment",
     "-c",
@@ -101,6 +127,7 @@ def create_interactive(verbosity_level: int) -> None:
 )
 def create(
     backup_space: str | None,
+    location: str,
     comment: str,
     exclude: list[str],
     verbose: int,
@@ -136,6 +163,7 @@ def create(
         )
 
     space.create_backup(
+        location=location,
         comment=comment,
         exclude=exclude,
         verbosity_level=verbose,

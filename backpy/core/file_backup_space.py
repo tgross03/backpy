@@ -21,6 +21,7 @@ class FileBackupSpace(BackupSpace):
         self,
         comment: str = "",
         exclude: list[str] | None = None,
+        location: str = "all",
         verbosity_level: int = 1,
     ) -> Backup:
 
@@ -34,6 +35,7 @@ class FileBackupSpace(BackupSpace):
             backup_space=self,
             comment=comment,
             exclude=list(set(exclude) | set(self._default_exclude)),
+            location=location,
             verbosity_level=verbosity_level,
         )
 

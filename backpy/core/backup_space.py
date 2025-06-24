@@ -48,6 +48,7 @@ class BackupSpace:
         self,
         comment: str = "",
         exclude: list[str] | None = None,
+        location: str = "all",
         verbosity_level: int = 1,
     ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")

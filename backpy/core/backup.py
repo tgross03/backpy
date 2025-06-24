@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class Backup:
     def __init__(
         self,
-        path: Path,
+        path: Path | None,
         backup_space: BackupSpace,
         unique_id: uuid.UUID,
         sha256sum: str,
@@ -29,7 +29,7 @@ class Backup:
         created_at: TimeObject,
         remote: Remote | None,
     ):
-        self._path: Path = path
+        self._path: Path | None = path
         self._backup_space: BackupSpace = backup_space
         self._uuid: uuid.UUID = unique_id
         self._hash: str = sha256sum
@@ -37,7 +37,7 @@ class Backup:
         self._created_at: TimeObject = created_at
         self._remote: Remote | None = remote
         self._config: TOMLConfiguration = TOMLConfiguration(
-            path.parent / (str(unique_id) + ".toml")
+            backup_space.get_backup_dir() / (str(unique_id) + ".toml")
         )
 
     def calculate_hash(self) -> str:
@@ -57,15 +57,25 @@ class Backup:
         start_time = time.time()
 
         self._config.get_path().unlink()
-        self._path.unlink()
+        if verbosity_level >= 2:
+            print(f"Removed local config at {self._config.get_path()}.")
 
-        if self._remote:
+        if self.has_local_archive():
+            self._path.unlink()
+            if verbosity_level >= 2:
+                print(f"Removed local backup at {self._path}.")
+
+        if self.has_remote_archive():
             self._remote.remove(
                 target=self.get_remote_archive_path(), verbosity_level=verbosity_level
             )
+            if verbosity_level >= 2:
+                print(f"Removed remote backup at {self.get_remote_archive_path()}.")
             self._remote.remove(
                 target=self.get_remote_config_path(), verbosity_level=verbosity_level
             )
+            if verbosity_level >= 2:
+                print(f"Removed remote config at {self.get_remote_config_path()}.")
 
         if verbosity_level >= 1:
             print(
@@ -99,45 +109,56 @@ class Backup:
 
         unique_id = uuid.UUID(unique_id)
 
-        path = backup_space.get_backup_dir() / (
-            str(unique_id) + backup_space.get_compression_algorithm().extension
-        )
+        config_path = backup_space.get_backup_dir() / (str(unique_id) + ".toml")
 
-        if not path.exists():
+        if not config_path.exists():
             raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' does not exist."
             )
 
-        config = TOMLConfiguration(
-            backup_space.get_backup_dir() / (str(unique_id) + ".toml")
-        )
+        config = TOMLConfiguration(config_path)
 
         if not config.is_valid():
             raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' could not be loaded because its"
-                "'config.toml' is invalid or missing!"
+                "'config.toml' is invalid!"
             )
 
+        archive_path = backup_space.get_backup_dir() / (
+            str(unique_id) + backup_space.get_compression_algorithm().extension
+        )
+
         cls = cls(
-            path=path,
+            path=archive_path if archive_path.exists() else None,
             backup_space=backup_space,
             unique_id=unique_id,
             sha256sum=config["hash"],
             comment=config["comment"],
             created_at=TimeObject.fromisoformat(config["created_at"]),
-            remote=Remote.load_by_uuid(config["remote"]),
+            remote=Remote.load_by_uuid(config["remote"])
+            if config["remote"] != ""
+            else None,
         )
 
-        if not cls.check_hash():
-            err_msg = (
-                f"The SHA256 of the loaded backup with UUID '{unique_id}' "
-                "is not identical with the one saved in its configuration. "
-                "This could mean, that the file is corrupted or was changed."
-            )
-            if not fail_invalid:
-                warnings.warn(err_msg)
-            else:
-                raise InvalidChecksumError(err_msg)
+        checks = []
+
+        if cls.has_remote_archive():
+            checks.append(True)
+        if cls.has_local_archive():
+            checks.append(False)
+
+        for remote in checks:
+            if not cls.check_hash(remote=remote):
+                err_msg = (
+                    f"The SHA256 of the loaded backup with UUID '{unique_id}' "
+                    "is not identical with the one saved in its configuration. "
+                    "This could mean, that the file is corrupted or was changed. "
+                    f"(Location: {'remote' if remote else 'local'})"
+                )
+                if not fail_invalid:
+                    warnings.warn(err_msg)
+                else:
+                    raise InvalidChecksumError(err_msg)
 
         return cls
 
@@ -148,8 +169,12 @@ class Backup:
         backup_space: BackupSpace,
         comment: str = "",
         exclude: list[str] | None = None,
+        location: str = "all",
         verbosity_level: int = 1,
     ):
+
+        save_locally = location == "local" or location == "all"
+        save_remotely = location == "remote" or location == "all"
 
         if not source_path.exists(follow_symlinks=True):
             raise FileNotFoundError(
@@ -180,29 +205,30 @@ class Backup:
         moved_path = Path(shutil.move(archive_path, backup_space.get_backup_dir()))
 
         cls = cls(
-            path=moved_path,
+            path=moved_path if save_locally else None,
             backup_space=backup_space,
             unique_id=unique_id,
             sha256sum=_calculate_sha256sum(moved_path),
             comment=comment,
             created_at=created_at,
-            remote=backup_space.get_remote(),
+            remote=backup_space.get_remote() if save_remotely else None,
         )
 
         cls._config.create()
         cls.update_config()
         cls._config.prepend_no_edit_warning()
 
-        if verbosity_level >= 1:
+        if verbosity_level >= 0:
             print(
                 f"Created Backup with UUID '{unique_id}'. "
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
                 " seconds!"
             )
+
         if verbosity_level >= 2:
             print(f"SHA256 Hash: {cls.get_hash()}")
 
-        if cls._remote:
+        if cls.has_remote_archive():
             cls._remote.upload(
                 source=moved_path,
                 target=cls.get_remote_archive_path(),
@@ -214,17 +240,40 @@ class Backup:
                 verbosity_level=verbosity_level,
             )
 
+        if not save_locally:
+            if cls.has_remote_archive():
+                moved_path.unlink()
+                if verbosity_level >= 2:
+                    print(f"Removed local backup at {moved_path}.")
+            else:
+                warnings.warn(
+                    "Since there is no remote defined, "
+                    "the backup can only be saved locally!"
+                )
+
         return cls
 
     #####################
     #       GETTER      #
     #####################
 
+    def has_local_archive(self) -> bool:
+        return self._path is not None
+
+    def has_remote_archive(self) -> bool:
+        return self._remote is not None
+
     def get_path(self) -> Path:
         return self._path
 
     def get_remote_archive_path(self) -> str:
-        return str(Path(self._backup_space.get_remote_path()) / self._path.name)
+        return str(
+            Path(self._backup_space.get_remote_path())
+            / (
+                str(self._uuid)
+                + self._backup_space.get_compression_algorithm().extension
+            )
+        )
 
     def get_remote_config_path(self) -> str:
         return str(

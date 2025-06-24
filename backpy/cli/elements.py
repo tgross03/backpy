@@ -119,6 +119,9 @@ class TextInput:
         while not valid_result:
             value = input(self._get_prompt())
 
+            if value == "" and self.default_value:
+                value = self.default_value
+
             valid_input = self._validate(value)
 
             if not valid_input:
@@ -149,17 +152,21 @@ class TextInput:
                     )
                 )[0]
 
-                valid_result = ConfirmInput(
-                    message=(
-                        f"{palette.base}Did you mean "
-                        f"{best_match}"
-                        f"{palette.base}?{RESET}"
-                    ),
-                    default_value=True,
-                ).prompt()
+                if self.confirm_suggestion:
+                    valid_result = ConfirmInput(
+                        message=(
+                            f"{palette.base}Did you mean "
+                            f"{best_match}"
+                            f"{palette.base}?{RESET}"
+                        ),
+                        default_value=True,
+                    ).prompt()
+                else:
+                    valid_result = True
 
                 value = matched[0]
-            valid_result = True
+            else:
+                valid_result = True
 
         return value
 
