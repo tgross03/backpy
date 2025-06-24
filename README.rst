@@ -6,4 +6,6 @@ backpy |license|
   :target: https://www.gnu.org/licenses/gpl-3.0
   :alt: License: GPL v3
 
-A Python based CLI tool for backing up data and databases
+.. image:: ./resources/backpy_logo_dark.png
+  :target: https://github.com/tgross03/backpy
+  :alt: Insert BackPy logo here
