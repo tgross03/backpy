@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fuzzyfinder import fuzzyfinder
 
+from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 
 palette = get_default_palette()
@@ -169,6 +170,113 @@ class TextInput:
                 valid_result = True
 
         return value
+
+
+class BackupSpaceInput(TextInput):
+    def __init__(
+        self,
+        validate: Callable[[str], bool] = _validate_always,
+        suggest_matches: bool = False,
+        case_sensitive: bool = True,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+    ):
+
+        spaces = BackupSpace.get_backup_spaces()
+
+        if len(spaces) == 0:
+            print(
+                f"{palette.red}There is no valid Backup Space present. "
+                f"You have to create a Backup Space first. Use 'backpy --help' for help.{RESET}"
+            )
+            return
+
+        space_names_uuids = []
+
+        for space in spaces:
+            space_names_uuids.append(str(space.get_uuid()))
+            space_names_uuids.append(space.get_name())
+
+        super().__init__(
+            message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
+            f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
+            f"Backup Space{RESET}{palette.base}: ",
+            invalid_error_message=f"{palette.red}There is no Backup Space with "
+            f"{palette.maroon}name{palette.red} "
+            f"or {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
+            "{value}"
+            f"{EFFECTS.reverse.off}"
+            f"{palette.red}. Please try again!{RESET}",
+            validate=validate,
+            suggest_matches=suggest_matches,
+            suggestible_values=space_names_uuids,
+            case_sensitive=case_sensitive,
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+        )
+
+    def prompt(self) -> BackupSpace:
+        result = super().prompt()
+        try:
+            space = BackupSpace.load_by_uuid(result)
+        except Exception:
+            space = BackupSpace.load_by_name(result)
+
+        return space.get_type().child_class.load_by_uuid(
+            unique_id=str(space.get_uuid())
+        )
+
+
+class BackupInput(TextInput):
+    def __init__(
+        self,
+        backup_space: BackupSpace,
+        check_hash: bool = True,
+        validate: Callable[[str], bool] = _validate_always,
+        suggest_matches: bool = False,
+        case_sensitive: bool = True,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+    ):
+
+        self.backup_space: BackupSpace = backup_space
+        self.check_hash: bool = check_hash
+        backups = backup_space.get_backups(check_hash=False)
+
+        if len(backups) == 0:
+            print(
+                f"{palette.red}There is no valid Backup created for this Backup Space. "
+                f"You have to create a Backup first. Use 'backpy --help' for help.{RESET}"
+            )
+            return
+
+        backup_uuids = []
+
+        for backup in backups:
+            backup_uuids.append(str(backup.get_uuid()))
+
+        super().__init__(
+            message=f"{palette.base}> Enter the {palette.lavender}UUID{palette.base} "
+            f"of the {EFFECTS.underline.on}"
+            f"Backup{RESET}{palette.base}: ",
+            invalid_error_message=f"{palette.red}There is no Backup with "
+            f"the {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
+            "{value}"
+            f"{EFFECTS.reverse.off}"
+            f"{palette.red}. Please try again!{RESET}",
+            validate=validate,
+            suggest_matches=suggest_matches,
+            suggestible_values=backup_uuids,
+            case_sensitive=case_sensitive,
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+        )
+
+    def prompt(self) -> BackupSpace:
+        result = super().prompt()
+        return Backup.load_by_uuid(
+            backup_space=self.backup_space, unique_id=result, check_hash=self.check_hash
+        )
 
 
 class EnumerationInput(TextInput):

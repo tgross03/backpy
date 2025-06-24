@@ -104,7 +104,12 @@ class Backup:
 
     @classmethod
     def load_by_uuid(
-        cls, backup_space: BackupSpace, unique_id: str, fail_invalid: bool = False
+        cls,
+        backup_space: BackupSpace,
+        unique_id: str,
+        check_hash: bool = True,
+        fail_invalid: bool = False,
+        verbosity_level: int = 1,
     ):
 
         unique_id = uuid.UUID(unique_id)
@@ -140,25 +145,26 @@ class Backup:
             else None,
         )
 
-        checks = []
+        if check_hash:
+            checks = []
 
-        if cls.has_remote_archive():
-            checks.append(True)
-        if cls.has_local_archive():
-            checks.append(False)
+            if cls.has_remote_archive():
+                checks.append(True)
+            if cls.has_local_archive():
+                checks.append(False)
 
-        for remote in checks:
-            if not cls.check_hash(remote=remote):
-                err_msg = (
-                    f"The SHA256 of the loaded backup with UUID '{unique_id}' "
-                    "is not identical with the one saved in its configuration. "
-                    "This could mean, that the file is corrupted or was changed. "
-                    f"(Location: {'remote' if remote else 'local'})"
-                )
-                if not fail_invalid:
-                    warnings.warn(err_msg)
-                else:
-                    raise InvalidChecksumError(err_msg)
+            for remote in checks:
+                if not cls.check_hash(remote=remote):
+                    err_msg = (
+                        f"The SHA256 of the loaded backup with UUID '{unique_id}' "
+                        "is not identical with the one saved in its configuration. "
+                        "This could mean, that the file is corrupted or was changed. "
+                        f"(Location: {'remote' if remote else 'local'})"
+                    )
+                    if not fail_invalid:
+                        warnings.warn(err_msg)
+                    else:
+                        raise InvalidChecksumError(err_msg)
 
         return cls
 

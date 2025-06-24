@@ -63,7 +63,12 @@ class BackupSpace:
     ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
-    def get_backups(self, sort_by: str | None = None) -> list[Backup]:
+    def get_backups(
+        self, sort_by: str | None = None, check_hash: bool = True
+    ) -> list[Backup]:
+
+        from backpy import Backup
+
         archive_files = [
             file if file.is_file() else None
             for file in self._backup_dir.glob(
@@ -75,7 +80,9 @@ class BackupSpace:
 
         for archive_file in archive_files:
             try:
-                backups.append(Backup.load_by_uuid(self, archive_file.stem))
+                backups.append(
+                    Backup.load_by_uuid(self, archive_file.stem, check_hash=check_hash)
+                )
             except InvalidBackupError:
                 continue
 
@@ -258,4 +265,6 @@ class BackupSpace:
         return self._config.as_dict()
 
     def get_disk_usage(self) -> int:
-        return np.sum([backup.get_file_size() for backup in self.get_backups()])
+        return np.sum(
+            [backup.get_file_size() for backup in self.get_backups(check_hash=False)]
+        )

@@ -1,8 +1,8 @@
 import click
 
 from backpy import BackupSpace
-from backpy.cli.colors import EFFECTS, RESET, get_default_palette
-from backpy.cli.elements import EnumerationInput, TextInput
+from backpy.cli.colors import RESET, get_default_palette
+from backpy.cli.elements import BackupSpaceInput, EnumerationInput, TextInput
 from backpy.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
@@ -10,41 +10,7 @@ palette = get_default_palette()
 
 def create_interactive(verbosity_level: int) -> None:
 
-    spaces = BackupSpace.get_backup_spaces()
-
-    if len(spaces) == 0:
-        print(
-            f"{palette.red}There is no valid Backup Space present. "
-            f"You have to create a Backup Space first. Use 'backpy --help' for help.{RESET}"
-        )
-        return
-
-    space_names_uuids = []
-
-    for space in spaces:
-        space_names_uuids.append(str(space.get_uuid()))
-        space_names_uuids.append(space.get_name())
-
-    space = TextInput(
-        message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
-        f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
-        f"Backup Space{RESET}{palette.base}: ",
-        invalid_error_message=f"{palette.red}There is no Backup Space with "
-        f"{palette.maroon}name{palette.red} "
-        f"or {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
-        "{value}"
-        f"{EFFECTS.reverse.off}"
-        f"{palette.red}. Please try again!{RESET}",
-        suggest_matches=True,
-        suggestible_values=space_names_uuids,
-    ).prompt()
-
-    try:
-        space = BackupSpace.load_by_uuid(space)
-    except Exception:
-        space = BackupSpace.load_by_name(space)
-
-    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+    space = BackupSpaceInput(suggest_matches=True).prompt()
 
     def _validate_location(value: str):
         return value in ["all", "local", "remote"]
@@ -88,8 +54,8 @@ def create_interactive(verbosity_level: int) -> None:
 
 @click.command(
     "create",
-    help="Create a new backup for a Backup Space identified by the UUID or name "
-    "supplied in the argument 'BACKUP_SPACE'.",
+    help=f"Create a new backup for a {palette.sky}'BACKUP_SPACE'{RESET} "
+    f"identified by its UUID or name.",
 )
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.option(
