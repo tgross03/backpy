@@ -11,11 +11,14 @@ from typing import TYPE_CHECKING
 from mergedeep import merge
 
 from backpy import Remote, TimeObject, TOMLConfiguration, compression
-from backpy.core.utils import _calculate_sha256sum
+from backpy.cli.colors import EFFECTS, get_default_palette
+from backpy.core.utils import calculate_sha256sum, format_bytes
 from backpy.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
     from backpy import BackupSpace
+
+palette = get_default_palette()
 
 
 class Backup:
@@ -41,7 +44,7 @@ class Backup:
         )
 
     def calculate_hash(self) -> str:
-        return _calculate_sha256sum(self._path)
+        return calculate_sha256sum(self._path)
 
     def check_hash(self, remote=False) -> bool:
         if remote:
@@ -93,6 +96,26 @@ class Backup:
         }
 
         self._config.dump_dict(dict(merge({}, content, current_content)))
+
+    def get_info(self):
+
+        divider = "=" * 84
+
+        info_string = f"""
+        {palette.overlay1}{divider}
+        📦 {palette.blue}BACKUP INFORMATION
+        {palette.overlay1}{divider}
+        🆔 {palette.sky}UUID:{palette.base}            {self._uuid}
+        🗄️ {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
+        🔐 {palette.sky}SHA256 Hash:{palette.base}     {self._hash}
+        💬 {palette.sky}Comment:{palette.base}         {self._comment or f"{EFFECTS.dim.on}N/A{EFFECTS.dim.off}"}
+        💽 {palette.sky}File size:{palette.base}       {format_bytes(self.get_file_size())}
+        ⏰ {palette.sky}Created At:{palette.base}      {self._created_at.printformat()}
+        🌐 {palette.sky}Remote:{palette.base}          {self._remote.get_uuid() if self.has_remote_archive() else 'Local backup (no remote)'}
+        {palette.overlay1}{divider}
+        """  # noqa 501
+
+        return info_string
 
     #####################
     #    CLASSMETHODS   #
@@ -210,7 +233,7 @@ class Backup:
             path=moved_path if save_locally else None,
             backup_space=backup_space,
             unique_id=unique_id,
-            sha256sum=_calculate_sha256sum(moved_path),
+            sha256sum=calculate_sha256sum(moved_path),
             comment=comment,
             created_at=created_at,
             remote=backup_space.get_remote() if save_remotely else None,
@@ -300,5 +323,5 @@ class Backup:
     def get_config(self) -> dict:
         return self._config.as_dict()
 
-    def get_file_size(self) -> float:
-        return self._path.stat().st_size
+    def get_file_size(self) -> int:
+        return int(self._path.stat().st_size)

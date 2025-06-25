@@ -2,10 +2,7 @@ import click
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.cli.elements import (
-    BackupInput,
-    BackupSpaceInput,
-    ConfirmInput,
+from backpy.cli.elements import (  # BackupInput,; BackupSpaceInput,; ConfirmInput,
     print_error_message,
 )
 from backpy.exceptions import InvalidBackupError, InvalidBackupSpaceError
@@ -13,52 +10,14 @@ from backpy.exceptions import InvalidBackupError, InvalidBackupSpaceError
 palette = get_default_palette()
 
 
-def delete_interactive(force: bool, debug: bool, verbosity_level: int):
-
-    space = BackupSpaceInput(suggest_matches=True).prompt()
-
-    if len(space.get_backups(check_hash=False)) == 0:
-        return print_error_message(
-            InvalidBackupError("There is no Backup present in this Backup Space!"),
-            debug=debug,
-        )
-
-    backup = BackupInput(backup_space=space, suggest_matches=True).prompt()
-
-    if not force:
-        confirm = ConfirmInput(
-            message=f"{palette.base}Are you sure you want to delete backup "
-            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
-            default_value=False,
-        ).prompt()
-
-        if confirm:
-            backup.delete(verbosity_level=verbosity_level)
-        else:
-            print(
-                f"{palette.red}Canceled removal of backup "
-                f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
-            )
-    else:
-        backup.delete(verbosity_level=verbosity_level)
-
-    return None
-
-
 @click.command(
-    "delete",
-    help=f"Delete a {palette.sky}'BACKUP'{RESET} identified by its UUID or a "
+    "info",
+    help=f"Get info about a {palette.sky}'BACKUP'{RESET} identified by its UUID or a "
     f"keyword ('latest', 'oldest' or 'largest', 'smallest') "
     f"from a {palette.sky}'BACKUP_SPACE'{RESET} identified by its UUID or name.",
 )
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
-@click.option(
-    "--force",
-    "-f",
-    is_flag=True,
-    help="Force the deletion of the backup. This will skip the confirmation step.",
-)
 @click.option(
     "--verbose",
     "-v",
@@ -73,20 +32,12 @@ def delete_interactive(force: bool, debug: bool, verbosity_level: int):
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
-@click.option(
-    "--interactive", "-i", is_flag=True, help="Delete the backup in interactive mode."
-)
-def delete(
+def info(
     backup_space: str | None,
     backup: str | None,
-    force: bool,
     verbose: int,
     debug: bool,
-    interactive: bool,
 ) -> None:
-
-    if interactive:
-        return delete_interactive(force=force, debug=debug, verbosity_level=verbose)
 
     if backup_space is None or backup is None:
         return print_error_message(
@@ -135,27 +86,12 @@ def delete(
             except Exception:
                 return print_error_message(
                     InvalidBackupError(
-                        f"There is no Backup with that UUID in the Backup "
-                        f"Space '{space.get_name()}'"
+                        f"There is no Backup with that UUID in the Backup Space "
+                        f"'{space.get_name()}'"
                     ),
                     debug=debug,
                 )
 
-    if not force:
-        confirm = ConfirmInput(
-            message=f"{palette.base}Are you sure you want to delete backup "
-            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
-            default_value=False,
-        ).prompt()
-
-        if confirm:
-            backup.delete(verbosity_level=verbose)
-        else:
-            print(
-                f"{palette.red}Canceled removal of backup "
-                f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
-            )
-    else:
-        backup.delete(verbosity_level=verbose)
+    print(backup.get_info())
 
     return None

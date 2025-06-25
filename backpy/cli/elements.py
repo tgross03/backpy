@@ -268,6 +268,8 @@ class BackupInput(TextInput):
         for backup in backups:
             backup_uuids.append(str(backup.get_uuid()))
 
+        backup_uuids.extend(["oldest", "newest", "largest", "smallest"])
+
         super().__init__(
             message=f"{palette.base}> Enter the {palette.lavender}UUID{palette.base} "
             f"of the {EFFECTS.underline.on}"
@@ -285,11 +287,32 @@ class BackupInput(TextInput):
             highlight_suggestion=highlight_suggestion,
         )
 
-    def prompt(self) -> BackupSpace:
+    def prompt(self) -> Backup:
         result = super().prompt()
-        return Backup.load_by_uuid(
-            backup_space=self.backup_space, unique_id=result, check_hash=self.check_hash
-        )
+
+        match result:
+            case "oldest":
+                return self.backup_space.get_backups(sort_by="date", check_hash=False)[
+                    -1
+                ]
+            case "newest":
+                return self.backup_space.get_backups(sort_by="date", check_hash=False)[
+                    0
+                ]
+            case "largest":
+                return self.backup_space.get_backups(sort_by="size", check_hash=False)[
+                    0
+                ]
+            case "smallest":
+                return self.backup_space.get_backups(sort_by="size", check_hash=False)[
+                    -1
+                ]
+            case _:
+                return Backup.load_by_uuid(
+                    backup_space=self.backup_space,
+                    unique_id=result,
+                    check_hash=self.check_hash,
+                )
 
 
 class EnumerationInput(TextInput):
