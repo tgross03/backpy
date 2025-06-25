@@ -450,7 +450,7 @@ class Remote:
         if not self._is_dir(target, sftp_client=sftp_client, close_afterwards=False):
             sftp_client.remove(target)
 
-            if verbosity_level >= 1:
+            if verbosity_level >= 2:
                 print(f"File at remote path '{target}' was removed.")
         else:
             files = sftp_client.listdir(path=target)
@@ -468,12 +468,12 @@ class Remote:
                     )
                 else:
                     sftp_client.remove(filepath)
-                    if verbosity_level >= 1:
+                    if verbosity_level >= 2:
                         print(f"File at remote path '{target}' was removed.")
 
             sftp_client.rmdir(target)
 
-            if verbosity_level >= 1:
+            if verbosity_level >= 2:
                 print(f"Directory at remote path '{target}' was removed.")
 
         if close_afterwards:

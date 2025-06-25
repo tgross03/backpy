@@ -69,13 +69,9 @@ class Backup:
             self._remote.remove(
                 target=self.get_remote_archive_path(), verbosity_level=verbosity_level
             )
-            if verbosity_level >= 2:
-                print(f"Removed remote backup at {self.get_remote_archive_path()}.")
             self._remote.remove(
                 target=self.get_remote_config_path(), verbosity_level=verbosity_level
             )
-            if verbosity_level >= 2:
-                print(f"Removed remote config at {self.get_remote_config_path()}.")
 
         if verbosity_level >= 1:
             print(

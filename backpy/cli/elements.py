@@ -9,6 +9,13 @@ from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 palette = get_default_palette()
 
 
+def print_error_message(error: Exception, debug: bool) -> None:
+    if debug:
+        raise error
+    else:
+        print(f"{palette.red}ERROR: {palette.maroon}{error.args[0]}{RESET}")
+
+
 def _validate_always(value: str) -> bool:
     return True
 
@@ -66,7 +73,9 @@ class ConfirmInput:
             in_value = input(self._get_prompt())
 
             if in_value.lower() != "y" and in_value.lower() != "n" and in_value != "":
-                print(f"{palette.red}You have type y, n or nothing to proceed!{RESET}")
+                print(
+                    f"{palette.maroon}You have type y, n or nothing to proceed!{RESET}"
+                )
                 continue
 
             confirmation = (in_value or self._get_default_input().lower()) == "y"
@@ -126,7 +135,10 @@ class TextInput:
             valid_input = self._validate(value)
 
             if not valid_input:
-                print(f"{palette.red}{self.invalid_error_message.format(value=value)}")
+                print(
+                    f"{palette.red}ERROR: {palette.maroon}"
+                    f"{self.invalid_error_message.format(value=value)}{RESET}"
+                )
                 continue
 
             if self.suggest_matches:
@@ -134,7 +146,8 @@ class TextInput:
 
                 if len(matched) == 0:
                     print(
-                        f"{palette.red}{self.invalid_error_message.format(value=value)}"
+                        f"{palette.red}ERROR: {palette.maroon}"
+                        f"{self.invalid_error_message.format(value=value)}{RESET}"
                     )
                     continue
 
@@ -186,7 +199,7 @@ class BackupSpaceInput(TextInput):
 
         if len(spaces) == 0:
             print(
-                f"{palette.red}There is no valid Backup Space present. "
+                f"{palette.red}ERROR: {palette.maroon}There is no valid Backup Space present. "
                 f"You have to create a Backup Space first. Use 'backpy --help' for help.{RESET}"
             )
             return
@@ -201,12 +214,12 @@ class BackupSpaceInput(TextInput):
             message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
             f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
             f"Backup Space{RESET}{palette.base}: ",
-            invalid_error_message=f"{palette.red}There is no Backup Space with "
-            f"{palette.maroon}name{palette.red} "
-            f"or {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
+            invalid_error_message=f"{palette.maroon}There is no Backup Space with "
+            f"{palette.red}name{palette.maroon} "
+            f"or {palette.red}UUID {EFFECTS.reverse.on}{palette.peach}"
             "{value}"
             f"{EFFECTS.reverse.off}"
-            f"{palette.red}. Please try again!{RESET}",
+            f"{palette.maroon}. Please try again!{RESET}",
             validate=validate,
             suggest_matches=suggest_matches,
             suggestible_values=space_names_uuids,
@@ -245,7 +258,7 @@ class BackupInput(TextInput):
 
         if len(backups) == 0:
             print(
-                f"{palette.red}There is no valid Backup created for this Backup Space. "
+                f"{palette.maroon}There is no valid Backup created for this Backup Space. "
                 f"You have to create a Backup first. Use 'backpy --help' for help.{RESET}"
             )
             return
@@ -259,11 +272,11 @@ class BackupInput(TextInput):
             message=f"{palette.base}> Enter the {palette.lavender}UUID{palette.base} "
             f"of the {EFFECTS.underline.on}"
             f"Backup{RESET}{palette.base}: ",
-            invalid_error_message=f"{palette.red}There is no Backup with "
-            f"the {palette.maroon}UUID {EFFECTS.reverse.on}{palette.yellow}"
+            invalid_error_message=f"{palette.maroon}There is no Backup with "
+            f"the {palette.red}UUID {EFFECTS.reverse.on}{palette.peach}"
             "{value}"
             f"{EFFECTS.reverse.off}"
-            f"{palette.red}. Please try again!{RESET}",
+            f"{palette.maroon}. Please try again!{RESET}",
             validate=validate,
             suggest_matches=suggest_matches,
             suggestible_values=backup_uuids,
@@ -294,10 +307,10 @@ class EnumerationInput(TextInput):
             invalid_error_message=(
                 invalid_error_message
                 if invalid_error_message
-                else f"{palette.red}Invalid enumeration input! Enumerations "
+                else f"{palette.maroon}Invalid enumeration input! Enumerations "
                 f"have to have follow this syntax: "
-                f"{palette.maroon}{EFFECTS.reverse.on}val1,val2,val3 "
-                f"{EFFECTS.reverse.off}{palette.red}Please try again.{RESET}"
+                f"{palette.peach}{EFFECTS.reverse.on}val1,val2,val3 "
+                f"{EFFECTS.reverse.off}{palette.maroon}Please try again.{RESET}"
             ),
         )
 
@@ -325,7 +338,7 @@ class FilePathInput(TextInput):
             invalid_error_message=(
                 invalid_error_message
                 if invalid_error_message
-                else f"{palette.red}Invalid file path input! Please try again.{RESET}"
+                else f"{palette.maroon}Invalid file path input! Please try again.{RESET}"
             ),
         )
 
@@ -348,7 +361,7 @@ class DirectoryPathInput(TextInput):
             invalid_error_message=(
                 invalid_error_message
                 if invalid_error_message
-                else f"{palette.red}Invalid directory path input! Please try again.{RESET}"
+                else f"{palette.maroon}Invalid directory path input! Please try again.{RESET}"
             ),
         )
 
@@ -383,7 +396,7 @@ class IntegerInput(TextInput):
             invalid_error_message=(
                 invalid_error_message
                 if invalid_error_message
-                else f"{palette.red}Invalid integer number input! Please try again.{RESET}"
+                else f"{palette.maroon}Invalid integer number input! Please try again.{RESET}"
             ),
         )
 
@@ -418,7 +431,7 @@ class FloatInput(TextInput):
             invalid_error_message=(
                 invalid_error_message
                 if invalid_error_message
-                else f"{palette.red}Invalid floating number input! Please try again.{RESET}"
+                else f"{palette.maroon}Invalid floating number input! Please try again.{RESET}"
             ),
         )
 

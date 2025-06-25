@@ -2,7 +2,12 @@ import click
 
 from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.cli.elements import BackupSpaceInput, EnumerationInput, TextInput
+from backpy.cli.elements import (
+    BackupSpaceInput,
+    EnumerationInput,
+    TextInput,
+    print_error_message,
+)
 from backpy.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
@@ -21,9 +26,9 @@ def create_interactive(verbosity_level: int) -> None:
             f"the backup should be saved (options: 'all', 'remote', 'local'):{RESET}",
             validate=_validate_location,
             default_value="all",
-            invalid_error_message=f"{palette.red}The given value is not one of the options "
-            f"{palette.maroon}('all', 'remote', 'local'). "
-            f"{palette.red}Please try again.{RESET}",
+            invalid_error_message=f"{palette.maroon}The given value is not one of the options "
+            f"{palette.red}('all', 'remote', 'local'). "
+            f"{palette.maroon}Please try again.{RESET}",
         ).prompt()
     else:
         location = "all"
@@ -89,6 +94,13 @@ def create_interactive(verbosity_level: int) -> None:
     help="Sets the verbosity level of the output.",
 )
 @click.option(
+    "--debug",
+    "-d",
+    is_flag=True,
+    help="Activate the debug log for the command or interactive "
+    "mode to print full error traces in case of a problem.",
+)
+@click.option(
     "--interactive", "-i", is_flag=True, help="Create the backup in interactive mode."
 )
 def create(
@@ -97,6 +109,7 @@ def create(
     comment: str,
     exclude: list[str],
     verbose: int,
+    debug: bool,
     interactive: bool,
 ) -> None:
 
@@ -104,9 +117,12 @@ def create(
         return create_interactive(verbosity_level=verbose)
 
     if backup_space is None:
-        raise ValueError(
-            "If the '--interactive' flag is not given, you have to supply "
-            "a valid value for the 'BACKUP_SPACE' argument."
+        return print_error_message(
+            InvalidBackupSpaceError(
+                "If the '--interactive' flag is not given, you have to supply "
+                "a valid value for the 'BACKUP_SPACE' argument."
+            ),
+            debug=debug,
         )
 
     try:
@@ -115,8 +131,11 @@ def create(
         try:
             space = BackupSpace.load_by_name(backup_space)
         except Exception:
-            raise InvalidBackupSpaceError(
-                "There is no Backup Space with that name or UUID!"
+            return print_error_message(
+                InvalidBackupSpaceError(
+                    "There is no Backup Space with that name or UUID!"
+                ),
+                debug=debug,
             )
 
     space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
