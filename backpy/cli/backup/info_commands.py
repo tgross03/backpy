@@ -2,12 +2,29 @@ import click
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.cli.elements import (  # BackupInput,; BackupSpaceInput,; ConfirmInput,
-    print_error_message,
-)
+from backpy.cli.elements import BackupInput, BackupSpaceInput, print_error_message
 from backpy.exceptions import InvalidBackupError, InvalidBackupSpaceError
 
 palette = get_default_palette()
+
+
+def info_interactive(verbosity_level: int, debug: bool):
+    space = BackupSpaceInput(suggest_matches=True).prompt()
+
+    if len(space.get_backups(check_hash=False)) == 0:
+        return print_error_message(
+            InvalidBackupError("There is no Backup present in this Backup Space!"),
+            debug=debug,
+        )
+
+    backup = BackupInput(
+        backup_space=space,
+        suggest_matches=True,
+    ).prompt()
+
+    print(backup.get_info())
+
+    return None
 
 
 @click.command(
@@ -32,12 +49,21 @@ palette = get_default_palette()
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
+@click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Get information about a backup in interactive mode.",
+)
 def info(
     backup_space: str | None,
     backup: str | None,
     verbose: int,
     debug: bool,
+    interactive: bool,
 ) -> None:
+    if interactive:
+        return info_interactive(verbosity_level=verbose, debug=debug)
 
     if backup_space is None or backup is None:
         return print_error_message(

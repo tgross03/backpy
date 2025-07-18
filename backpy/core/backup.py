@@ -56,7 +56,6 @@ class Backup:
             return self.calculate_hash() == self._hash
 
     def delete(self, verbosity_level: int = 1) -> None:
-
         start_time = time.time()
 
         self._config.get_path().unlink()
@@ -98,7 +97,6 @@ class Backup:
         self._config.dump_dict(dict(merge({}, content, current_content)))
 
     def get_info(self):
-
         divider = "=" * 84
 
         info_string = f"""
@@ -106,12 +104,12 @@ class Backup:
         📦 {palette.blue}BACKUP INFORMATION
         {palette.overlay1}{divider}
         🆔 {palette.sky}UUID:{palette.base}            {self._uuid}
-        🗄️ {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
+        🗄️  {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
         🔐 {palette.sky}SHA256 Hash:{palette.base}     {self._hash}
         💬 {palette.sky}Comment:{palette.base}         {self._comment or f"{EFFECTS.dim.on}N/A{EFFECTS.dim.off}"}
         💽 {palette.sky}File size:{palette.base}       {format_bytes(self.get_file_size())}
         ⏰ {palette.sky}Created At:{palette.base}      {self._created_at.printformat()}
-        🌐 {palette.sky}Remote:{palette.base}          {self._remote.get_uuid() if self.has_remote_archive() else 'Local backup (no remote)'}
+        🌐 {palette.sky}Remote:{palette.base}          {self._remote.get_uuid() if self.has_remote_archive() else "Local backup (no remote)"}
         {palette.overlay1}{divider}
         """  # noqa 501
 
@@ -130,7 +128,6 @@ class Backup:
         fail_invalid: bool = False,
         verbosity_level: int = 1,
     ):
-
         unique_id = uuid.UUID(unique_id)
 
         config_path = backup_space.get_backup_dir() / (str(unique_id) + ".toml")
@@ -197,7 +194,6 @@ class Backup:
         location: str = "all",
         verbosity_level: int = 1,
     ):
-
         save_locally = location == "local" or location == "all"
         save_remotely = location == "remote" or location == "all"
 
