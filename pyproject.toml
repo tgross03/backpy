@@ -50,7 +50,6 @@ dev = [
 tests = [
   "pytest >= 7.0",
   "pytest-cov",
-  "tomli",
 ]
 
 [project.scripts]

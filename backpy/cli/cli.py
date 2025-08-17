@@ -11,6 +11,7 @@ from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 
 from .backup import commands as backup
 from .config import commands as config
+from .remote import commands as remote
 from .schedule import commands as schedule
 from .space import commands as space
 
@@ -110,6 +111,7 @@ def entry_point(**kwargs):
 
 
 entry_point.add_command(space.command)
+entry_point.add_command(remote.command)
 entry_point.add_command(backup.command)
 entry_point.add_command(schedule.command)
 entry_point.add_command(config.command)

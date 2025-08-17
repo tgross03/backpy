@@ -104,7 +104,7 @@ class Backup:
         📦 {palette.blue}BACKUP INFORMATION
         {palette.overlay1}{divider}
         🆔 {palette.sky}UUID:{palette.base}            {self._uuid}
-        🗄️  {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
+        🗄️ {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
         🔐 {palette.sky}SHA256 Hash:{palette.base}     {self._hash}
         💬 {palette.sky}Comment:{palette.base}         {self._comment or f"{EFFECTS.dim.on}N/A{EFFECTS.dim.off}"}
         💽 {palette.sky}File size:{palette.base}       {format_bytes(self.get_file_size())}
