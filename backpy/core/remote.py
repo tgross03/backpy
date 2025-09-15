@@ -43,6 +43,15 @@ class Protocol:
         return None
 
 
+def get_remotes():
+    return [
+        Remote.load_by_uuid(tomlf.stem)
+        for tomlf in Path(
+            VariableLibrary().get_variable("paths.remote_directory")
+        ).rglob("*.toml")
+    ]
+
+
 _protocols = [
     Protocol(
         name="scp",
@@ -583,6 +592,9 @@ class Remote:
             raise UnsupportedProtocolError(
                 f"The protocol '{protocol}' is not supported!"
             )
+
+        if not _protocol.supports_ssh_keys and ssh_key is not None:
+            raise ValueError("The chosen protocol does not support SSH keys!")
 
         if username is None:
             raise ValueError("The username has to be specified!")

@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from mergedeep import merge
+from rich import box
+from rich.table import Table
 
 from backpy import Remote, TimeObject, TOMLConfiguration, compression
 from backpy.cli.colors import EFFECTS, get_default_palette
@@ -97,23 +99,51 @@ class Backup:
         self._config.dump_dict(dict(merge({}, content, current_content)))
 
     def get_info(self):
-        divider = "=" * 84
+        table = Table(
+            title=f"{palette.blue}BACKUP INFORMATION",
+            show_header=False,
+            show_edge=True,
+            header_style=palette.overlay1,
+            box=box.HORIZONTALS,
+            expand=False,
+            pad_edge=False,
+        )
 
-        info_string = f"""
-        {palette.overlay1}{divider}
-        📦 {palette.blue}BACKUP INFORMATION
-        {palette.overlay1}{divider}
-        🆔 {palette.sky}UUID:{palette.base}            {self._uuid}
-        🗄️ {palette.sky}Backup Space:{palette.base}    {self._backup_space.get_name()} (UUID: {self._backup_space.get_uuid()})
-        🔐 {palette.sky}SHA256 Hash:{palette.base}     {self._hash}
-        💬 {palette.sky}Comment:{palette.base}         {self._comment or f"{EFFECTS.dim.on}N/A{EFFECTS.dim.off}"}
-        💽 {palette.sky}File size:{palette.base}       {format_bytes(self.get_file_size())}
-        ⏰ {palette.sky}Created At:{palette.base}      {self._created_at.printformat()}
-        🌐 {palette.sky}Remote:{palette.base}          {self._remote.get_uuid() if self.has_remote_archive() else "Local backup (no remote)"}
-        {palette.overlay1}{divider}
-        """  # noqa 501
+        table.add_column(justify="right", no_wrap=False)
+        table.add_column(justify="left", no_wrap=False)
 
-        return info_string
+        table.add_row(f"{palette.sky}UUID", f"{palette.base}{self._uuid}")
+        table.add_row(
+            f"{palette.sky}Backup Space",
+            f"{palette.base}{self._backup_space.get_name()} "
+            f"(UUID: {self._backup_space.get_uuid()})",
+        )
+        table.add_row(f"{palette.sky}SHA256 Hash", f"{palette.base}{self._hash}")
+        table.add_row(
+            f"{palette.sky}Comment",
+            f"{palette.base}{self._comment or f'{EFFECTS.dim.on}N/A{EFFECTS.dim.off}'}",
+        )
+        table.add_row(
+            f"{palette.sky}File size",
+            f"{palette.base}{format_bytes(self.get_file_size())}",
+        )
+        table.add_row(
+            f"{palette.sky}Created At",
+            f"{palette.base}{self._created_at.printformat()}",
+        )
+
+        remote = (
+            self._remote.get_uuid()
+            if self.has_remote_archive()
+            else "Local backup (no remote)"
+        )
+
+        table.add_row(
+            f"{palette.sky}Remote",
+            f"{palette.base}{remote}",
+        )
+
+        return table
 
     #####################
     #    CLASSMETHODS   #

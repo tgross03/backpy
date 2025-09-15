@@ -175,14 +175,14 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 @click.option(
     "--root-dir",
     type=str,
-    default=None,
+    default=VariableLibrary().get_variable("backup.states.default_remote_root_dir"),
     help="The backpy root directory on the remote server. If not set, the default value set in the "
     "variable configuration is used.",
 )
 @click.option(
     "--sha256-cmd",
     type=str,
-    default=None,
+    default=VariableLibrary().get_variable("backup.states.default_sha256_cmd"),
     help="The shell command to calculate a file's SHA-256 sum on the remote server. "
     "If not set, the default value set in the variable configuration is used.",
 )
@@ -218,3 +218,64 @@ def create(
 
     if interactive:
         return create_interactive(verbosity_level=verbose, debug=debug)
+
+    try:
+        Remote.load_by_name(name=name)
+    except InvalidRemoteError:
+        pass
+    else:
+        return print_error_message(
+            error=NameError(
+                "The given name is already "
+                "taken by another remote. The provided name has to be unique!"
+            ),
+            debug=debug,
+        )
+
+    if hostname == "":
+        return print_error_message(
+            error=ValueError("The hostname may not be empty!"), debug=debug
+        )
+
+    if username == "":
+        return print_error_message(
+            error=ValueError("The username may not be empty!"), debug=debug
+        )
+
+    if key is not None:
+        password = PasswordInput(
+            message=f"{palette.base}> Enter the passphrase for the SSH key (may be empty):{RESET}",
+            allow_empty=True,
+            confirm_input=False,
+        ).prompt()
+    else:
+        password = PasswordInput(
+            message=f"{palette.base}> Enter the password for the user:{RESET}",
+            allow_empty=False,
+            confirm_input=False,
+        ).prompt()
+
+    remote = Remote.new(
+        name=name,
+        protocol=protocol,
+        hostname=hostname,
+        username=username,
+        password=password,
+        ssh_key=key,
+        use_system_keys=use_system_keys,
+        root_dir=root_dir,
+        sha256_cmd=sha256_cmd,
+        verbosity_level=verbose,
+        test_connection=False,
+    )
+
+    try:
+        remote.test_connection(verbosity_level=verbose)
+    except Exception as e:
+        print_error_message(error=e, debug=debug)
+        print(
+            f"{palette.red}HINT:{palette.maroon} If you are experiencing connection problems "
+            "due to wrong settings of the remote, edit or remove it via the CLI."
+        )
+
+    return None

@@ -1,5 +1,7 @@
 import click
 from fuzzyfinder import fuzzyfinder
+from rich.console import Console
+from rich.tree import Tree
 
 from backpy import VariableLibrary
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
@@ -49,10 +51,29 @@ def get_value(key: str, debug: bool) -> None:
         )
 
     print("")
-    print(
-        f"{EFFECTS.bold.on}{palette.sky}{key}{RESET}{palette.overlay1} = "
-        f"{palette.maroon}{value}{RESET}"
-    )
+    if not isinstance(value, dict):
+        print(
+            f"{EFFECTS.bold.on}{palette.sky}{key}{RESET}{palette.overlay1} = "
+            f"{palette.maroon}{value}{RESET}"
+        )
+    else:
+
+        def render_tree(d, tree):
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    branch = tree.add(f"{EFFECTS.bold.on}{palette.blue}{k}{RESET}")
+                    render_tree(v, branch)
+                else:
+                    tree.add(
+                        f"{palette.sky}{k}{RESET}{palette.overlay1} = {palette.maroon}{v}{RESET}"
+                    )
+
+        console = Console()
+        root = Tree(
+            f"{palette.mauve}{'Variable Configuration' if key is None else key}{RESET}"
+        )
+        render_tree(value, root)
+        console.print(root)
     print("")
 
     return None

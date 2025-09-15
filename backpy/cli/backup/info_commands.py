@@ -1,4 +1,5 @@
 import click
+from rich.console import Console
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
@@ -22,7 +23,7 @@ def info_interactive(verbosity_level: int, debug: bool):
         suggest_matches=True,
     ).prompt()
 
-    print(backup.get_info())
+    Console().print(backup.get_info())
 
     return None
 
@@ -118,6 +119,6 @@ def info(
                     debug=debug,
                 )
 
-    print(backup.get_info())
+    Console().print(backup.get_info())
 
     return None
