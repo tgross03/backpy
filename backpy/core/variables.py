@@ -3,6 +3,7 @@ from pathlib import Path
 from mergedeep import merge
 
 import backpy
+from backpy import TOMLConfiguration
 
 
 class VariableLibrary:
@@ -49,6 +50,12 @@ class VariableLibrary:
             content if regenerate else dict(merge({}, content, current_content))
         )
         self._config.prepend_no_edit_warning()
+
+    def get_config(self) -> TOMLConfiguration:
+        return self._config
+
+    def get_path(self) -> Path:
+        return self._path
 
     def get_variable(self, key: str):
         return self._config[key]

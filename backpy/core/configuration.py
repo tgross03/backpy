@@ -114,6 +114,21 @@ class TOMLConfiguration:
                 + content
             )
 
+    def get_keys(self, non_dict_only: bool = False):
+        def recursive_keys(dictionary: dict, parent: str | None = None) -> list[str]:
+            keys = []
+            for key, value in dictionary.items():
+                parent_key = f"{parent}.{key}" if parent is not None else key
+                if isinstance(value, dict):
+                    if not non_dict_only:
+                        keys.append(key)
+                    keys.extend(recursive_keys(dictionary=value, parent=parent_key))
+                else:
+                    keys.append(parent_key)
+            return keys
+
+        return recursive_keys(dictionary=self.as_dict())
+
     def prepend_no_edit_warning(self):
         self.prepend_comments(
             [

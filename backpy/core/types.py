@@ -27,7 +27,7 @@ def _get_backups_space_type():
 
     return [
         # BackupSpaceType(
-        #     "SQL_DATABASE", "Backup-Space of an SQL-based database and its tables."
+        #     "SQL_DATABASE", "Backup-Space of a MariaDB or MySQL database and its tables."
         # ),
         BackupSpaceType(
             "FILE_SYSTEM",
