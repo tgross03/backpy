@@ -21,7 +21,8 @@ def reset(force: bool) -> None:
 
     if not force:
         confirm = ConfirmInput(
-            message=f"{palette.maroon}Are you sure you want to {palette.red}reset{palette.maroon} "
+            message=f"{palette.maroon}> Are you sure you want to "
+            f"{palette.red}reset{palette.maroon} "
             f"the entire variable configuration? "
             f"{palette.red}This cannot be undone!{RESET}",
             default_value=False,

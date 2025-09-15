@@ -15,6 +15,7 @@ from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
 from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
+from backpy.core.password import decrypt, encrypt
 from backpy.exceptions import (
     InvalidChecksumError,
     InvalidRemoteError,
@@ -44,15 +45,15 @@ class Protocol:
 
 _protocols = [
     Protocol(
-        "scp",
-        "Uses the the 'scp.py' module to transfer files using scp (Secure Copy).",
-        True,
+        name="scp",
+        description="Uses the the 'scp.py' module to transfer files using scp (Secure Copy).",
+        supports_ssh_keys=True,
     ),
     Protocol(
-        "sftp",
-        "Uses the 'paramiko' module to transfer files using SFTP "
+        name="sftp",
+        description="Uses the 'paramiko' module to transfer files using SFTP "
         "(Safe File Transport Protocol).",
-        False,
+        supports_ssh_keys=True,
     ),
 ]
 
@@ -65,7 +66,7 @@ class Remote:
         protocol: Protocol,
         hostname: str,
         username: str,
-        password: str | None,
+        token: str | None,
         ssh_key: Path | None,
         use_system_keys: bool,
         root_dir: str,
@@ -78,7 +79,7 @@ class Remote:
         self._hostname: str = hostname
 
         self._username: str = username
-        self._password: str = password
+        self._token: str = token
 
         self._ssh_key: Path | None = ssh_key
         self._use_system_keys: bool = use_system_keys
@@ -97,9 +98,13 @@ class Remote:
 
         if self._ssh_key:
             try:
-                private_key = paramiko.rsakey.RSAKey(filename=self._ssh_key)
+                private_key = paramiko.rsakey.RSAKey.from_private_key_file(
+                    filename=self._ssh_key, password=decrypt(self._token)
+                )
             except SSHException:
-                private_key = paramiko.ed25519key.Ed25519Key(filename=self._ssh_key)
+                private_key = paramiko.ed25519key.Ed25519Key.from_private_key_file(
+                    filename=self._ssh_key, password=decrypt(self._token)
+                )
             except FileNotFoundError:
                 private_key = None
         else:
@@ -108,7 +113,7 @@ class Remote:
         self._client.connect(
             hostname=self._hostname,
             username=self._username,
-            password=self._password,
+            password=decrypt(self._token),
             pkey=private_key,
             look_for_keys=self._use_system_keys,
         )
@@ -128,7 +133,7 @@ class Remote:
 
         if verbosity_level > 1:
             print(
-                f"Connection test to {self._hostname} with"
+                f"Connection test to {self._hostname} with "
                 f"user {self._username} was successful."
             )
 
@@ -519,7 +524,7 @@ class Remote:
             protocol=Protocol.from_name(config["protocol"]),
             hostname=config["hostname"],
             username=config["username"],
-            password=config["password"] if config["password"] != "" else None,
+            token=config["token"] if config["token"] != "" else None,
             ssh_key=Path(config["ssh_key"]).expanduser().absolute()
             if config["ssh_key"] != ""
             else None,
@@ -569,6 +574,7 @@ class Remote:
             "backup.states.default_sha256_cmd"
         ),
         verbosity_level: int = 1,
+        test_connection: bool = True,
     ) -> "Remote":
 
         _protocol = Protocol.from_name(protocol)
@@ -600,7 +606,7 @@ class Remote:
             protocol=_protocol,
             hostname=hostname,
             username=username,
-            password=password,
+            token=encrypt(password),
             ssh_key=Path(ssh_key).expanduser().absolute() if ssh_key else None,
             use_system_keys=use_system_keys,
             root_dir=root_dir,
@@ -620,7 +626,7 @@ class Remote:
                 "protocol": cls._protocol.name,
                 "hostname": cls._hostname,
                 "username": cls._username,
-                "password": cls._password if cls._password else "",
+                "token": cls._token if cls._token else "",
                 "ssh_key": str(cls._ssh_key) if cls._ssh_key else "",
                 "use_system_keys": cls._use_system_keys,
                 "root_dir": cls._root_dir,
@@ -629,7 +635,8 @@ class Remote:
         )
         cls._config.prepend_no_edit_warning()
 
-        cls.test_connection(verbosity_level=verbosity_level)
+        if test_connection:
+            cls.test_connection(verbosity_level=verbosity_level)
 
         if verbosity_level >= 1:
             print(

@@ -1,3 +1,4 @@
+import getpass
 from collections.abc import Callable
 from pathlib import Path
 
@@ -18,6 +19,10 @@ def print_error_message(error: Exception, debug: bool) -> None:
 
 def _validate_always(value: str) -> bool:
     return True
+
+
+def _validate_not_none(value: str) -> bool:
+    return value is not None
 
 
 def _validate_file_path(value: str) -> bool:
@@ -89,6 +94,7 @@ class TextInput:
         self,
         message: str,
         default_value: str | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_always,
         suggest_matches: bool = False,
         case_sensitive: bool = True,
@@ -99,6 +105,7 @@ class TextInput:
     ):
         self.message: str = message
         self.default_value: str | None = default_value
+        self.allow_none: bool = allow_none
         self._validate: Callable[[str], bool] = validate
         self.suggest_matches: bool = suggest_matches
         self.case_sensitive: bool = case_sensitive
@@ -117,10 +124,10 @@ class TextInput:
         return f"{self.message}" + (
             f" (default: '{self.default_value}') "
             if self.default_value is not None
-            else ""
+            else " "
         )
 
-    def prompt(self) -> str:
+    def prompt(self) -> str | None:
 
         valid_result = False
 
@@ -129,8 +136,11 @@ class TextInput:
         while not valid_result:
             value = input(self._get_prompt())
 
-            if value == "" and self.default_value:
+            if value == "":
                 value = self.default_value
+
+            if value is None and self.allow_none:
+                return value
 
             valid_input = self._validate(value)
 
@@ -183,6 +193,55 @@ class TextInput:
                 valid_result = True
 
         return value
+
+
+class PasswordInput:
+    def __init__(
+        self,
+        message: str,
+        allow_empty: bool,
+        confirm_input: bool,
+        default_value: str | None = None,
+    ):
+        self.message: str = message
+        self.allow_empty: bool = allow_empty
+        self.confirm_input: bool = confirm_input
+        self.default_value: str | None = default_value
+
+    def prompt(self) -> str:
+
+        password = None
+        valid_input = False
+
+        while not valid_input:
+            password_input: str = getpass.getpass(prompt=f"{self.message} ")
+
+            if (
+                password is not None
+                and password != password_input
+                and self.confirm_input
+            ):
+                password = None
+                print(
+                    f"{palette.red}ERROR: {palette.maroon}The two passwords were not identical. "
+                    f"Try again!{RESET}"
+                )
+                continue
+
+            if password_input == "" and not self.allow_empty:
+                print(
+                    f"{palette.red}ERROR: {palette.maroon}The password may not be empty!{RESET}"
+                )
+                continue
+
+            if password is None and self.confirm_input:
+                password = password_input
+                continue
+
+            password = password_input
+            valid_input = True
+
+        return password
 
 
 class BackupSpaceInput(TextInput):
@@ -320,12 +379,14 @@ class EnumerationInput(TextInput):
         self,
         message: str,
         default_value: str | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_always,
         invalid_error_message: str | None = None,
     ):
         super().__init__(
             message=message,
             default_value=default_value,
+            allow_none=allow_none,
             validate=validate,
             invalid_error_message=(
                 invalid_error_message
@@ -337,8 +398,13 @@ class EnumerationInput(TextInput):
             ),
         )
 
-    def prompt(self) -> list[str]:
-        prompt = super().prompt().split(",")
+    def prompt(self) -> list[str] | None:
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        prompt = prompt.split(",")
 
         if prompt == [""]:
             return []
@@ -351,12 +417,14 @@ class FilePathInput(TextInput):
         self,
         message: str,
         default_value: str | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_file_path,
         invalid_error_message: str | None = None,
     ):
         super().__init__(
             message=message,
             default_value=default_value,
+            allow_none=allow_none,
             validate=validate,
             invalid_error_message=(
                 invalid_error_message
@@ -365,8 +433,13 @@ class FilePathInput(TextInput):
             ),
         )
 
-    def prompt(self) -> Path:
-        return Path(super().prompt())
+    def prompt(self) -> Path | None:
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        return Path(prompt)
 
 
 class DirectoryPathInput(TextInput):
@@ -374,12 +447,14 @@ class DirectoryPathInput(TextInput):
         self,
         message: str,
         default_value: str | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_directory_path,
         invalid_error_message: str | None = None,
     ):
         super().__init__(
             message=message,
             default_value=default_value,
+            allow_none=allow_none,
             validate=validate,
             invalid_error_message=(
                 invalid_error_message
@@ -388,8 +463,13 @@ class DirectoryPathInput(TextInput):
             ),
         )
 
-    def prompt(self) -> Path:
-        return Path(super().prompt())
+    def prompt(self) -> Path | None:
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        return Path(prompt)
 
 
 class IntegerInput(TextInput):
@@ -397,6 +477,7 @@ class IntegerInput(TextInput):
         self,
         message: str,
         default_value: int | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_integer,
         suggest_matches: bool = False,
         suggestible_values: list[int] | None = None,
@@ -410,6 +491,7 @@ class IntegerInput(TextInput):
         super().__init__(
             message=message,
             default_value=str(default_value) if default_value else None,
+            allow_none=allow_none,
             validate=validate,
             suggest_matches=suggest_matches,
             case_sensitive=False,
@@ -423,8 +505,14 @@ class IntegerInput(TextInput):
             ),
         )
 
-    def prompt(self) -> int:
-        return int(super().prompt())
+    def prompt(self) -> int | None:
+
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        return int(prompt)
 
 
 class FloatInput(TextInput):
@@ -432,6 +520,7 @@ class FloatInput(TextInput):
         self,
         message: str,
         default_value: float | None = None,
+        allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_float,
         suggest_matches: bool = False,
         suggestible_values: list[float] | None = None,
@@ -445,6 +534,7 @@ class FloatInput(TextInput):
         super().__init__(
             message=message,
             default_value=str(default_value) if default_value else None,
+            allow_none=allow_none,
             validate=validate,
             suggest_matches=suggest_matches,
             case_sensitive=False,
@@ -458,5 +548,11 @@ class FloatInput(TextInput):
             ),
         )
 
-    def prompt(self) -> float:
-        return float(super().prompt())
+    def prompt(self) -> float | None:
+
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        return float(prompt)

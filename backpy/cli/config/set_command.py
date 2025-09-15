@@ -42,7 +42,8 @@ def set_value(key: str, value: str, force: bool, debug: bool) -> None:
 
         if not force:
             confirm = ConfirmInput(
-                message=f"{palette.base}Are you sure you want to change the value of the variable "
+                message=f"{palette.base}> Are you sure you want to change the value "
+                f"of the variable "
                 f"{palette.sky}'{key}'{palette.base}?\n"
                 f"Change: {palette.lavender}{prev_value} {palette.base}-> "
                 f"{palette.green}{value}{RESET}\n",

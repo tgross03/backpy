@@ -18,6 +18,7 @@ from backpy.core.file_backup_space import FileBackupSpace
 __all__ = [
     "FileBackupSpace",
     "TOMLConfiguration",
+    "VariableLibrary",
     "BackupSpace",
     "BackupSpaceType",
     "Backup",
