@@ -6,7 +6,7 @@ from rich.tree import Tree
 from backpy import VariableLibrary
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.cli.elements import print_error_message
-from backpy.exceptions import InvalidTOMLConfigurationError
+from backpy.core.utils.exceptions import InvalidTOMLConfigurationError
 
 palette = get_default_palette()
 

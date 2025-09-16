@@ -12,10 +12,12 @@ from mergedeep import merge
 from rich import box
 from rich.table import Table
 
-from backpy import Remote, TimeObject, TOMLConfiguration, compression
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
-from backpy.core.utils import calculate_sha256sum, format_bytes
-from backpy.exceptions import (
+from backpy.core.backup import compression
+from backpy.core.config import TOMLConfiguration
+from backpy.core.remote import Remote
+from backpy.core.utils import TimeObject, calculate_sha256sum, format_bytes
+from backpy.core.utils.exceptions import (
     InvalidBackupError,
     InvalidChecksumError,
     InvalidRemoteError,

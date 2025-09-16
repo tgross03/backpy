@@ -2,7 +2,7 @@ from pathlib import Path
 
 import toml
 
-from backpy.exceptions import InvalidTOMLConfigurationError
+from backpy.core.utils.exceptions import InvalidTOMLConfigurationError
 
 
 def _parse_key(key: str):

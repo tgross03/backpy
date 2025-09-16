@@ -3,7 +3,7 @@ import click
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import print_error_message
 from backpy.core.remote import Remote
-from backpy.exceptions import InvalidRemoteError
+from backpy.core.utils.exceptions import InvalidRemoteError
 
 palette = get_default_palette()
 

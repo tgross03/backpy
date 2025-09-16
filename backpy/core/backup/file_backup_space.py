@@ -7,10 +7,9 @@ from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from backpy import BackupSpace, VariableLibrary
-from backpy.exceptions import InvalidBackupSpaceError, InvalidChecksumError
-
-from . import compression
+from backpy.core.backup import BackupSpace, compression
+from backpy.core.config import VariableLibrary
+from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidChecksumError
 
 if TYPE_CHECKING:
     from backpy import Backup

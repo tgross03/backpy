@@ -12,8 +12,8 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
-from backpy.core.remote import _protocols
-from backpy.exceptions import InvalidRemoteError
+from backpy.core.remote.remote import _protocols
+from backpy.core.utils.exceptions import InvalidRemoteError
 
 palette = get_default_palette()
 

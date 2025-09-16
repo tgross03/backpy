@@ -7,9 +7,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 from mergedeep import merge
 
-from backpy import Remote, TOMLConfiguration, VariableLibrary
-from backpy.core import compression
-from backpy.exceptions import (
+from backpy.core.backup import compression
+from backpy.core.config import TOMLConfiguration, VariableLibrary
+from backpy.core.remote import Remote
+from backpy.core.utils.exceptions import (
     InvalidBackupError,
     InvalidBackupSpaceError,
     UnsupportedCompressionAlgorithmError,

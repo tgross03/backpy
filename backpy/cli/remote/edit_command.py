@@ -5,9 +5,9 @@ import click
 from backpy import Protocol, Remote
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import PasswordInput, print_error_message
-from backpy.core.password import encrypt
-from backpy.core.remote import _protocols
-from backpy.exceptions import InvalidRemoteError
+from backpy.core.remote.password import encrypt
+from backpy.core.remote.remote import _protocols
+from backpy.core.utils.exceptions import InvalidRemoteError
 
 protocol_names = [protocol.name for protocol in _protocols]
 

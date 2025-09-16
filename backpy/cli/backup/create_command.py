@@ -8,7 +8,7 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
-from backpy.exceptions import InvalidBackupSpaceError
+from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
 

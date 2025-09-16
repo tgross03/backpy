@@ -3,7 +3,7 @@ from pathlib import Path
 from mergedeep import merge
 
 import backpy
-from backpy import TOMLConfiguration
+from backpy.core.config.configuration import TOMLConfiguration
 
 
 class VariableLibrary:

@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from rich.progress import track
 
-from backpy.exceptions import UnsupportedCompressionAlgorithmError
+from backpy.core.utils.exceptions import UnsupportedCompressionAlgorithmError
 
 
 @dataclass

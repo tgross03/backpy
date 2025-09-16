@@ -19,8 +19,8 @@ from rich.spinner import Spinner
 from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
-from backpy.core.password import decrypt, encrypt
-from backpy.exceptions import (
+from backpy.core.remote.password import decrypt, encrypt
+from backpy.core.utils.exceptions import (
     InvalidChecksumError,
     InvalidRemoteError,
     UnsupportedProtocolError,
