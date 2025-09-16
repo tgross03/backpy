@@ -14,6 +14,12 @@ palette = get_default_palette()
 )
 @click.argument("remote", type=str, required=True)
 @click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    help="Force the deletion. This will skip the confirmation step.",
+)
+@click.option(
     "--verbose",
     "-v",
     count=True,
@@ -26,8 +32,7 @@ palette = get_default_palette()
     help="Activate the debug log for the command "
     "to print full error traces in case of a problem.",
 )
-def delete(remote: str, verbose: int, debug: bool) -> None:
-
+def delete(remote: str, force: bool, verbose: int, debug: bool) -> None:
     verbose += 1
 
     try:
@@ -43,13 +48,17 @@ def delete(remote: str, verbose: int, debug: bool) -> None:
                 debug=debug,
             )
 
-    confirm = ConfirmInput(
-        message=f"> Are you sure you want to delete the remote {palette.sky}{remote.get_name()} "
-        f"(UUID: {remote.get_uuid()}){RESET}?\n{palette.red}WARNING! "
-        f"{palette.maroon}This cannot be undone and will affect every backup which uses this "
-        f"remote! Some backups might become unrestorable!{RESET}",
-        default_value=False,
-    ).prompt()
+    confirm = False or force
+
+    if not force:
+        confirm = ConfirmInput(
+            message=f"> Are you sure you want to delete the remote "
+            f"{palette.sky}{remote.get_name()} "
+            f"(UUID: {remote.get_uuid()}){RESET}?\n{palette.red}WARNING! "
+            f"{palette.maroon}This cannot be undone and will affect every backup "
+            f"which uses this remote! Some backups might become unrestorable!{RESET}",
+            default_value=False,
+        ).prompt()
 
     if confirm:
         remote.delete(verbosity_level=verbose)
