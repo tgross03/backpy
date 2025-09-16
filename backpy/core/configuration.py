@@ -11,8 +11,14 @@ def _parse_key(key: str):
 
 
 class TOMLConfiguration:
-    def __init__(self, path: str | Path, create_if_not_exists: bool = False):
+    def __init__(
+        self,
+        path: str | Path,
+        create_if_not_exists: bool = False,
+        none_if_unknown_key: bool = False,
+    ):
         self._path: Path = Path(path) if isinstance(path, str) else path
+        self._none_if_unknown_key: bool = none_if_unknown_key
 
         if self._path.suffix != ".toml":
             raise InvalidTOMLConfigurationError(
@@ -37,7 +43,13 @@ class TOMLConfiguration:
         content = content_dict
         for key in keys:
             if isinstance(content, dict):
-                content = content[key]
+                try:
+                    content = content[key]
+                except KeyError as error:
+                    if self._none_if_unknown_key:
+                        return None
+                    else:
+                        raise error
             else:
                 raise KeyError(
                     f"The key component '{key}' is set to a non-dict value and "
@@ -80,7 +92,11 @@ class TOMLConfiguration:
 
     def __contains__(self, item: str):
         try:
-            self[item]
+            value = self[item]
+
+            if value is None:
+                return False
+
         except KeyError:
             return False
         return True

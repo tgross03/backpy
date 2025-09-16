@@ -60,11 +60,10 @@ def list_variables(key: str | None, debug: bool) -> None:
                     f"{palette.sky}{k}{RESET}{palette.overlay1} = {palette.maroon}{v}{RESET}"
                 )
 
-    console = Console()
     root = Tree(
         f"{palette.mauve}{'Variable Configuration' if key is None else key}{RESET}"
     )
     render_tree(value, root)
-    console.print(root)
+    Console().print(root)
 
     return None

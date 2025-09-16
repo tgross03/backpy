@@ -113,6 +113,8 @@ def create(
     interactive: bool,
 ) -> None:
 
+    verbose += 1
+
     if interactive:
         return create_interactive(verbosity_level=verbose)
 

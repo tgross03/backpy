@@ -214,7 +214,9 @@ class PasswordInput:
         valid_input = False
 
         while not valid_input:
-            password_input: str = getpass.getpass(prompt=f"{self.message} ")
+            password_input: str = getpass.getpass(
+                prompt=f"{self.message} {'(again) ' if password is not None else ''}"
+            )
 
             if (
                 password is not None

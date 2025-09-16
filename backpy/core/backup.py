@@ -13,9 +13,13 @@ from rich import box
 from rich.table import Table
 
 from backpy import Remote, TimeObject, TOMLConfiguration, compression
-from backpy.cli.colors import EFFECTS, get_default_palette
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.core.utils import calculate_sha256sum, format_bytes
-from backpy.exceptions import InvalidBackupError, InvalidChecksumError
+from backpy.exceptions import (
+    InvalidBackupError,
+    InvalidChecksumError,
+    InvalidRemoteError,
+)
 
 if TYPE_CHECKING:
     from backpy import BackupSpace
@@ -96,11 +100,11 @@ class Backup:
             "remote": str(self._remote.get_uuid()) if self._remote else "",
         }
 
-        self._config.dump_dict(dict(merge({}, content, current_content)))
+        self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def get_info(self):
         table = Table(
-            title=f"{palette.blue}BACKUP INFORMATION",
+            title=f"{palette.blue}BACKUP INFORMATION{RESET}",
             show_header=False,
             show_edge=True,
             header_style=palette.overlay1,
@@ -179,6 +183,15 @@ class Backup:
             str(unique_id) + backup_space.get_compression_algorithm().extension
         )
 
+        try:
+            remote = (
+                Remote.load_by_uuid(config["remote"])
+                if config["remote"] != ""
+                else None
+            )
+        except InvalidRemoteError:
+            remote = None
+
         cls = cls(
             path=archive_path if archive_path.exists() else None,
             backup_space=backup_space,
@@ -186,9 +199,7 @@ class Backup:
             sha256sum=config["hash"],
             comment=config["comment"],
             created_at=TimeObject.fromisoformat(config["created_at"]),
-            remote=Remote.load_by_uuid(config["remote"])
-            if config["remote"] != ""
-            else None,
+            remote=remote,
         )
 
         if check_hash:

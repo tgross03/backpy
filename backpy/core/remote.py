@@ -8,10 +8,14 @@ from stat import S_ISDIR
 
 import numpy as np
 import paramiko
+from mergedeep import merge
 from paramiko import SSHClient
 from paramiko.sftp_client import SFTPClient
 from paramiko.ssh_exception import SSHException
+from rich.console import Console
+from rich.live import Live
 from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
+from rich.spinner import Spinner
 from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
@@ -78,6 +82,7 @@ class Remote:
         token: str | None,
         ssh_key: Path | None,
         use_system_keys: bool,
+        connection_timeout: int | None,
         root_dir: str,
         sha256_cmd: str,
     ):
@@ -93,14 +98,49 @@ class Remote:
         self._ssh_key: Path | None = ssh_key
         self._use_system_keys: bool = use_system_keys
 
+        self._connection_timeout: int | None = (
+            connection_timeout
+            if connection_timeout is not None and connection_timeout > 0
+            else None
+        )
+
         self._client: SSHClient | None = None
         self._root_dir: str = root_dir
         self._sha256_cmd: str = sha256_cmd
+
+    def update_config(self):
+
+        current_content = self._config.as_dict()
+
+        content = {
+            "name": self._name,
+            "uuid": str(self._uuid),
+            "protocol": self._protocol.name,
+            "hostname": self._hostname,
+            "username": self._username,
+            "token": self._token if self._token else "",
+            "ssh_key": str(self._ssh_key) if self._ssh_key else "",
+            "use_system_keys": self._use_system_keys,
+            "connection_timeout": self._connection_timeout
+            if self._connection_timeout
+            else -1,
+            "root_dir": self._root_dir,
+            "sha256_cmd": self._sha256_cmd,
+        }
+
+        self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def connect(self, verbosity_level: int = 1) -> None:
 
         if self._client is not None:
             self._client.close()
+
+        if verbosity_level > 1:
+            print(
+                f"Connecting to {self._hostname} with user {self._username} using "
+                f"{'public key' if self._ssh_key is not None else 'password'} "
+                f"authentication."
+            )
 
         self._client = SSHClient()
         self._client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy)
@@ -125,20 +165,43 @@ class Remote:
             password=decrypt(self._token),
             pkey=private_key,
             look_for_keys=self._use_system_keys,
+            timeout=self._connection_timeout,
         )
 
         if verbosity_level > 1:
             print(f"Connected to {self._hostname} with user {self._username}.")
 
     def disconnect(self, verbosity_level: int = 1) -> None:
-        self._client.close()
+
+        if self._client is not None:
+            self._client.close()
 
         if verbosity_level > 1:
             print(f"Connection to {self._hostname} was closed.")
 
     def test_connection(self, verbosity_level: int = 1) -> None:
-        self.connect()
-        self.disconnect()
+
+        live = None
+
+        if verbosity_level >= 1:
+            live = Live(
+                Spinner(
+                    name="dots",
+                    text=f"Testing connection to {self._hostname} with user {self._username} using "
+                    f"{'public key' if self._ssh_key is not None else 'password'} "
+                    f"authentication.",
+                    style="green",
+                ),
+                refresh_per_second=10,
+                console=Console(),
+            )
+            live.start()
+
+        self.connect(verbosity_level=verbosity_level)
+        self.disconnect(verbosity_level=verbosity_level)
+
+        if live is not None:
+            live.stop()
 
         if verbosity_level > 1:
             print(
@@ -493,6 +556,16 @@ class Remote:
         if close_afterwards:
             self.disconnect(verbosity_level=verbosity_level)
 
+    def delete(self, verbosity_level: int = 1):
+        self.disconnect(verbosity_level=verbosity_level)
+
+        self._config.get_path().unlink()
+
+        if verbosity_level > 1:
+            print(f"Removing config file {self._config.get_path()}")
+
+        print(f"Remote with UUID {self._uuid} was deleted.")
+
     def get_hash(self, target: str, verbosity_level: int = 1) -> str:
         self.connect(verbosity_level=verbosity_level)
 
@@ -527,6 +600,8 @@ class Remote:
                 f"The remote with UUID '{str(unique_id)}' could not be found!"
             )
 
+        config._none_if_unknown_key = True
+
         cls = cls(
             name=config["name"],
             unique_id=unique_id,
@@ -534,14 +609,22 @@ class Remote:
             hostname=config["hostname"],
             username=config["username"],
             token=config["token"] if config["token"] != "" else None,
-            ssh_key=Path(config["ssh_key"]).expanduser().absolute()
-            if config["ssh_key"] != ""
-            else None,
+            ssh_key=(
+                Path(config["ssh_key"]).expanduser().absolute()
+                if config["ssh_key"] != ""
+                else None
+            ),
             use_system_keys=config["use_system_keys"],
+            connection_timeout=config["connection_timeout"],
             root_dir=config["root_dir"],
             sha256_cmd=config["sha256_cmd"],
         )
 
+        cls._config: TOMLConfiguration = config
+
+        config._none_if_unknown_key = False
+
+        cls.update_config()
         return cls
 
     @classmethod
@@ -576,6 +659,7 @@ class Remote:
         password: str | None = None,
         ssh_key: str | None = None,
         use_system_keys: bool = False,
+        connection_timeout: int | None = None,
         root_dir: str = VariableLibrary().get_variable(
             "backup.states.default_remote_root_dir"
         ),
@@ -610,6 +694,9 @@ class Remote:
                 "It is necessary to provide at least one valid authorization method."
             )
 
+        if connection_timeout is not None and connection_timeout <= 0:
+            raise ValueError("The connection timeout has to be positive or None.")
+
         unique_id = uuid.uuid4()
 
         cls = cls(
@@ -621,31 +708,18 @@ class Remote:
             token=encrypt(password),
             ssh_key=Path(ssh_key).expanduser().absolute() if ssh_key else None,
             use_system_keys=use_system_keys,
+            connection_timeout=connection_timeout,
             root_dir=root_dir,
             sha256_cmd=sha256_cmd,
         )
 
-        cls._config = TOMLConfiguration(
+        cls._config: TOMLConfiguration = TOMLConfiguration(
             Path(VariableLibrary().get_variable("paths.remote_directory"))
             / (str(unique_id) + ".toml"),
             create_if_not_exists=True,
         )
 
-        cls._config.dump_dict(
-            {
-                "name": cls._name,
-                "uuid": str(cls._uuid),
-                "protocol": cls._protocol.name,
-                "hostname": cls._hostname,
-                "username": cls._username,
-                "token": cls._token if cls._token else "",
-                "ssh_key": str(cls._ssh_key) if cls._ssh_key else "",
-                "use_system_keys": cls._use_system_keys,
-                "root_dir": cls._root_dir,
-                "sha256_cmd": cls._sha256_cmd,
-            }
-        )
-        cls._config.prepend_no_edit_warning()
+        cls.update_config()
 
         if test_connection:
             cls.test_connection(verbosity_level=verbosity_level)
@@ -683,6 +757,9 @@ class Remote:
 
     def should_use_system_keys(self) -> bool:
         return self._use_system_keys
+
+    def get_connection_timeout(self) -> int | None:
+        return self._connection_timeout
 
     def get_root_dir(self) -> str:
         return self._root_dir

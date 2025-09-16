@@ -19,13 +19,14 @@ classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.12",
   "Environment :: Console",
   "Operating System :: Unix",
   "Natural Language :: English",
   "Topic :: System :: Archiving :: Backup",
   "Development Status :: 4 - Beta",
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
   "numpy",
   "toml",

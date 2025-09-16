@@ -85,6 +85,8 @@ def delete(
     interactive: bool,
 ) -> None:
 
+    verbose += 1
+
     if interactive:
         return delete_interactive(force=force, debug=debug, verbosity_level=verbose)
 

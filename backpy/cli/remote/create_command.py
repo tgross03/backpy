@@ -7,6 +7,7 @@ from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     ConfirmInput,
     FilePathInput,
+    IntegerInput,
     PasswordInput,
     TextInput,
     print_error_message,
@@ -71,7 +72,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
             allow_none=True,
         ).prompt()
 
-        if key_path:
+        if key_path is not None:
             password = PasswordInput(
                 message=f"{palette.base}> Enter the passphrase of the SSH key "
                 f"(may be empty):{RESET}",
@@ -91,6 +92,13 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
             allow_empty=False,
             confirm_input=False,
         ).prompt()
+
+    timeout = IntegerInput(
+        message=f"{palette.base}> Enter the maximum duration in seconds "
+        f"to wait for the connection:{RESET}",
+        default_value=None,
+        allow_none=True,
+    ).prompt()
 
     root_dir = TextInput(
         message=f"{palette.base}> Enter the root directory of backpy on the remote:{RESET}",
@@ -115,6 +123,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
         password=password,
         ssh_key=key_path,
         use_system_keys=use_system_keys,
+        connection_timeout=timeout,
         root_dir=root_dir,
         sha256_cmd=sha256_cmd,
         verbosity_level=verbosity_level,
@@ -173,6 +182,12 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     help="Whether to attempt the usage of keys saved in the system's agent.",
 )
 @click.option(
+    "--timeout",
+    type=int,
+    default=None,
+    help="The time in seconds to wait for the connection to complete.",
+)
+@click.option(
     "--root-dir",
     type=str,
     default=VariableLibrary().get_variable("backup.states.default_remote_root_dir"),
@@ -209,12 +224,15 @@ def create(
     username: str,
     key: Path | None,
     use_system_keys: bool,
+    timeout: int | None,
     root_dir: str,
     sha256_cmd: str,
     verbose: int,
     debug: bool,
     interactive: bool,
 ) -> None:
+
+    verbose += 1
 
     if interactive:
         return create_interactive(verbosity_level=verbose, debug=debug)
@@ -263,12 +281,12 @@ def create(
         password=password,
         ssh_key=key,
         use_system_keys=use_system_keys,
+        connection_timeout=timeout,
         root_dir=root_dir,
         sha256_cmd=sha256_cmd,
         verbosity_level=verbose,
         test_connection=False,
     )
-
     try:
         remote.test_connection(verbosity_level=verbose)
     except Exception as e:

@@ -111,7 +111,7 @@ class BackupSpace:
             }
         }
 
-        self._config.dump_dict(dict(merge({}, content, current_content)))
+        self._config.dump_dict(dict(merge({}, current_content, content)))
 
     #####################
     #    CLASSMETHODS   #
@@ -161,9 +161,11 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
-            remote=Remote.load_by_uuid(config["general.remote"])
-            if config["general.remote"] != ""
-            else None,
+            remote=(
+                Remote.load_by_uuid(config["general.remote"])
+                if config["general.remote"] != ""
+                else None
+            ),
         )
         return cls
 

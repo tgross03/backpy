@@ -14,8 +14,8 @@ except Exception:
 
     warnings.warn(
         "Could not determine backpy version. This indicates"
-        " a broken installation. Please install simtools from"
-        " the local git repository."
+        " a broken installation. Please install backpy from"
+        " the local git repository or via pip."
     )
     del warnings
     version = "0.0.0"

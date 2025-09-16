@@ -63,6 +63,9 @@ def info(
     debug: bool,
     interactive: bool,
 ) -> None:
+
+    verbose += 1
+
     if interactive:
         return info_interactive(verbosity_level=verbose, debug=debug)
 
