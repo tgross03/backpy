@@ -1,6 +1,11 @@
 import click
 
+from backpy.cli.space.create_group import create
 
-@click.command("space", help="Actions related to creating and managing backup spaces.")
+
+@click.group("space", help="Actions related to creating and managing backup spaces.")
 def command():
     pass
+
+
+command.add_command(create)

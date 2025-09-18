@@ -3,6 +3,7 @@ import tarfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Set
 
 import numpy as np
 from rich.progress import track
@@ -15,6 +16,7 @@ class CompressionAlgorithm:
     name: str
     extension: str
     description: str
+    allows_compression_level: bool
     post_tar_algorithm: str = None
 
     @classmethod
@@ -26,10 +28,33 @@ class CompressionAlgorithm:
 
 
 _compression_methods = [
-    CompressionAlgorithm("zip", ".zip", "ZIP File"),
-    CompressionAlgorithm("gztar", ".tar.gz", "gzip'ed tar-file", "gz"),
-    CompressionAlgorithm("bztar", ".tar.bz2", "bzip2'ed tar-file", "bz2"),
-    CompressionAlgorithm("xztar", "tar.xz", "xz'ed tar-file", "xz"),
+    CompressionAlgorithm(
+        name="zip",
+        extension=".zip",
+        description="ZIP File",
+        allows_compression_level=True,
+    ),
+    CompressionAlgorithm(
+        name="gztar",
+        extension=".tar.gz",
+        description="gzip'ed tar-file",
+        allows_compression_level=False,
+        post_tar_algorithm="gz",
+    ),
+    CompressionAlgorithm(
+        name="bztar",
+        extension=".tar.bz2",
+        description="bzip2'ed tar-file",
+        allows_compression_level=False,
+        post_tar_algorithm="bz2",
+    ),
+    CompressionAlgorithm(
+        name="xztar",
+        extension="tar.xz",
+        description="xz'ed tar-file",
+        allows_compression_level=False,
+        post_tar_algorithm="xz",
+    ),
 ]
 
 
@@ -42,6 +67,7 @@ def compress(
     archive_name: str,
     fmt: str,
     level: int,
+    include: list[str] | None = None,
     exclude: list[str] | None = None,
     verbosity_level: int = 1,
     overwrite: bool = False,
@@ -60,6 +86,7 @@ def compress(
             root_path=root_path,
             archive_name=archive_name,
             level=level,
+            include=include,
             exclude=exclude,
             verbosity_level=verbosity_level,
             overwrite=overwrite,
@@ -75,12 +102,21 @@ def compress(
     )
 
 
-def _filter_files(
+def _filter_paths(
     root_path: Path | str,
+    include: list[str] | None,
     exclude: list[str] | None = None,
 ) -> tuple[list[Path], float]:
 
-    files = set(root_path.rglob("*"))
+    files: Set[Path] = (
+        set() if include is not None and len(include) > 0 else set(root_path.rglob("*"))
+    )
+
+    for inc in include:
+        files.update(root_path.rglob(inc))
+
+    files = {f for f in files if f.is_file()}
+
     for ex in exclude:
         files -= set(root_path.rglob(ex))
 
@@ -93,6 +129,7 @@ def _compress_zip(
     root_path: Path,
     archive_name: str,
     level: int,
+    include: list[str] | None,
     exclude: list[str] | None,
     verbosity_level: int,
     overwrite: bool = False,
@@ -103,7 +140,7 @@ def _compress_zip(
     if verbosity_level >= 1:
         print(f"Creating archive {target_path} ...")
 
-    files, size = _filter_files(root_path=root_path, exclude=exclude)
+    files, size = _filter_paths(root_path=root_path, include=include, exclude=exclude)
 
     if overwrite:
         if verbosity_level > 1:
@@ -140,7 +177,8 @@ def _compress_tar(
     root_path: Path,
     archive_name: str,
     compression_algorithm: CompressionAlgorithm,
-    exclude: list[Path] | None,
+    include: list[str] | None,
+    exclude: list[str] | None,
     verbosity_level: int,
     overwrite: bool = False,
 ) -> Path:
@@ -150,7 +188,7 @@ def _compress_tar(
     if verbosity_level > 1:
         print(f"Creating archive {target_path} ...")
 
-    files, size = _filter_files(root_path=root_path, exclude=exclude)
+    files, size = _filter_paths(root_path=root_path, include=include, exclude=exclude)
 
     if overwrite:
         if verbosity_level > 1:

@@ -41,7 +41,7 @@ class Protocol:
 
     @classmethod
     def from_name(cls, name: str):
-        for protocol in _protocols:
+        for protocol in protocols:
             if protocol.name == name:
                 return protocol
         return None
@@ -56,7 +56,7 @@ def get_remotes():
     ]
 
 
-_protocols = [
+protocols = [
     Protocol(
         name="scp",
         description="Uses the the 'scp.py' module to transfer files using scp (Secure Copy).",

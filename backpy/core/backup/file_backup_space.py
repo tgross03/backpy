@@ -19,6 +19,7 @@ class FileBackupSpace(BackupSpace):
     def create_backup(
         self,
         comment: str = "",
+        include: list[str] | None = None,
         exclude: list[str] | None = None,
         location: str = "all",
         verbosity_level: int = 1,
@@ -33,6 +34,7 @@ class FileBackupSpace(BackupSpace):
             source_path=self._file_path,
             backup_space=self,
             comment=comment,
+            include=list(set(include) | set(self._default_include)),
             exclude=list(set(exclude) | set(self._default_exclude)),
             location=location,
             verbosity_level=verbosity_level,
@@ -156,7 +158,6 @@ class FileBackupSpace(BackupSpace):
             )
 
         cls._file_path = Path(cls._config["file_system.path"])
-        cls._default_exclude = cls._config["file_system.default_exclude"]
 
         return cls
 
@@ -173,7 +174,6 @@ class FileBackupSpace(BackupSpace):
             )
 
         cls._file_path = Path(cls._config["file_system.path"])
-        cls._default_exclude = cls._config["file_system.default_exclude"]
 
         return cls
 
@@ -182,7 +182,6 @@ class FileBackupSpace(BackupSpace):
         cls,
         name: str,
         file_path: str,
-        default_exclude: list[str] | None = None,
         **kwargs,
     ) -> "FileBackupSpace":
 
@@ -197,13 +196,7 @@ class FileBackupSpace(BackupSpace):
         if isinstance(file_path, str):
             file_path = Path(file_path).expanduser()
 
-        if default_exclude is None:
-            default_exclude = []
-
         cls._file_path = file_path.absolute()
-        cls._default_exclude = default_exclude
-
         cls._config["file_system.path"] = str(cls._file_path)
-        cls._config["file_system.default_exclude"] = cls._default_exclude
 
         return cls

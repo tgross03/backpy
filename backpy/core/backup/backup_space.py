@@ -28,6 +28,8 @@ class BackupSpace:
         space_type: BackupSpaceType,
         compression_algorithm: compression.CompressionAlgorithm,
         compression_level: int,
+        default_include: list[str],
+        default_exclude: list[str],
         remote: Remote | None,
     ):
         self._uuid: uuid.UUID = unique_id
@@ -43,11 +45,14 @@ class BackupSpace:
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=self._backup_dir / "config.toml",
         )
-        self._remote = remote
+        self._default_include: list[str] = default_include
+        self._default_exclude: list[str] = default_exclude
+        self._remote: Remote = remote
 
     def create_backup(
         self,
         comment: str = "",
+        include: list[str] | None = None,
         exclude: list[str] | None = None,
         location: str = "all",
         verbosity_level: int = 1,
@@ -109,6 +114,8 @@ class BackupSpace:
                 "type": self._type.name,
                 "compression_algorithm": self._compression_algorithm.name,
                 "compression_level": self._compression_level,
+                "default_include": self._default_include,
+                "default_exclude": self._default_exclude,
             }
         }
 
@@ -162,6 +169,8 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
+            default_include=config["general.default_exclude"],
+            default_exclude=config["general.default_exclude"],
             remote=(
                 Remote.load_by_uuid(config["general.remote"])
                 if config["general.remote"] != ""
@@ -203,6 +212,8 @@ class BackupSpace:
         compression_level: int = VariableLibrary().get_variable(
             "backup.states.default_compression_level"
         ),
+        default_include: list[str] | None = None,
+        default_exclude: list[str] | None = None,
         remote: Remote = None,
         verbosity_level: int = 1,
     ):
@@ -219,6 +230,8 @@ class BackupSpace:
                 compression_algorithm
             ),
             compression_level=compression_level,
+            default_include=default_include if default_include is not None else [],
+            default_exclude=default_exclude if default_exclude is not None else [],
             remote=remote,
         )
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
@@ -233,6 +246,9 @@ class BackupSpace:
                 parents=True,
                 verbosity_level=verbosity_level,
             )
+
+        if verbosity_level >= 1:
+            print(f"Created BackupSpace '{name}' (UUID: {cls._uuid})!")
 
         return cls
 

@@ -6,6 +6,7 @@ from fuzzyfinder import fuzzyfinder
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
+from backpy.core.remote import Remote, get_remotes
 
 palette = get_default_palette()
 
@@ -376,6 +377,60 @@ class BackupInput(TextInput):
                 )
 
 
+class RemoteInput(TextInput):
+    def __init__(
+        self,
+        validate: Callable[[str], bool] = _validate_always,
+        default_value: str | None = None,
+        allow_none: bool = False,
+        suggest_matches: bool = False,
+        case_sensitive: bool = True,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+    ):
+
+        remotes = get_remotes()
+
+        remote_names_uuids = []
+
+        for remote in remotes:
+            remote_names_uuids.append(str(remote.get_uuid()))
+            remote_names_uuids.append(remote.get_name())
+
+        super().__init__(
+            message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
+            f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
+            f"Remote{RESET}{palette.base} to which the backups should be saved: ",
+            invalid_error_message=f"{palette.maroon}There is no Remote with "
+            f"{palette.red}name{palette.maroon} "
+            f"or {palette.red}UUID {EFFECTS.reverse.on}{palette.peach}"
+            "{value}"
+            f"{EFFECTS.reverse.off}"
+            f"{palette.maroon}. Please try again!{RESET}",
+            validate=validate,
+            default_value=default_value,
+            allow_none=allow_none,
+            suggest_matches=suggest_matches,
+            suggestible_values=remote_names_uuids,
+            case_sensitive=case_sensitive,
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+        )
+
+    def prompt(self) -> Remote | None:
+        result = super().prompt()
+
+        if result is None and self.allow_none:
+            return None
+
+        try:
+            remote = Remote.load_by_uuid(result)
+        except Exception:
+            remote = Remote.load_by_name(result)
+
+        return remote
+
+
 class EnumerationInput(TextInput):
     def __init__(
         self,
@@ -408,7 +463,7 @@ class EnumerationInput(TextInput):
 
         prompt = prompt.split(",")
 
-        if prompt == [""]:
+        if prompt == [""] or prompt is None:
             return []
         else:
             return prompt
@@ -479,6 +534,8 @@ class IntegerInput(TextInput):
         self,
         message: str,
         default_value: int | None = None,
+        min_value: int | None = None,
+        max_value: int | None = None,
         allow_none: bool = False,
         validate: Callable[[str], bool] = _validate_integer,
         suggest_matches: bool = False,
@@ -489,6 +546,8 @@ class IntegerInput(TextInput):
     ):
 
         suggestible_values = [] if not suggestible_values else suggestible_values
+        self._min_value: int | None = min_value
+        self._max_value: int | None = max_value
 
         super().__init__(
             message=message,
@@ -514,7 +573,23 @@ class IntegerInput(TextInput):
         if prompt is None and self.allow_none:
             return None
 
-        return int(prompt)
+        value = int(prompt)
+
+        if self._max_value is not None and value > self._max_value:
+            print(
+                f"{palette.red}ERROR: {palette.maroon}"
+                f"The given value is too large! Maximum: {self._max_value}{RESET}"
+            )
+            return self.prompt()
+
+        if self._min_value is not None and value < self._min_value:
+            print(
+                f"{palette.red}ERROR: {palette.maroon}"
+                f"The given value is too small! Minimum: {self._max_value}{RESET}"
+            )
+            return self.prompt()
+
+        return value
 
 
 class FloatInput(TextInput):

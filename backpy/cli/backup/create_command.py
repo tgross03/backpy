@@ -39,10 +39,23 @@ def create_interactive(verbosity_level: int) -> None:
         default_value="",
     ).prompt()
 
+    if space.get_type().use_inclusion:
+        include = EnumerationInput(
+            message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
+            f"elements that should be {palette.maroon}included{palette.lavender} in the "
+            f"backup{palette.base} "
+            f"(e.g. paths, patterns, tables, databases) (if empty every non-excluded element "
+            f"will be used):{RESET}",
+            default_value="",
+        ).prompt()
+    else:
+        include = []
+
     if space.get_type().use_exclusion:
         exclude = EnumerationInput(
-            message=f"{palette.base}> Enter an comma-seperated enumeration of {palette.lavender}"
-            f"elements that should be excluded from the backup{palette.base} "
+            message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
+            f"elements that should be {palette.maroon}excluded{palette.lavender} from the "
+            f"backup{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (can be empty):{RESET}",
             default_value="",
         ).prompt()
@@ -52,6 +65,7 @@ def create_interactive(verbosity_level: int) -> None:
     space.create_backup(
         location=location,
         comment=comment,
+        include=include,
         exclude=exclude,
         verbosity_level=verbosity_level,
     )
@@ -76,6 +90,17 @@ def create_interactive(verbosity_level: int) -> None:
     type=str,
     default="",
     help="A custom comment describing the backup contents.",
+)
+@click.option(
+    "--include",
+    "-I",
+    type=str,
+    multiple=True,
+    default=None,
+    help="A list of elements (e.g. paths, patterns, tables, databases) to include. "
+    "If not set, every non-excluded element will be used backed up. "
+    "Depending on the Backup Space this might not have an effect. "
+    "Important: Symbols like ',' and '\"' have to be escaped!",
 )
 @click.option(
     "--exclude",
@@ -107,6 +132,7 @@ def create(
     backup_space: str | None,
     location: str,
     comment: str,
+    include: list[str],
     exclude: list[str],
     verbose: int,
     debug: bool,
@@ -152,6 +178,7 @@ def create(
     space.create_backup(
         location=location,
         comment=comment,
+        include=include,
         exclude=exclude,
         verbosity_level=verbose,
     )

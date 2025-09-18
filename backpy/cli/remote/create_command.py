@@ -12,18 +12,17 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
-from backpy.core.remote.remote import _protocols
+from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
 
 palette = get_default_palette()
 
-protocol_names = [protocol.name for protocol in _protocols]
+protocol_names = [protocol.name for protocol in protocols]
 
 
 def create_interactive(verbosity_level: int, debug: bool) -> None:
 
     unique_name = False
-
     while not unique_name:
         name = TextInput(
             message=f"{palette.base}> Enter an alias for the remote:{RESET}",
@@ -39,7 +38,6 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
             f"{palette.red}ERROR:{palette.maroon} The given name is already "
             f"taken by another remote. The provided name has to be unique!"
         )
-        continue
 
     protocol = TextInput(
         message=f"{palette.base}> Enter the desired transfer protocol "
