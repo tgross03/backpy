@@ -16,8 +16,6 @@ from backpy.core.utils.exceptions import InvalidRemoteError
 
 palette = get_default_palette()
 
-# TODO: CHECK PATH OF CREATED SPACES (expand ~ and absolute path were wrong)
-
 
 def create_backup_space_interactive(
     func: Callable, space_type: BackupSpaceType, verbosity_level: int, debug: bool
@@ -121,6 +119,18 @@ def create_backup_space(
 ) -> None:
     verbose += 1
 
+    try:
+        BackupSpace.load_by_name(name=name)
+        return print_error_message(
+            error=InvalidRemoteError(
+                f"{palette.red}ERROR:{palette.maroon} The given name is already "
+                f"taken by another backup space. The provided name has to be unique!"
+            ),
+            debug=debug,
+        )
+    except Exception:
+        pass
+
     backup_space_type = BackupSpaceType.from_name(name=space_type)
 
     if interactive:
@@ -166,7 +176,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
             default="",
         )(func)
         func = click.option(
-            "--compression_algorithm",
+            "--compression-algorithm",
             type=click.Choice(
                 [method.name for method in compression._compression_methods]
             ),
@@ -176,7 +186,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
             help="The compression algorithm to be used to compress the backed up files.",
         )(func)
         func = click.option(
-            "--compression_level",
+            "--compression-level",
             type=click.IntRange(0, 9),
             default=VariableLibrary().get_variable(
                 "backup.states.default_compression_level"
