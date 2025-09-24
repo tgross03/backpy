@@ -104,7 +104,7 @@ class Backup:
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
-    def get_info(self):
+    def get_info_table(self) -> Table:
         table = Table(
             title=f"{palette.blue}BACKUP INFORMATION{RESET}",
             show_header=False,

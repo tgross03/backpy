@@ -12,19 +12,24 @@ from mergedeep import merge
 from paramiko import SSHClient
 from paramiko.sftp_client import SFTPClient
 from paramiko.ssh_exception import SSHException
+from rich import box
 from rich.console import Console
 from rich.live import Live
 from rich.progress import DownloadColumn, Progress, TransferSpeedColumn
 from rich.spinner import Spinner
+from rich.table import Table
 from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
+from backpy.cli.colors import RESET, get_default_palette
 from backpy.core.remote.password import decrypt, encrypt
 from backpy.core.utils.exceptions import (
     InvalidChecksumError,
     InvalidRemoteError,
     UnsupportedProtocolError,
 )
+
+palette = get_default_palette()
 
 
 def _calculate_hash(path: Path) -> str:
@@ -579,6 +584,55 @@ class Remote:
         self.disconnect(verbosity_level=verbosity_level)
 
         return checksum
+
+    def get_info_table(self) -> Table:
+
+        table = Table(
+            title=f"{palette.peach}REMOTE INFORMATION{RESET}",
+            show_header=False,
+            show_edge=True,
+            header_style=palette.overlay1,
+            box=box.HORIZONTALS,
+            expand=False,
+            pad_edge=False,
+        )
+
+        table.add_column(justify="right", no_wrap=False)
+        table.add_column(justify="left", no_wrap=False)
+
+        table.add_row(f"{palette.sky}Name", f"{palette.base}{self.get_name()}")
+        table.add_row(f"{palette.sky}UUID", f"{palette.base}{self.get_uuid()}")
+        table.add_row(
+            f"{palette.sky}Protocol", f"{palette.base}{self.get_protocol().name}"
+        )
+        table.add_row(f"{palette.sky}Hostname", f"{palette.base}{self.get_hostname()}")
+        table.add_row(f"{palette.sky}Username", f"{palette.base}{self.get_username()}")
+        table.add_row(
+            f"{palette.sky}Authentication",
+            f"{palette.base}{'SSH-Key' if self.get_ssh_key() is not None else 'Password'}",
+        )
+        if self.get_ssh_key() is not None:
+            table.add_row(
+                f"{palette.sky}Keyfile", f"{palette.base}{self.get_ssh_key()}"
+            )
+        table.add_row(
+            f"{palette.sky}Use System Keys?",
+            f"{palette.base}{'yes' if self.should_use_system_keys() else 'no'}",
+        )
+
+        timeout = self.get_connection_timeout()
+        table.add_row(
+            f"{palette.sky}Connection Timeout",
+            f"{palette.base}{timeout if timeout is not None else 'none'}",
+        )
+        table.add_row(
+            f"{palette.sky}Root Directory", f"{palette.base}{self.get_root_dir()}"
+        )
+        table.add_row(
+            f"{palette.sky}SHA-256 Command", f"{palette.base}{self.get_sha256_cmd()}"
+        )
+
+        return table
 
     #####################
     #    CLASSMETHODS   #

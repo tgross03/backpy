@@ -23,7 +23,7 @@ def info_interactive(verbosity_level: int, debug: bool):
         suggest_matches=True,
     ).prompt()
 
-    Console().print(backup.get_info())
+    Console().print(backup.get_info_table())
 
     return None
 

@@ -5,7 +5,7 @@ import click
 from backpy import BackupSpaceType
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import DirectoryPathInput
-from backpy.cli.space.common_commands.create import common_options, create_backup_space
+from backpy.cli.space.common.create import common_options, create_backup_space
 
 palette = get_default_palette()
 
