@@ -6,7 +6,7 @@ from fuzzyfinder import fuzzyfinder
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
-from backpy.core.remote import Remote, get_remotes
+from backpy.core.remote import Remote
 
 palette = get_default_palette()
 
@@ -389,7 +389,7 @@ class RemoteInput(TextInput):
         highlight_suggestion: bool = True,
     ):
 
-        remotes = get_remotes()
+        remotes = Remote.get_remotes()
 
         remote_names_uuids = []
 

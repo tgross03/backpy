@@ -4,7 +4,7 @@ from rich.tree import Tree
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import print_error_message
-from backpy.core.remote import get_remotes
+from backpy.core.remote import Remote
 
 palette = get_default_palette()
 
@@ -31,7 +31,7 @@ def list_remotes(depth: int, debug: bool) -> None:
     tree = Tree(f"{palette.mauve}Remotes{RESET}")
 
     try:
-        remotes = get_remotes()
+        remotes = Remote.get_remotes()
     except Exception as e:
         return print_error_message(error=e, debug=debug)
 

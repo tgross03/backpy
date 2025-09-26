@@ -122,6 +122,6 @@ def info(
                     debug=debug,
                 )
 
-    Console().print(backup.get_info())
+    Console().print(backup.get_info_table())
 
     return None

@@ -54,10 +54,13 @@ class Backup:
     def calculate_hash(self) -> str:
         return calculate_sha256sum(self._path)
 
-    def check_hash(self, remote=False) -> bool:
+    def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
         if remote:
             return (
-                self._remote.get_hash(target=self.get_remote_archive_path())
+                self._remote.get_hash(
+                    target=self.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                )
                 == self._hash
             )
         else:

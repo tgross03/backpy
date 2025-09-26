@@ -127,6 +127,8 @@ def edit(
                 debug=debug,
             )
 
+    prev_config = remote._config.as_dict().copy()
+
     remote.disconnect(verbosity_level=verbose)
 
     if name is not None:
@@ -177,5 +179,13 @@ def edit(
         print(f"Updating the configuration file at {remote._config.get_path()}")
 
     remote.update_config()
+
+    if remote._config.as_dict() == prev_config and verbose >= 1:
+        print(f"{palette.flamingo}Nothing to update. No changes applied.{RESET}")
+    elif verbose >= 1:
+        print(
+            f"{palette.base}Update applied to remote {palette.sky}{remote.get_uuid()}"
+            f"{palette.base}.{RESET}"
+        )
 
     return None

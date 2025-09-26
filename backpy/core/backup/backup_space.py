@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import shutil
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 from mergedeep import merge
+from rich import box
+from rich.table import Table
 
+from backpy.cli.colors import RESET, get_default_palette
 from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
@@ -18,6 +22,8 @@ from backpy.core.utils.exceptions import (
 
 if TYPE_CHECKING:
     from backpy import Backup, BackupSpaceType
+
+palette = get_default_palette()
 
 
 class BackupSpace:
@@ -109,9 +115,9 @@ class BackupSpace:
         content = {
             "general": {
                 "name": self._name,
+                "type": self._type.name,
                 "uuid": str(self._uuid),
                 "remote": str(self._remote.get_uuid()) if self._remote else "",
-                "type": self._type.name,
                 "compression_algorithm": self._compression_algorithm.name,
                 "compression_level": self._compression_level,
                 "default_include": self._default_include,
@@ -120,6 +126,64 @@ class BackupSpace:
         }
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
+
+    def delete(self, verbosity_level: int = 1):
+        shutil.rmtree(self._backup_dir)
+        if verbosity_level > 1:
+            print(f"Removing backup directory {self._backup_dir}")
+
+        if self._remote is not None:
+            self._remote.remove(
+                target=self.get_remote_path(), verbosity_level=verbosity_level
+            )
+        if verbosity_level > 1:
+            print(
+                f"Removing remote backup directory from remote {self._remote.get_name()} "
+                f"(UUID: {self._remote.get_uuid()}) at {self.get_remote_path()}."
+            )
+
+    def get_info_table(self) -> Table:
+        raise NotImplementedError("This method is abstract and has to be overridden!")
+
+    def _get_info_table(
+        self, additional_info_idx: list[int], additional_info: dict
+    ) -> Table:
+        info = {
+            "Name": self._name,
+            "UUID": self._uuid,
+            "Type": self._type.full_name,
+            "Remote": f"{self._remote.get_name()} " f"(UUID: {self._remote.get_uuid()})"
+            if self._remote is not None
+            else "none",
+            "Compression Algorithm": self._compression_algorithm.name,
+            "Compression Level": self._compression_level,
+            "Include": self._default_include,
+            "Exclude": self._default_exclude,
+        }
+        keys, values = list(info.keys()), list(info.values())
+        additional_keys, additional_values = (
+            list(additional_info.keys()),
+            list(additional_info.values()),
+        )
+
+        for idx, i in zip(additional_info_idx, range(len(additional_info))):
+            keys.insert(idx, additional_keys[i])
+            values.insert(idx, additional_values[i])
+
+        table = Table(
+            title=f"{palette.peach}BACKUP SPACE INFORMATION{RESET}",
+            show_header=False,
+            show_edge=True,
+            header_style=palette.overlay1,
+            box=box.HORIZONTALS,
+            expand=False,
+            pad_edge=False,
+        )
+
+        for key, value in zip(keys, values):
+            table.add_row(f"{palette.sky}{key}{RESET}", f"{palette.base}{value}{RESET}")
+
+        return table
 
     #####################
     #    CLASSMETHODS   #
@@ -169,7 +233,7 @@ class BackupSpace:
                 config["general.compression_algorithm"]
             ),
             compression_level=config["general.compression_level"],
-            default_include=config["general.default_exclude"],
+            default_include=config["general.default_include"],
             default_exclude=config["general.default_exclude"],
             remote=(
                 Remote.load_by_uuid(config["general.remote"])
@@ -276,6 +340,12 @@ class BackupSpace:
 
     def get_compression_level(self) -> int:
         return self._compression_level
+
+    def get_default_include(self) -> list[str]:
+        return self._default_include
+
+    def get_default_exclude(self) -> list[str]:
+        return self._default_exclude
 
     def get_backup_dir(self) -> Path:
         return self._backup_dir

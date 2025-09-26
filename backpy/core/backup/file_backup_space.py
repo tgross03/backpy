@@ -7,6 +7,8 @@ from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from rich.table import Table
+
 from backpy.core.backup import BackupSpace, compression
 from backpy.core.config import VariableLibrary
 from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidChecksumError
@@ -140,6 +142,11 @@ class FileBackupSpace(BackupSpace):
                 print(f"Removing temporary copy of remote archive '{archive_path}'.")
 
             archive_path.unlink()
+
+    def get_info_table(self) -> Table:
+        return super()._get_info_table(
+            additional_info_idx=[3], additional_info={"Directory": self._file_path}
+        )
 
     #####################
     #    CLASSMETHODS   #

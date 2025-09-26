@@ -52,15 +52,6 @@ class Protocol:
         return None
 
 
-def get_remotes():
-    return [
-        Remote.load_by_uuid(tomlf.stem)
-        for tomlf in Path(
-            VariableLibrary().get_variable("paths.remote_directory")
-        ).rglob("*.toml")
-    ]
-
-
 protocols = [
     Protocol(
         name="scp",
@@ -581,6 +572,9 @@ class Remote:
             .split(" ")[0]
         )
 
+        if verbosity_level > 1:
+            print(f"Calculating hash of file {target} on remote {self._uuid}")
+
         self.disconnect(verbosity_level=verbosity_level)
 
         return checksum
@@ -637,6 +631,15 @@ class Remote:
     #####################
     #    CLASSMETHODS   #
     #####################
+
+    @classmethod
+    def get_remotes(cls):
+        return [
+            Remote.load_by_uuid(tomlf.stem)
+            for tomlf in Path(
+                VariableLibrary().get_variable("paths.remote_directory")
+            ).rglob("*.toml")
+        ]
 
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "Remote":
