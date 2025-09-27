@@ -34,7 +34,7 @@ def create_backup_space_interactive(
 
         print(
             f"{palette.red}ERROR:{palette.maroon} The given name is already "
-            f"taken by another backup space. The provided name has to be unique!"
+            f"taken by another backup space. The provided name has to be unique!{RESET}"
         )
 
     kwargs = func()
@@ -123,8 +123,8 @@ def create_backup_space(
         BackupSpace.load_by_name(name=name)
         return print_error_message(
             error=InvalidRemoteError(
-                f"{palette.red}ERROR:{palette.maroon} The given name is already "
-                f"taken by another backup space. The provided name has to be unique!"
+                f"The given name is already "
+                f"taken by another backup space. The provided name has to be unique!{RESET}"
             ),
             debug=debug,
         )
