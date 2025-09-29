@@ -23,6 +23,11 @@ class InvalidRemoteError(Exception):
         super().__init__(message)
 
 
+class InvalidScheduleError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class InvalidChecksumError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)

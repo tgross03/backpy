@@ -1,31 +1,98 @@
 import uuid
+from pathlib import Path
 
 import crontab
+from mergedeep import merge
+
+from backpy import TOMLConfiguration, VariableLibrary
+from backpy.core.backup import BackupSpace
+from backpy.core.utils.exceptions import InvalidScheduleError
 
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
+cron = crontab.CronTab(user=True)
 
 
-def create_cronjob(
-    unique_id: uuid.UUID, command: str, schedule: str
-) -> crontab.CronItem:
+class Schedule:
+    def __init__(self, unique_id: uuid.UUID, command: str, time_pattern: str):
+        self._uuid: uuid.UUID = unique_id
+        self._command: str = command
+        self._time_pattern: str = time_pattern
+        self._cron_items: list[crontab.CronItem] = self._get_cronjobs()
+        self._active: bool = len(self._cron_items) > 0
+        self._config: TOMLConfiguration = TOMLConfiguration(
+            path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
+            / (str(self._uuid) + ".toml")
+        )
 
-    cron = crontab.CronTab(user=True)
-    job = cron.new(command=command, comment=_get_comment(unique_id=unique_id))
-    job.setall(schedule)
-    cron.write()
+    def activate(self):
+        job = cron.new(command=self._command, comment=self._get_comment())
+        job.setall(self._time_pattern)
+        cron.write()
+        self._active = True
+        return job
 
-    return job
+    def deactivate(self):
+        for job in self._get_cronjobs():
+            job.delete()
+        self._active = False
 
+    def update_config(self):
+        current_content = self._config.as_dict()
 
-def delete_cronjobs_by_uuid(unique_id: uuid.UUID):
-    for job in get_cronjobs_by_uuid(unique_id=unique_id):
-        job.delete()
+        content = {
+            "uuid": str(self._uuid),
+            "command": self._command,
+            "time_pattern": self._time_pattern,
+        }
 
+        self._config.dump_dict(dict(merge({}, current_content, content)))
 
-def get_cronjobs_by_uuid(unique_id: uuid.UUID) -> list[crontab.CronItem]:
-    cron = crontab.CronTab(user=True)
-    return list(cron.find_comment(_get_comment(unique_id=unique_id)))
+    def _get_cronjobs(self) -> list[crontab.CronItem]:
+        return list(cron.find_comment(self._get_comment()))
 
+    def _get_comment(self) -> str:
+        return str(self._uuid) + " " + COMMENT_SUFFIX
 
-def _get_comment(unique_id: uuid.UUID) -> str:
-    return str(unique_id) + " " + COMMENT_SUFFIX
+    #####################
+    #    CLASSMETHODS   #
+    #####################
+
+    @classmethod
+    def load_by_uuid(cls, unique_id: str) -> "Schedule":
+        config = TOMLConfiguration(
+            path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
+            / (unique_id + ".toml")
+        )
+        if not config.is_valid():
+            raise InvalidScheduleError("There is no schedule with this UUID.")
+
+        return cls(
+            unique_id=uuid.UUID(unique_id),
+            command=config["command"],
+            time_pattern=config["time_pattern"],
+        )
+
+    @classmethod
+    def create_from_backup_space(
+        cls, backup_space: BackupSpace, verbosity_level: int = 1
+    ):
+        pass
+
+    #####################
+    #       GETTER      #
+    #####################
+
+    def get_uuid(self) -> uuid.UUID:
+        return self._uuid
+
+    def get_command(self) -> str:
+        return self._command
+
+    def get_time_pattern(self) -> str:
+        return self._time_pattern
+
+    def is_active(self) -> bool:
+        return self._active
+
+    def get_config(self) -> TOMLConfiguration:
+        return self._config

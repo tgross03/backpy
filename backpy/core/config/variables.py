@@ -31,6 +31,7 @@ class VariableLibrary:
             "paths": {
                 "backup_directory": str(Path.home() / ".backpy/backups"),
                 "remote_directory": str(Path.home() / ".backpy/remotes"),
+                "schedule_directory": str(Path.home() / ".backpy/schedules"),
                 "temporary_directory": str(Path.home() / ".backpy/.temp"),
             },
             "backup": {
