@@ -5,7 +5,7 @@ import crontab
 from mergedeep import merge
 
 from backpy import TOMLConfiguration, VariableLibrary
-from backpy.core.backup import BackupSpace
+from backpy.core.backup.backup_space import BackupSpace
 from backpy.core.utils.exceptions import InvalidScheduleError
 
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
@@ -74,9 +74,49 @@ class Schedule:
 
     @classmethod
     def create_from_backup_space(
-        cls, backup_space: BackupSpace, verbosity_level: int = 1
+        cls,
+        backup_space: BackupSpace,
+        time_pattern: str,
+        exclude: list[str],
+        include: list[str],
+        location: str,
+        activate: bool,
+        verbosity_level: int = 1,
     ):
-        pass
+
+        if location not in ["local", "remote", "all"]:
+            raise ValueError("The location must be either 'local', 'remote' or 'all'.")
+
+        command = (
+            f"backpy backup create {backup_space.get_name()} "
+            f"--location {location} "
+            # f"--comment {}"
+        )
+
+        for exclusion in exclude:
+            command += f" -X {exclusion}"
+
+        for inclusion in include:
+            command += f" -I {inclusion}"
+
+        cls = cls(
+            unique_id=uuid.uuid4(),
+            command=command,
+            time_pattern=time_pattern,
+        )
+
+        cls.update_config()
+
+        if verbosity_level > 1:
+            print(f"Created schedule '{cls._uuid}' with command '{cls._command}'.")
+
+        if activate:
+            cls.activate()
+
+            if verbosity_level > 1:
+                print(f"Activated schedule '{cls._uuid}'.")
+
+        return cls
 
     #####################
     #       GETTER      #
