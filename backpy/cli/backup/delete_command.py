@@ -63,7 +63,6 @@ def delete_interactive(force: bool, debug: bool, verbosity_level: int):
     "--verbose",
     "-v",
     count=True,
-    default=1,
     help="Sets the verbosity level of the output.",
 )
 @click.option(
@@ -84,7 +83,7 @@ def delete(
     debug: bool,
     interactive: bool,
 ) -> None:
-
+    print
     verbose += 1
 
     if interactive:

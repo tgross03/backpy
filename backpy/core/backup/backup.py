@@ -79,12 +79,15 @@ class Backup:
                 print(f"Removed local backup at {self._path}.")
 
         if self.has_remote_archive():
-            self._remote.remove(
-                target=self.get_remote_archive_path(), verbosity_level=verbosity_level
-            )
-            self._remote.remove(
-                target=self.get_remote_config_path(), verbosity_level=verbosity_level
-            )
+            with self._remote(context_verbosity=verbosity_level):
+                self._remote.remove(
+                    target=self.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                )
+                self._remote.remove(
+                    target=self.get_remote_config_path(),
+                    verbosity_level=verbosity_level,
+                )
 
         if verbosity_level >= 1:
             print(
@@ -298,16 +301,17 @@ class Backup:
             print(f"SHA256 Hash: {cls.get_hash()}")
 
         if cls.has_remote_archive():
-            cls._remote.upload(
-                source=moved_path,
-                target=cls.get_remote_archive_path(),
-                verbosity_level=verbosity_level,
-            )
-            cls._remote.upload(
-                source=cls._config.get_path(),
-                target=cls.get_remote_config_path(),
-                verbosity_level=verbosity_level,
-            )
+            with cls._remote(context_verbosity=verbosity_level):
+                cls._remote.upload(
+                    source=moved_path,
+                    target=cls.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                )
+                cls._remote.upload(
+                    source=cls._config.get_path(),
+                    target=cls.get_remote_config_path(),
+                    verbosity_level=verbosity_level,
+                )
 
         if not save_locally:
             if cls.has_remote_archive():

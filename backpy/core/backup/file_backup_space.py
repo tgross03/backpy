@@ -103,9 +103,10 @@ class FileBackupSpace(BackupSpace):
                 print(f"Creating temporary copy of remote archive at '{archive_path}'.")
 
             try:
-                backup.get_remote().download(
-                    source=backup.get_remote_archive_path(), target=archive_path
-                )
+                with backup.get_remote()(context_verbosity=verbosity_level):
+                    backup.get_remote().download(
+                        source=backup.get_remote_archive_path(), target=archive_path
+                    )
             except InvalidChecksumError:
                 if force:
                     warnings.warn(

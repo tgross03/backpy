@@ -10,7 +10,6 @@ from backpy.core.backup.backup_space import BackupSpace
 from backpy.core.utils.exceptions import InvalidScheduleError
 
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
-cron = crontab.CronTab(user=True)
 
 
 class Schedule:
@@ -25,6 +24,7 @@ class Schedule:
         )
 
     def activate(self) -> None:
+        cron = crontab.CronTab(user=True)
         job = cron.new(command=self.get_command(), comment=self._get_comment())
         job.setall(self._time_pattern)
         cron.write()
@@ -32,6 +32,7 @@ class Schedule:
     def deactivate(self):
         for job in self._get_cronjobs():
             job.delete()
+            job.cron.write()
 
     def delete(self, verbosity_level: int = 1):
         if self.is_active():
@@ -55,7 +56,7 @@ class Schedule:
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def _get_cronjobs(self) -> list[crontab.CronItem]:
-        return list(cron.find_comment(self._get_comment()))
+        return list(crontab.CronTab(user=True).find_comment(self._get_comment()))
 
     def _get_comment(self) -> str:
         return str(self._uuid) + " " + COMMENT_SUFFIX

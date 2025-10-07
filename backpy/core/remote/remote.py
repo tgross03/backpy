@@ -31,6 +31,8 @@ from backpy.core.utils.exceptions import (
 
 palette = get_default_palette()
 
+_DEFAULT_CONTEXT_VERBOSITY: int = 1
+
 
 def _calculate_hash(path: Path) -> str:
     with open(path, "rb") as f:
@@ -103,6 +105,24 @@ class Remote:
         self._client: SSHClient | None = None
         self._root_dir: str = root_dir
         self._sha256_cmd: str = sha256_cmd
+
+        self._context_managed: bool = False
+        self._context_verbosity: int = _DEFAULT_CONTEXT_VERBOSITY
+
+    def __call__(self, context_verbosity: int, *args, **kwargs):
+        self._context_verbosity = context_verbosity
+        return self
+
+    def __enter__(self) -> "Remote":
+        self._context_managed = True
+        self.connect(verbosity_level=self._context_verbosity)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        self._context_managed = False
+        self.disconnect(verbosity_level=self._context_verbosity)
+        self._context_verbosity = _DEFAULT_CONTEXT_VERBOSITY
+        return False
 
     def update_config(self):
 
@@ -177,6 +197,12 @@ class Remote:
 
     def test_connection(self, verbosity_level: int = 1) -> None:
 
+        if self._context_managed:
+            raise RuntimeError(
+                "The connection of the remote may not be tested while "
+                "the remote is used in a context manager."
+            )
+
         live = None
 
         if verbosity_level >= 1:
@@ -218,7 +244,9 @@ class Remote:
         if isinstance(source, str):
             source = Path(source)
 
-        self.connect(verbosity_level=verbosity_level)
+        if not self._context_managed:
+            self.connect(verbosity_level=verbosity_level)
+
         with Progress(
             *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
         ) as progress:
@@ -308,7 +336,8 @@ class Remote:
 
                     scp_client.put(files=source, remote_path=target, recursive=True)
 
-        self.disconnect(verbosity_level=verbosity_level)
+        if not self._context_managed:
+            self.disconnect(verbosity_level=verbosity_level)
 
         if check_hash:
             if (
@@ -350,7 +379,8 @@ class Remote:
         if isinstance(target, str):
             target = Path(target)
 
-        self.connect(verbosity_level=verbosity_level)
+        if not self._context_managed:
+            self.connect(verbosity_level=verbosity_level)
 
         with Progress(
             *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
@@ -380,7 +410,8 @@ class Remote:
                     )
                     scp_client.get(remote_path=source, local_path=str(target))
 
-        self.disconnect(verbosity_level=verbosity_level)
+        if not self._context_managed:
+            self.disconnect(verbosity_level=verbosity_level)
 
         if check_hash:
             if (
@@ -418,7 +449,7 @@ class Remote:
         verbosity_level: int = 1,
     ) -> None:
 
-        if not client:
+        if not client and not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
 
         subdirs = target.split("/")
@@ -477,7 +508,7 @@ class Remote:
                 # delete the temporary tree
                 shutil.rmtree(path)
 
-        if close_afterwards:
+        if close_afterwards and not self._context_managed:
             self.disconnect(verbosity_level=verbosity_level)
 
         if verbosity_level > 1:
@@ -493,8 +524,11 @@ class Remote:
         close_afterwards: bool = True,
     ) -> bool:
 
-        if not sftp_client:
+        if not sftp_client and not self._context_managed:
             self.connect()
+            sftp_client = self._client.open_sftp()
+
+        if self._context_managed:
             sftp_client = self._client.open_sftp()
 
         result = False
@@ -503,7 +537,7 @@ class Remote:
         except IOError:
             pass
 
-        if close_afterwards:
+        if close_afterwards and not self._context_managed:
             self.disconnect()
 
         return result
@@ -516,8 +550,11 @@ class Remote:
         verbosity_level: int = 1,
     ) -> None:
 
-        if not sftp_client:
+        if not sftp_client and not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
+            sftp_client = self._client.open_sftp()
+
+        if self._context_managed:
             sftp_client = self._client.open_sftp()
 
         if not self._is_dir(target, sftp_client=sftp_client, close_afterwards=False):
@@ -549,10 +586,17 @@ class Remote:
             if verbosity_level >= 2:
                 print(f"Directory at remote path '{target}' was removed.")
 
-        if close_afterwards:
+        if close_afterwards and not self._context_managed:
             self.disconnect(verbosity_level=verbosity_level)
 
     def delete(self, verbosity_level: int = 1):
+
+        if self._context_managed:
+            raise RuntimeError(
+                "The remote may not be deleted while "
+                "it is remote is used in a context manager."
+            )
+
         self.disconnect(verbosity_level=verbosity_level)
 
         self._config.get_path().unlink()
@@ -563,7 +607,9 @@ class Remote:
         print(f"Remote with UUID {self._uuid} was deleted.")
 
     def get_hash(self, target: str, verbosity_level: int = 1) -> str:
-        self.connect(verbosity_level=verbosity_level)
+
+        if not self._context_managed:
+            self.connect(verbosity_level=verbosity_level)
 
         checksum = (
             self._client.exec_command(self._sha256_cmd + " " + target)[1]
@@ -575,7 +621,8 @@ class Remote:
         if verbosity_level > 1:
             print(f"Calculating hash of file {target} on remote {self._uuid}")
 
-        self.disconnect(verbosity_level=verbosity_level)
+        if not self._context_managed:
+            self.disconnect(verbosity_level=verbosity_level)
 
         return checksum
 
@@ -677,7 +724,7 @@ class Remote:
             sha256_cmd=config["sha256_cmd"],
         )
 
-        cls._config: TOMLConfiguration = config
+        cls._config = config
 
         config._none_if_unknown_key = False
 
@@ -770,7 +817,7 @@ class Remote:
             sha256_cmd=sha256_cmd,
         )
 
-        cls._config: TOMLConfiguration = TOMLConfiguration(
+        cls._config = TOMLConfiguration(
             Path(VariableLibrary().get_variable("paths.remote_directory"))
             / (str(unique_id) + ".toml"),
             create_if_not_exists=True,

@@ -133,9 +133,10 @@ class BackupSpace:
             print(f"Removing backup directory {self._backup_dir}")
 
         if self._remote is not None:
-            self._remote.remove(
-                target=self.get_remote_path(), verbosity_level=verbosity_level
-            )
+            with self._remote(context_verbosity=verbosity_level):
+                self._remote.remove(
+                    target=self.get_remote_path(), verbosity_level=verbosity_level
+                )
         if verbosity_level > 1:
             print(
                 f"Removing remote backup directory from remote {self._remote.get_name()} "
@@ -152,9 +153,11 @@ class BackupSpace:
             "Name": self._name,
             "UUID": self._uuid,
             "Type": self._type.full_name,
-            "Remote": f"{self._remote.get_name()} " f"(UUID: {self._remote.get_uuid()})"
-            if self._remote is not None
-            else "none",
+            "Remote": (
+                f"{self._remote.get_name()} " f"(UUID: {self._remote.get_uuid()})"
+                if self._remote is not None
+                else "none"
+            ),
             "Compression Algorithm": self._compression_algorithm.name,
             "Compression Level": self._compression_level,
             "Include": self._default_include,
@@ -305,11 +308,12 @@ class BackupSpace:
         cls._config.prepend_no_edit_warning()
 
         if cls._remote:
-            cls._remote.mkdir(
-                target=cls.get_remote_path(),
-                parents=True,
-                verbosity_level=verbosity_level,
-            )
+            with cls._remote(context_verbosity=verbosity_level):
+                cls._remote.mkdir(
+                    target=cls.get_remote_path(),
+                    parents=True,
+                    verbosity_level=verbosity_level,
+                )
 
         if verbosity_level >= 1:
             print(f"Created BackupSpace '{name}' (UUID: {cls._uuid})!")

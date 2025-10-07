@@ -40,7 +40,6 @@ def info_interactive(verbosity_level: int, debug: bool):
     "--verbose",
     "-v",
     count=True,
-    default=1,
     help="Sets the verbosity level of the output.",
 )
 @click.option(
