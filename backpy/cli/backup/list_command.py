@@ -74,7 +74,7 @@ def list_backups(
 
     tree = Tree(
         f"{palette.mauve}Backups in {palette.lavender}{space.get_name()} (UUID: {space.get_uuid()})"
-        f"\n{palette.mauve}Sorted by: {sort_by}{RESET}"
+        f"\n{palette.mauve}Sorted by: {palette.lavender}{sort_by}{RESET}"
     )
 
     try:
@@ -90,14 +90,23 @@ def list_backups(
 
         if check_hash:
             hash_branch = backup_branch.add(f"{palette.lavender}Hash Check{RESET}")
+            local_check = (
+                "passed"
+                if backup.check_hash(remote=False, verbosity_level=verbose)
+                else "failed"
+            )
             hash_branch.add(
-                f"{palette.lavender}Local: {palette.maroon}"
-                f"{backup.check_hash(remote=False, verbosity_level=verbose)}{RESET}"
+                f"{palette.lavender}Local: {palette.maroon}" f"{local_check}{RESET}"
             )
             if space.get_remote() is not None:
+                remote_check = (
+                    "passed"
+                    if backup.check_hash(remote=True, verbosity_level=verbose)
+                    else "failed"
+                )
                 hash_branch.add(
                     f"{palette.lavender}Remote: {palette.maroon}"
-                    f"{backup.check_hash(remote=True, verbosity_level=verbose)}{RESET}"
+                    f"{remote_check}{RESET}"
                 )
 
         if depth > 1:
@@ -111,8 +120,9 @@ def list_backups(
             )
 
         if depth > 2:
+            comment = backup.get_comment() if backup.get_comment() != "" else "- none -"
             backup_branch.add(
-                f"{palette.lavender}Comment: {palette.maroon}{backup.get_comment()}{RESET}"
+                f"{palette.lavender}Comment: {palette.maroon}{comment}{RESET}"
             )
 
     Console().print(tree)

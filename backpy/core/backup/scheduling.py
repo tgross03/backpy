@@ -1,3 +1,4 @@
+import sys
 import uuid
 from pathlib import Path
 
@@ -19,11 +20,12 @@ class Schedule:
         self._time_pattern: str = time_pattern
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
-            / (str(self._uuid) + ".toml")
+            / (str(self._uuid) + ".toml"),
+            create_if_not_exists=True,
         )
 
     def activate(self) -> None:
-        job = cron.new(command=self._command, comment=self._get_comment())
+        job = cron.new(command=self.get_command(), comment=self._get_comment())
         job.setall(self._time_pattern)
         cron.write()
 
@@ -96,15 +98,15 @@ class Schedule:
 
         command = (
             f"backpy backup create {backup_space.get_name()} "
-            f"--location {location}"
-            f"--comment Scheduled backup (Schedule-UUID: {unique_id})"
+            f'--location "{location}" '
+            f'--comment "Scheduled backup (Schedule-UUID: {unique_id})"'
         )
 
         for exclusion in exclude:
-            command += f" -X {exclusion}"
+            command += f' -X "{exclusion}"'
 
         for inclusion in include:
-            command += f" -I {inclusion}"
+            command += f' -I "{inclusion}"'
 
         cls = cls(
             unique_id=unique_id,
@@ -133,7 +135,12 @@ class Schedule:
         return self._uuid
 
     def get_command(self) -> str:
-        return self._command
+        command = self._command.split(" ")
+
+        if command[0] == "backpy":
+            command[0] = str(Path(sys.executable).parent / "backpy")
+
+        return " ".join(command)
 
     def get_time_pattern(self) -> str:
         return self._time_pattern

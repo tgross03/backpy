@@ -33,22 +33,22 @@ for val in _PALETTE.__iter__():
 _palette_dict = PALETTE.copy()
 
 PALETTE = Enum("PALETTE", _palette_dict.copy())
-"""
-A variant of the catppuccin color palette, which returns ANSI color codes instead
-of rgb / hex colors.
-The PALETTE and the flavors can be called as enum values.
-
-The order of calls is always:
-
-``PALETTE.<flavor>.<color>``
-
-Examples
---------
-
->>> PALETTE.latte.blue
-'\x1b[38;2;30;102;245m'
-
-"""
+# """
+# A variant of the catppuccin color palette, which returns ANSI color codes instead
+# of rgb / hex colors.
+# The PALETTE and the flavors can be called as enum values.
+#
+# The order of calls is always:
+#
+# ``PALETTE.<flavor>.<color>``
+#
+# Examples
+# --------
+#
+# >>> PALETTE.latte.blue
+# '\x1b[38;2;30;102;245m'
+#
+# """
 
 PALETTE._member_names_ = list(_palette_dict.keys())
 PALETTE._member_map_ = _palette_dict
@@ -59,9 +59,9 @@ PALETTE.__get__ = _get_value
 # https://jakob-bagterp.github.io/colorist-for-python/ansi-escape-codes/effects/#cheat-sheet
 
 RESET = "\x1b[0m"
-"""
-Resets all styling of the text.
-"""
+# """
+# Resets all styling of the text.
+# """
 
 EFFECTS = Enum(
     "EFFECTS",
@@ -74,21 +74,21 @@ EFFECTS = Enum(
         "hide": Enum("bold", {"on": "\x1b[8m", "off": "\x1b[28m"}),
     },
 )
-"""
-An enum containing ANSI effects for the text
-The EFFECTS and the effects itself can be called as enum values.
-
-The order of calls is always:
-
-``EFFECTS.<effect>.<on/off>``
-
-Examples
---------
-
->>> EFFECTS.bold.on
-'\x1b[1m'
-
-"""
+# """
+# An enum containing ANSI effects for the text
+# The EFFECTS and the effects itself can be called as enum values.
+#
+# The order of calls is always:
+#
+# ``EFFECTS.<effect>.<on/off>``
+#
+# Examples
+# --------
+#
+# >>> EFFECTS.bold.on
+# '\x1b[1m'
+#
+# """
 
 EFFECTS.__get__ = _get_value
 

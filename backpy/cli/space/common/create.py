@@ -141,18 +141,19 @@ def create_backup_space(
             debug=debug,
         )
 
-    try:
-        remote = Remote.load_by_uuid(unique_id=remote)
-    except Exception:
+    if remote is not None:
         try:
-            remote = Remote.load_by_name(name=remote)
+            remote = Remote.load_by_uuid(unique_id=remote)
         except Exception:
-            return print_error_message(
-                error=InvalidRemoteError(
-                    "The given name or UUID does not match any remote's name or UUID!"
-                ),
-                debug=debug,
-            )
+            try:
+                remote = Remote.load_by_name(name=remote)
+            except Exception:
+                return print_error_message(
+                    error=InvalidRemoteError(
+                        "The given name or UUID does not match any remote's name or UUID!"
+                    ),
+                    debug=debug,
+                )
 
     backup_space_type.child_class.new(
         name=name,

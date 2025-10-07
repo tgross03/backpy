@@ -169,7 +169,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     default=None,
     help="The path to a SSH-Key to use for connecting to the remote. This requires the chosen "
-    "protocol to support SSH key authentification. The given file may be protected with a "
+    "protocol to support SSH key authentication. The given file may be protected with a "
     "passphrase which has to be entered interactively. The usage of SSH keys is optional but "
     "recommended if possible.",
 )
