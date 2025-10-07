@@ -15,42 +15,43 @@ authors = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
 maintainers = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
 license = { text = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0" }
 classifiers = [
-  "Intended Audience :: System Administrators",
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.12",
-  "Environment :: Console",
-  "Operating System :: Unix",
-  "Natural Language :: English",
-  "Topic :: System :: Archiving :: Backup",
-  "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Operating System :: Unix",
+    "Natural Language :: English",
+    "Topic :: System :: Archiving :: Backup",
+    "Development Status :: 4 - Beta",
 ]
 requires-python = ">=3.12"
 dependencies = [
-  "numpy",
-  "toml",
-  "rich",
-  "pandas",
-  "click",
-  "fuzzyfinder",
-  "scp",
-  "paramiko",
-  "mergedeep",
-  "python-crontab",
-  "catppuccin",
+    "numpy",
+    "toml",
+    "rich",
+    "pandas",
+    "click",
+    "fuzzyfinder",
+    "scp",
+    "paramiko",
+    "cryptography",
+    "mergedeep",
+    "python-crontab",
+    "catppuccin",
 ]
 
 [project.optional-dependencies]
 
 dev = [
-  "jupyterlab",
-  "pre-commit",
+    "jupyterlab",
+    "pre-commit",
 ]
 
 tests = [
-  "pytest >= 7.0",
-  "pytest-cov",
+    "pytest >= 7.0",
+    "pytest-cov",
 ]
 
 [project.scripts]
