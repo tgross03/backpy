@@ -17,24 +17,29 @@ class Schedule:
         self._uuid: uuid.UUID = unique_id
         self._command: str = command
         self._time_pattern: str = time_pattern
-        self._cron_items: list[crontab.CronItem] = self._get_cronjobs()
-        self._active: bool = len(self._cron_items) > 0
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
             / (str(self._uuid) + ".toml")
         )
 
-    def activate(self):
+    def activate(self) -> None:
         job = cron.new(command=self._command, comment=self._get_comment())
         job.setall(self._time_pattern)
         cron.write()
-        self._active = True
-        return job
 
     def deactivate(self):
         for job in self._get_cronjobs():
             job.delete()
-        self._active = False
+
+    def delete(self, verbosity_level: int = 1):
+        if self.is_active():
+            self.deactivate()
+            if verbosity_level > 1:
+                print(f"Deleted cronjobs for schedule {self._uuid}")
+
+        self.get_config().get_path().unlink()
+        if verbosity_level > 1:
+            print(f"Deleted config for schedule {self._uuid}")
 
     def update_config(self):
         current_content = self._config.as_dict()
@@ -87,10 +92,12 @@ class Schedule:
         if location not in ["local", "remote", "all"]:
             raise ValueError("The location must be either 'local', 'remote' or 'all'.")
 
+        unique_id = uuid.uuid4()
+
         command = (
             f"backpy backup create {backup_space.get_name()} "
-            f"--location {location} "
-            # f"--comment {}"
+            f"--location {location}"
+            f"--comment Scheduled backup (Schedule-UUID: {unique_id})"
         )
 
         for exclusion in exclude:
@@ -100,7 +107,7 @@ class Schedule:
             command += f" -I {inclusion}"
 
         cls = cls(
-            unique_id=uuid.uuid4(),
+            unique_id=unique_id,
             command=command,
             time_pattern=time_pattern,
         )
@@ -132,7 +139,7 @@ class Schedule:
         return self._time_pattern
 
     def is_active(self) -> bool:
-        return self._active
+        return len(self._get_cronjobs()) > 0
 
     def get_config(self) -> TOMLConfiguration:
         return self._config
