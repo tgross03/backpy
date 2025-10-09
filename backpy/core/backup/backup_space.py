@@ -15,7 +15,6 @@ from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
 from backpy.core.utils.exceptions import (
-    InvalidBackupError,
     InvalidBackupSpaceError,
     InvalidRemoteError,
     UnsupportedCompressionAlgorithmError,
