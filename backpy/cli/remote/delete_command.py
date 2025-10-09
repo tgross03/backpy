@@ -1,5 +1,6 @@
 import click
 
+from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import ConfirmInput, print_error_message
 from backpy.core.remote import Remote
@@ -61,6 +62,14 @@ def delete(remote: str, force: bool, verbose: int, debug: bool) -> None:
         ).prompt()
 
     if confirm:
+
+        for space in BackupSpace.get_backup_spaces():
+            if space.get_remote().get_uuid() == remote.get_uuid():
+                space._remote = None
+
+                if verbose > 1:
+                    print(f"Deleted remote from backup space {space.get_uuid()}.")
+
         remote.delete(verbosity_level=verbose)
     else:
         print(f"{palette.maroon}Deletion canceled.{RESET}")

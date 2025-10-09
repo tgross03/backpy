@@ -1,6 +1,10 @@
 import click
+from backpy.cli.schedule.create_command import create
 
 
-@click.command("schedule", help="Actions related to scheduling for automatic backups.")
+@click.group("schedule", help="Actions related to scheduling for automatic backups.")
 def command():
     pass
+
+
+command.add_command(create)

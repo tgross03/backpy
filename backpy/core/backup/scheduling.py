@@ -13,10 +13,19 @@ COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
 
 
 class Schedule:
-    def __init__(self, unique_id: uuid.UUID, command: str, time_pattern: str):
+    def __init__(
+        self,
+        unique_id: uuid.UUID,
+        backup_space: BackupSpace,
+        command: str,
+        time_pattern: str,
+        description: str,
+    ):
         self._uuid: uuid.UUID = unique_id
+        self._backup_space: BackupSpace = backup_space
         self._command: str = command
         self._time_pattern: str = time_pattern
+        self._description: str = description
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
             / (str(self._uuid) + ".toml"),
@@ -49,8 +58,10 @@ class Schedule:
 
         content = {
             "uuid": str(self._uuid),
+            "backup_space": str(self._backup_space.get_uuid()),
             "command": self._command,
             "time_pattern": self._time_pattern,
+            "description": self._description,
         }
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
@@ -81,10 +92,27 @@ class Schedule:
         )
 
     @classmethod
+    def load_by_backup_space(cls, backup_space: BackupSpace) -> list["Schedule"]:
+        schedules = []
+        for tomlf in Path(VariableLibrary().get_variable("paths.schedule_directory")).glob(
+            "*.toml"
+        ):
+            try:
+                schedule = Schedule.load_by_uuid(unique_id=tomlf.stem)
+                if schedule.get_backup_space() == backup_space:
+                    schedules.append(schedule)
+
+            except InvalidScheduleError:
+                pass
+
+        return schedules
+
+    @classmethod
     def create_from_backup_space(
         cls,
         backup_space: BackupSpace,
         time_pattern: str,
+        description: str,
         exclude: list[str],
         include: list[str],
         location: str,
@@ -111,8 +139,10 @@ class Schedule:
 
         cls = cls(
             unique_id=unique_id,
+            backup_space=backup_space,
             command=command,
             time_pattern=time_pattern,
+            description=description,
         )
 
         cls.update_config()
@@ -134,6 +164,9 @@ class Schedule:
 
     def get_uuid(self) -> uuid.UUID:
         return self._uuid
+
+    def get_backup_space(self) -> BackupSpace:
+        return self._backup_space
 
     def get_command(self) -> str:
         command = self._command.split(" ")

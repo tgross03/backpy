@@ -6,7 +6,7 @@ import backpy
 
 
 def _get_fernet() -> Fernet:
-    key_file = Path(backpy.__file__).parent.parent / ".config/.key"
+    key_file = Path.home() / ".backpy/config/.key"
 
     if key_file.is_file():
 
@@ -16,6 +16,7 @@ def _get_fernet() -> Fernet:
         with open(key_file, "r") as f:
             key = f.readline().encode()
     else:
+        key_file.parent.mkdir(parents=True, exist_ok=True)
         key_file.touch(mode=0o600)
 
         key = Fernet.generate_key()

@@ -8,9 +8,7 @@ from backpy.core.config.configuration import TOMLConfiguration
 
 class VariableLibrary:
     def __init__(self):
-        self._path: Path = (
-            Path(backpy.__file__).parent.parent / ".config/variables.toml"
-        )
+        self._path: Path = Path.home() / ".backpy/config/variables.toml"
         self._config = backpy.TOMLConfiguration(self._path, create_if_not_exists=True)
 
         self.generate(regenerate=False)
@@ -47,9 +45,7 @@ class VariableLibrary:
             },
         }
 
-        self._config.dump_dict(
-            content if regenerate else dict(merge({}, content, current_content))
-        )
+        self._config.dump_dict(content if regenerate else dict(merge({}, content, current_content)))
         self._config.prepend_no_edit_warning()
 
     def get_config(self) -> TOMLConfiguration:
