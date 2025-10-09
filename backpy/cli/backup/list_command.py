@@ -83,7 +83,6 @@ def list_backups(
         return print_error_message(error=e, debug=debug)
 
     for backup in backups:
-
         backup_branch = tree.add(
             f"{palette.sky}{backup.get_uuid()}{RESET}",
         )

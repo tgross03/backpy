@@ -114,11 +114,18 @@ class Remote:
         return self
 
     def __enter__(self) -> "Remote":
+        if self._context_managed:
+            return self
+
         self._context_managed = True
         self.connect(verbosity_level=self._context_verbosity)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+
+        if not self._context_managed:
+            return False
+
         self._context_managed = False
         self.disconnect(verbosity_level=self._context_verbosity)
         self._context_verbosity = _DEFAULT_CONTEXT_VERBOSITY
@@ -579,7 +586,7 @@ class Remote:
                 else:
                     sftp_client.remove(filepath)
                     if verbosity_level >= 2:
-                        print(f"File at remote path '{target}' was removed.")
+                        print(f"File at remote path '{filepath}' was removed.")
 
             sftp_client.rmdir(target)
 
@@ -840,6 +847,18 @@ class Remote:
     #####################
     #       GETTER      #
     #####################
+
+    def is_connected(self) -> bool:
+        if self._client is None:
+            return False
+        try:
+            transport = self._client.get_transport()
+            if transport is None:
+                return False
+            transport.send_ignore()
+            return True
+        except EOFError:
+            return False
 
     def get_name(self) -> str:
         return self._name

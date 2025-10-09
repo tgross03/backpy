@@ -79,7 +79,17 @@ class Backup:
                 print(f"Removed local backup at {self._path}.")
 
         if self.has_remote_archive():
-            with self._remote(context_verbosity=verbosity_level):
+            if not self._remote.is_connected():
+                with self._remote(context_verbosity=verbosity_level):
+                    self._remote.remove(
+                        target=self.get_remote_archive_path(),
+                        verbosity_level=verbosity_level,
+                    )
+                    self._remote.remove(
+                        target=self.get_remote_config_path(),
+                        verbosity_level=verbosity_level,
+                    )
+            else:
                 self._remote.remove(
                     target=self.get_remote_archive_path(),
                     verbosity_level=verbosity_level,
@@ -207,7 +217,11 @@ class Backup:
             sha256sum=config["hash"],
             comment=config["comment"],
             created_at=TimeObject.fromisoformat(config["created_at"]),
-            remote=remote,
+            remote=(
+                remote
+                if remote.get_uuid() != backup_space.get_remote().get_uuid()
+                else backup_space.get_remote()
+            ),
         )
 
         if check_hash:

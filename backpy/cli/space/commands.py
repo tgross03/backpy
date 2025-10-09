@@ -1,5 +1,6 @@
 import click
 
+from backpy.cli.space.clear_command import clear
 from backpy.cli.space.create_group import create
 from backpy.cli.space.delete_command import delete
 from backpy.cli.space.edit_group import edit
@@ -17,3 +18,4 @@ command.add_command(edit)
 command.add_command(info)
 command.add_command(list_spaces)
 command.add_command(delete)
+command.add_command(clear)

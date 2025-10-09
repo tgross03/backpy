@@ -17,7 +17,8 @@ from backpy.core.remote import Remote
 from backpy.core.utils.exceptions import (
     InvalidBackupError,
     InvalidBackupSpaceError,
-    UnsupportedCompressionAlgorithmError, InvalidRemoteError,
+    InvalidRemoteError,
+    UnsupportedCompressionAlgorithmError,
 )
 
 if TYPE_CHECKING:
@@ -41,7 +42,9 @@ class BackupSpace:
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
         self._type: BackupSpaceType = space_type
-        self._compression_algorithm: compression.CompressionAlgorithm = compression_algorithm
+        self._compression_algorithm: compression.CompressionAlgorithm = (
+            compression_algorithm
+        )
         self._compression_level: int = compression_level
         self._backup_dir: Path = Path(
             VariableLibrary().get_variable("paths.backup_directory")
@@ -73,27 +76,35 @@ class BackupSpace:
     ) -> None:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
-    def get_backups(self, sort_by: str | None = None, check_hash: bool = True) -> list[Backup]:
+    def get_backups(
+        self, sort_by: str | None = None, check_hash: bool = True
+    ) -> list[Backup]:
 
         from backpy import Backup
 
-        archive_files = [
+        configurations = [
             file if file.is_file() else None
-            for file in self._backup_dir.glob(f"*{self._compression_algorithm.extension}")
+            for file in self._backup_dir.glob(f"*.toml")
         ]
 
         backups = []
 
-        for archive_file in archive_files:
+        for config in configurations:
             try:
-                backups.append(Backup.load_by_uuid(self, archive_file.stem, check_hash=check_hash))
-            except InvalidBackupError:
+                backups.append(
+                    Backup.load_by_uuid(
+                        backup_space=self, unique_id=config.stem, check_hash=check_hash
+                    )
+                )
+            except Exception:
                 continue
 
         if sort_by is not None:
             match sort_by:
                 case "date":
-                    backups.sort(key=lambda b: b.get_created_at().get_datetime(), reverse=True)
+                    backups.sort(
+                        key=lambda b: b.get_created_at().get_datetime(), reverse=True
+                    )
                 case "size":
                     backups.sort(key=lambda b: b.get_file_size(), reverse=True)
 
@@ -117,6 +128,16 @@ class BackupSpace:
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
+    def clear(self, verbosity_level: int = 1):
+        with self._remote(context_verbosity=verbosity_level) as remote:
+            for backup in self.get_backups(check_hash=False):
+                backup.delete(verbosity_level=verbosity_level)
+
+        if verbosity_level > 1:
+            print(
+                f"Deleted all backups from backup space {self._name} (UUID: {self._uuid})"
+            )
+
     def delete(self, verbosity_level: int = 1):
         shutil.rmtree(self._backup_dir)
         if verbosity_level > 1:
@@ -124,7 +145,12 @@ class BackupSpace:
 
         if self._remote is not None:
             with self._remote(context_verbosity=verbosity_level):
-                self._remote.remove(target=self.get_remote_path(), verbosity_level=verbosity_level)
+                try:
+                    self._remote.remove(
+                        target=self.get_remote_path(), verbosity_level=verbosity_level
+                    )
+                except FileNotFoundError:
+                    pass
         if verbosity_level > 1:
             print(
                 f"Removing remote backup directory from remote {self._remote.get_name()} "
@@ -134,7 +160,9 @@ class BackupSpace:
     def get_info_table(self) -> Table:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
-    def _get_info_table(self, additional_info_idx: list[int], additional_info: dict) -> Table:
+    def _get_info_table(
+        self, additional_info_idx: list[int], additional_info: dict
+    ) -> Table:
         info = {
             "Name": self._name,
             "UUID": self._uuid,
@@ -181,7 +209,9 @@ class BackupSpace:
     @classmethod
     def get_backup_spaces(cls) -> list[BackupSpace]:
         spaces = []
-        for directory in Path(VariableLibrary().get_variable("paths.backup_directory")).glob("*"):
+        for directory in Path(
+            VariableLibrary().get_variable("paths.backup_directory")
+        ).glob("*"):
             tomlf = directory / "config.toml"
             if directory.is_dir() and TOMLConfiguration(tomlf).is_valid():
                 spaces.append(BackupSpace.load_by_uuid(directory.name))
@@ -195,7 +225,9 @@ class BackupSpace:
 
         unique_id = uuid.UUID(unique_id)
 
-        path = Path(VariableLibrary().get_variable("paths.backup_directory")) / str(unique_id)
+        path = Path(VariableLibrary().get_variable("paths.backup_directory")) / str(
+            unique_id
+        )
 
         if not path.is_dir():
             raise InvalidBackupSpaceError(
@@ -226,15 +258,15 @@ class BackupSpace:
             compression_level=config["general.compression_level"],
             default_include=config["general.default_include"],
             default_exclude=config["general.default_exclude"],
-            remote=,
+            remote=remote,
         )
         return cls
 
     @classmethod
     def load_by_name(cls, name: str):
-        for tomlf in Path(VariableLibrary().get_variable("paths.backup_directory")).rglob(
-            "config.toml"
-        ):
+        for tomlf in Path(
+            VariableLibrary().get_variable("paths.backup_directory")
+        ).rglob("config.toml"):
             config = TOMLConfiguration(tomlf, create_if_not_exists=False)
 
             if not config.is_valid():
@@ -277,7 +309,9 @@ class BackupSpace:
             name=name,
             unique_id=uuid.uuid4(),
             space_type=space_type,
-            compression_algorithm=compression.CompressionAlgorithm.from_name(compression_algorithm),
+            compression_algorithm=compression.CompressionAlgorithm.from_name(
+                compression_algorithm
+            ),
             compression_level=compression_level,
             default_include=default_include if default_include is not None else [],
             default_exclude=default_exclude if default_exclude is not None else [],
@@ -340,4 +374,6 @@ class BackupSpace:
         return self._config.as_dict()
 
     def get_disk_usage(self) -> int:
-        return np.sum([backup.get_file_size() for backup in self.get_backups(check_hash=False)])
+        return np.sum(
+            [backup.get_file_size() for backup in self.get_backups(check_hash=False)]
+        )
