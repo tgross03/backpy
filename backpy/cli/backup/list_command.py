@@ -90,7 +90,7 @@ def list_backups(
         if check_hash:
             hash_branch = backup_branch.add(f"{palette.lavender}Hash Check{RESET}")
             local_check = (
-                "passed"
+                f"{palette.green}passed{RESET}"
                 if backup.check_hash(remote=False, verbosity_level=verbose)
                 else "failed"
             )
@@ -99,7 +99,7 @@ def list_backups(
             )
             if space.get_remote() is not None:
                 remote_check = (
-                    "passed"
+                    f"{palette.green}passed{RESET}"
                     if backup.check_hash(remote=True, verbosity_level=verbose)
                     else "failed"
                 )
