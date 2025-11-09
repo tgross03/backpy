@@ -1,15 +1,16 @@
 import click
 from crontab import CronSlices
 
-from backpy.cli.colors import get_default_palette, RESET
+from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
-    TextInput,
     BackupSpaceInput,
-    EnumerationInput,
     ConfirmInput,
+    EnumerationInput,
+    TextInput,
     print_error_message,
 )
-from backpy.core.backup import Schedule
+from backpy.core.backup import BackupSpace, Schedule
+from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
 
@@ -135,7 +136,16 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     default="all",
     help="The location(s) to save the backup at.",
 )
-@click.option("--description", "-D", default="", help="The description of the schedule.")
+@click.option(
+    "--description", "-D", default="", help="The description of the schedule."
+)
+@click.option(
+    "--activate",
+    "-a",
+    type=bool,
+    default=True,
+    help="Whether to activate the schedule after creation",
+)
 @click.option(
     "--verbose",
     "-v",
@@ -149,7 +159,9 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
-@click.option("--interactive", "-i", is_flag=True, help="Create the remote in interactive mode.")
+@click.option(
+    "--interactive", "-i", is_flag=True, help="Create the remote in interactive mode."
+)
 def create(
     backup_space: str,
     time_pattern: str,
@@ -157,6 +169,7 @@ def create(
     exclude: str,
     location: str,
     description: str,
+    activate: bool,
     verbose: int,
     debug: bool,
     interactive: bool,
@@ -165,5 +178,57 @@ def create(
 
     if interactive:
         return create_interactive(verbosity_level=verbose, debug=debug)
+
+    try:
+        space = BackupSpace.load_by_uuid(backup_space)
+    except Exception:
+        try:
+            space = BackupSpace.load_by_name(backup_space)
+        except Exception:
+            return print_error_message(
+                InvalidBackupSpaceError(
+                    "There is no Backup Space with that name or UUID!"
+                ),
+                debug=debug,
+            )
+
+    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+
+    if not CronSlices.is_valid(time_pattern.split(" ")):
+        return print_error_message(
+            ValueError("The given value is not a valid UNIX cron time pattern."),
+            debug=debug,
+        )
+
+    if not space.get_type().use_exclusion and exclude is not None:
+        print(
+            f"{palette.yellow}The Backup Space type {space.get_type().name} "
+            "does not use exclusions. "
+            f"The parameter has therefore no effect."
+        )
+
+    if not space.get_type().use_inclusion and include is not None:
+        print(
+            f"{palette.yellow}The Backup Space type {space.get_type().name} "
+            "does not use inclusions. "
+            f"The parameter has therefore no effect."
+        )
+
+    schedule = Schedule.create_from_backup_space(
+        backup_space=space,
+        time_pattern=time_pattern,
+        include=include,
+        exclude=exclude,
+        location=location,
+        description=description,
+        activate=activate,
+        verbosity_level=verbose,
+    )
+
+    if verbose >= 1:
+        activation_status = "active" if activate else "inactive"
+        print(
+            f"Created {activation_status} schedule {schedule.get_uuid()} for backup space {space.get_uuid()}."
+        )
 
     return None

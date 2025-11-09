@@ -11,7 +11,7 @@ from rich import box
 from rich.table import Table
 
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.core.backup import compression
+from backpy.core.backup import Schedule, compression
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
 from backpy.core.utils.exceptions import (
@@ -82,8 +82,7 @@ class BackupSpace:
         from backpy import Backup
 
         configurations = [
-            file if file.is_file() else None
-            for file in self._backup_dir.glob(f"*.toml")
+            file if file.is_file() else None for file in self._backup_dir.glob("*.toml")
         ]
 
         backups = []
@@ -128,7 +127,7 @@ class BackupSpace:
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def clear(self, verbosity_level: int = 1):
-        with self._remote(context_verbosity=verbosity_level) as remote:
+        with self._remote(context_verbosity=verbosity_level):
             for backup in self.get_backups(check_hash=False):
                 backup.delete(verbosity_level=verbosity_level)
 
@@ -139,6 +138,11 @@ class BackupSpace:
 
     def delete(self, verbosity_level: int = 1):
         shutil.rmtree(self._backup_dir)
+
+        schedules = Schedule.load_by_backup_space(backup_space=self)
+        for schedule in schedules:
+            schedule.delete(verbosity_level=verbosity_level)
+
         if verbosity_level > 1:
             print(f"Removing backup directory {self._backup_dir}")
 

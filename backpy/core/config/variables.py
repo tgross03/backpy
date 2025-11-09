@@ -45,7 +45,9 @@ class VariableLibrary:
             },
         }
 
-        self._config.dump_dict(content if regenerate else dict(merge({}, content, current_content)))
+        self._config.dump_dict(
+            content if regenerate else dict(merge({}, content, current_content))
+        )
         self._config.prepend_no_edit_warning()
 
     def get_config(self) -> TOMLConfiguration:

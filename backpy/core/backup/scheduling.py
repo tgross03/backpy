@@ -94,9 +94,9 @@ class Schedule:
     @classmethod
     def load_by_backup_space(cls, backup_space: BackupSpace) -> list["Schedule"]:
         schedules = []
-        for tomlf in Path(VariableLibrary().get_variable("paths.schedule_directory")).glob(
-            "*.toml"
-        ):
+        for tomlf in Path(
+            VariableLibrary().get_variable("paths.schedule_directory")
+        ).glob("*.toml"):
             try:
                 schedule = Schedule.load_by_uuid(unique_id=tomlf.stem)
                 if schedule.get_backup_space() == backup_space:
@@ -167,6 +167,9 @@ class Schedule:
 
     def get_backup_space(self) -> BackupSpace:
         return self._backup_space
+
+    def get_description(self) -> str:
+        return self._description
 
     def get_command(self) -> str:
         command = self._command.split(" ")

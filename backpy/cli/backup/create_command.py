@@ -175,6 +175,13 @@ def create(
             f"The parameter has therefore no effect."
         )
 
+    if not space.get_type().use_inclusion and include is not None:
+        print(
+            f"{palette.yellow}The Backup Space type {space.get_type().name} "
+            "does not use inclusions. "
+            f"The parameter has therefore no effect."
+        )
+
     space.create_backup(
         location=location,
         comment=comment,
