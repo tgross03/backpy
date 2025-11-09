@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import sys
 import uuid
 from pathlib import Path
+
+from typing import TYPE_CHECKING
 
 import crontab
 from mergedeep import merge
 
 from backpy import TOMLConfiguration, VariableLibrary
-from backpy.core.backup.backup_space import BackupSpace
 from backpy.core.utils.exceptions import InvalidScheduleError
 
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
 
+if TYPE_CHECKING:
+    from backpy.core.backup.backup_space import BackupSpace
 
 class Schedule:
     def __init__(

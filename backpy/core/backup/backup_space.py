@@ -11,7 +11,8 @@ from rich import box
 from rich.table import Table
 
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.core.backup import Schedule, compression
+from backpy.core.backup.scheduling import Schedule
+from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
 from backpy.core.utils.exceptions import (
@@ -95,7 +96,7 @@ class BackupSpace:
                     )
                 )
             except Exception:
-                continue
+                pass
 
         if sort_by is not None:
             match sort_by:
@@ -248,7 +249,7 @@ class BackupSpace:
         remote = None
         try:
             remote = Remote.load_by_uuid(config["general.remote"])
-        except InvalidRemoteError:
+        except Exception:
             pass
 
         cls = cls(

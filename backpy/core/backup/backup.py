@@ -31,14 +31,14 @@ palette = get_default_palette()
 
 class Backup:
     def __init__(
-        self,
-        path: Path | None,
-        backup_space: BackupSpace,
-        unique_id: uuid.UUID,
-        sha256sum: str,
-        comment: str,
-        created_at: TimeObject,
-        remote: Remote | None,
+            self,
+            path: Path | None,
+            backup_space: BackupSpace,
+            unique_id: uuid.UUID,
+            sha256sum: str,
+            comment: str,
+            created_at: TimeObject,
+            remote: Remote | None,
     ):
         self._path: Path | None = path
         self._backup_space: BackupSpace = backup_space
@@ -57,11 +57,11 @@ class Backup:
     def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
         if remote:
             return (
-                self._remote.get_hash(
-                    target=self.get_remote_archive_path(),
-                    verbosity_level=verbosity_level,
-                )
-                == self._hash
+                    self._remote.get_hash(
+                        target=self.get_remote_archive_path(),
+                        verbosity_level=verbosity_level,
+                    )
+                    == self._hash
             )
         else:
             return self.calculate_hash() == self._hash
@@ -173,12 +173,12 @@ class Backup:
 
     @classmethod
     def load_by_uuid(
-        cls,
-        backup_space: BackupSpace,
-        unique_id: str,
-        check_hash: bool = True,
-        fail_invalid: bool = False,
-        verbosity_level: int = 1,
+            cls,
+            backup_space: BackupSpace,
+            unique_id: str,
+            check_hash: bool = True,
+            fail_invalid: bool = False,
+            verbosity_level: int = 1,
     ):
         unique_id = uuid.UUID(unique_id)
 
@@ -198,7 +198,7 @@ class Backup:
             )
 
         archive_path = backup_space.get_backup_dir() / (
-            str(unique_id) + backup_space.get_compression_algorithm().extension
+                str(unique_id) + backup_space.get_compression_algorithm().extension
         )
 
         try:
@@ -207,7 +207,7 @@ class Backup:
                 if config["remote"] != ""
                 else None
             )
-        except InvalidRemoteError:
+        except Exception:
             remote = None
 
         cls = cls(
@@ -219,7 +219,7 @@ class Backup:
             created_at=TimeObject.fromisoformat(config["created_at"]),
             remote=(
                 remote
-                if remote.get_uuid() != backup_space.get_remote().get_uuid()
+                if remote is not None and remote.get_uuid() != backup_space.get_remote().get_uuid()
                 else backup_space.get_remote()
             ),
         )
@@ -249,14 +249,14 @@ class Backup:
 
     @classmethod
     def new(
-        cls,
-        source_path: Path,
-        backup_space: BackupSpace,
-        comment: str = "",
-        include: list[str] | None = None,
-        exclude: list[str] | None = None,
-        location: str = "all",
-        verbosity_level: int = 1,
+            cls,
+            source_path: Path,
+            backup_space: BackupSpace,
+            comment: str = "",
+            include: list[str] | None = None,
+            exclude: list[str] | None = None,
+            location: str = "all",
+            verbosity_level: int = 1,
     ):
         save_locally = location == "local" or location == "all"
         save_remotely = location == "remote" or location == "all"
@@ -357,8 +357,8 @@ class Backup:
         return str(
             Path(self._backup_space.get_remote_path())
             / (
-                str(self._uuid)
-                + self._backup_space.get_compression_algorithm().extension
+                    str(self._uuid)
+                    + self._backup_space.get_compression_algorithm().extension
             )
         )
 

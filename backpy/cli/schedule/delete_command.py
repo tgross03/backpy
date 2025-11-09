@@ -8,15 +8,14 @@ from backpy.cli.elements import (
     ConfirmInput,
     print_error_message,
 )
-from backpy.core.backup import Schedule
+from backpy.core.backup.scheduling import Schedule
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidBackupSpaceError
 
 palette = get_default_palette()
 
 
 def delete_interactive(force: bool, debug: bool, verbosity_level: int):
-
-
+    pass
 
 @click.command(
     "delete",
@@ -114,13 +113,16 @@ def delete(
         ).prompt()
 
         if confirm:
-            backup.delete(verbosity_level=verbose)
+            for schedule in schedules:
+                schedule.delete(verbosity_level=verbose)
         else:
             print(
-                f"{palette.red}Canceled removal of backup "
-                f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
+                f"{palette.red}Canceled removal of schedules "
+                f"{palette.maroon}{schedule_str}{palette.red}.{RESET}"
             )
     else:
-        backup.delete(verbosity_level=verbose)
+        schedule.delete(verbosity_level=verbose)
+
+    print(f"Deleted schedules {schedule_str}.")
 
     return None

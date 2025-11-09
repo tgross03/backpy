@@ -32,6 +32,10 @@ def interactive() -> dict[str, Path]:
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
 )
 def create_file_system(file_path: str, **kwargs) -> None:
+
+    if file_path == "":
+        file_path = "./"
+
     kwargs["file_path"] = file_path
     return create_backup_space(
         space_type="FILE_SYSTEM", interactive_func=interactive, **kwargs

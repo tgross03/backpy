@@ -131,6 +131,12 @@ def create_backup_space(
     except Exception:
         pass
 
+    if name == "":
+        return print_error_message(
+            error=ValueError("The name of the backup space has to be set!"),
+            debug=debug,
+        )
+
     backup_space_type = BackupSpaceType.from_name(name=space_type)
 
     if interactive:
