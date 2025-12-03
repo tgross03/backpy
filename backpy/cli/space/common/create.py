@@ -119,6 +119,16 @@ def create_backup_space(
 ) -> None:
     verbose += 1
 
+    backup_space_type = BackupSpaceType.from_name(name=space_type)
+
+    if interactive:
+        return create_backup_space_interactive(
+            func=interactive_func,
+            space_type=backup_space_type,
+            verbosity_level=verbose,
+            debug=debug,
+        )
+
     try:
         BackupSpace.load_by_name(name=name)
         return print_error_message(
@@ -134,16 +144,6 @@ def create_backup_space(
     if name == "":
         return print_error_message(
             error=ValueError("The name of the backup space has to be set!"),
-            debug=debug,
-        )
-
-    backup_space_type = BackupSpaceType.from_name(name=space_type)
-
-    if interactive:
-        return create_backup_space_interactive(
-            func=interactive_func,
-            space_type=backup_space_type,
-            verbosity_level=verbose,
             debug=debug,
         )
 
