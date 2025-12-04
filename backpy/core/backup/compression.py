@@ -97,12 +97,13 @@ def compress(
         archive_name=archive_name,
         compression_algorithm=CompressionAlgorithm.from_name(fmt),
         exclude=exclude,
+        include=include,
         verbosity_level=verbosity_level,
         overwrite=overwrite,
     )
 
 
-def _filter_paths(
+def filter_paths(
     root_path: Path | str,
     include: list[str] | None,
     exclude: list[str] | None = None,
@@ -112,10 +113,16 @@ def _filter_paths(
         set() if include is not None and len(include) > 0 else set(root_path.rglob("*"))
     )
 
-    for inc in include:
-        files.update(root_path.rglob(inc))
+    print(files)
+
+    if include is not None and len(include) > 0:
+        for inc in include:
+            files.update(root_path.rglob(inc))
 
     files = {f for f in files if f.is_file()}
+
+    if exclude is None:
+        exclude = []
 
     for ex in exclude:
         files -= set(root_path.rglob(ex))
@@ -140,7 +147,7 @@ def _compress_zip(
     if verbosity_level >= 1:
         print(f"Creating archive {target_path} ...")
 
-    files, size = _filter_paths(root_path=root_path, include=include, exclude=exclude)
+    files, size = filter_paths(root_path=root_path, include=include, exclude=exclude)
 
     if overwrite:
         if verbosity_level > 1:
@@ -188,7 +195,7 @@ def _compress_tar(
     if verbosity_level > 1:
         print(f"Creating archive {target_path} ...")
 
-    files, size = _filter_paths(root_path=root_path, include=include, exclude=exclude)
+    files, size = filter_paths(root_path=root_path, include=include, exclude=exclude)
 
     if overwrite:
         if verbosity_level > 1:

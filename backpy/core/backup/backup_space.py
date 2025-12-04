@@ -11,13 +11,12 @@ from rich import box
 from rich.table import Table
 
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.core.backup.scheduling import Schedule
 from backpy.core.backup import compression
+from backpy.core.backup.scheduling import Schedule
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
 from backpy.core.utils.exceptions import (
     InvalidBackupSpaceError,
-    InvalidRemoteError,
     UnsupportedCompressionAlgorithmError,
 )
 

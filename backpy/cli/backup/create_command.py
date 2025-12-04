@@ -125,7 +125,9 @@ def create_interactive(verbosity_level: int) -> None:
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
-@click.option("--interactive", "-i", is_flag=True, help="Create the backup in interactive mode.")
+@click.option(
+    "--interactive", "-i", is_flag=True, help="Create the backup in interactive mode."
+)
 def create(
     backup_space: str | None,
     location: str,
@@ -158,7 +160,9 @@ def create(
             space = BackupSpace.load_by_name(backup_space)
         except Exception:
             return print_error_message(
-                InvalidBackupSpaceError("There is no Backup Space with that name or UUID!"),
+                InvalidBackupSpaceError(
+                    "There is no Backup Space with that name or UUID!"
+                ),
                 debug=debug,
             )
 

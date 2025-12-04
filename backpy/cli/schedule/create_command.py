@@ -228,7 +228,8 @@ def create(
     if verbose >= 1:
         activation_status = "active" if activate else "inactive"
         print(
-            f"Created {activation_status} schedule {schedule.get_uuid()} for backup space {space.get_uuid()}."
+            f"Created {activation_status} schedule {schedule.get_uuid()} for backup space "
+            f"{space.get_uuid()}."
         )
 
     return None

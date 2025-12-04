@@ -6,8 +6,8 @@ from backpy.cli.elements import (
     BackupInput,
     BackupSpaceInput,
     ConfirmInput,
-    print_error_message,
     TextInput,
+    print_error_message,
 )
 from backpy.core.utils.exceptions import (
     InvalidBackupError,
@@ -42,13 +42,14 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 
     incremental = ConfirmInput(
         message=f"{palette.base}Do you want to restore the backup incrementally?{RESET}",
-        default_value=False,
+        default_value=True,
     ).prompt()
 
     if not force:
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to restore backup "
-            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
+            f"{palette.maroon}{str(backup.get_uuid())} (Created at: "
+            f"{backup.get_created_at().printformat()}{palette.base}?{RESET}",
             default_value=False,
         ).prompt()
 
@@ -78,6 +79,10 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
             verbosity_level=verbosity_level,
         )
 
+    print(
+        f"Restored backup {backup.get_uuid()} (Created at: {backup.get_created_at()})"
+    )
+
     return None
 
 
@@ -89,7 +94,9 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 )
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
-@click.option("--incremental", "-i", is_flag=True, help="Restore the backup incrementally.")
+@click.option(
+    "--incremental", "-i", is_flag=True, help="Restore the backup incrementally."
+)
 @click.option(
     "--source",
     "-s",
@@ -115,7 +122,9 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
-@click.option("--interactive", "-i", is_flag=True, help="Delete the backup in interactive mode.")
+@click.option(
+    "--interactive", "-i", is_flag=True, help="Delete the backup in interactive mode."
+)
 def restore(
     backup_space: str | None,
     backup: str | None,
@@ -147,7 +156,9 @@ def restore(
             space = BackupSpace.load_by_name(backup_space)
         except Exception:
             return print_error_message(
-                InvalidBackupSpaceError("There is no Backup Space with that name or UUID!"),
+                InvalidBackupSpaceError(
+                    "There is no Backup Space with that name or UUID!"
+                ),
                 debug=debug,
             )
 

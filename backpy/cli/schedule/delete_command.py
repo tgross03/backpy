@@ -1,15 +1,10 @@
 import click
 
-from backpy import Backup, BackupSpace
+from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.cli.elements import (
-    BackupInput,
-    BackupSpaceInput,
-    ConfirmInput,
-    print_error_message,
-)
+from backpy.cli.elements import ConfirmInput, print_error_message
 from backpy.core.backup.scheduling import Schedule
-from backpy.core.utils.exceptions import InvalidBackupError, InvalidBackupSpaceError
+from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
 
@@ -17,11 +12,12 @@ palette = get_default_palette()
 def delete_interactive(force: bool, debug: bool, verbosity_level: int):
     pass
 
+
 @click.command(
     "delete",
     help=f"Delete a {palette.sky}'SCHEDULE'{RESET} identified by its UUID. "
-         f"Alternatively every schedule for a specific {palette.sky}'BACKUP_SPACE'{RESET}"
-         f"can be deleted.",
+    f"Alternatively every schedule for a specific {palette.sky}'BACKUP_SPACE'{RESET}"
+    f"can be deleted.",
 )
 @click.argument("schedule", type=str, default=None, required=False)
 @click.option(
@@ -70,9 +66,7 @@ def delete(
 
     if schedule is not None and backup_space is not None:
         return print_error_message(
-            ValueError(
-                "You have to either supply a 'SCHEDULE' or a 'BACKUP_SPACE'."
-            ),
+            ValueError("You have to either supply a 'SCHEDULE' or a 'BACKUP_SPACE'."),
             debug=debug,
         )
 
@@ -84,7 +78,9 @@ def delete(
                 space = BackupSpace.load_by_name(backup_space)
             except Exception:
                 return print_error_message(
-                    InvalidBackupSpaceError("There is no Backup Space with that name or UUID!"),
+                    InvalidBackupSpaceError(
+                        "There is no Backup Space with that name or UUID!"
+                    ),
                     debug=debug,
                 )
         schedules = Schedule.load_by_backup_space(backup_space=space)
@@ -99,15 +95,18 @@ def delete(
                 debug=debug,
             )
 
-    schedule_str = "\n".join([f"{palette.maroon}{schedule.get_uuid()} "
-                              f"(Description: {schedule.get_description()}"
-                              for schedule in schedules])
-
+    schedule_str = "\n".join(
+        [
+            f"{palette.maroon}{schedule.get_uuid()} "
+            f"(Description: {schedule.get_description()}"
+            for schedule in schedules
+        ]
+    )
 
     if not force:
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to delete the "
-                    f"{'schedule' if len(schedules) == 1 else 'schedules'} "
+            f"{'schedule' if len(schedules) == 1 else 'schedules'} "
             f"{schedule_str}?{RESET}",
             default_value=False,
         ).prompt()

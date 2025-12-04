@@ -17,11 +17,7 @@ from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration
 from backpy.core.remote import Remote
 from backpy.core.utils import TimeObject, calculate_sha256sum, format_bytes
-from backpy.core.utils.exceptions import (
-    InvalidBackupError,
-    InvalidChecksumError,
-    InvalidRemoteError,
-)
+from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
     from backpy import BackupSpace
@@ -31,15 +27,22 @@ palette = get_default_palette()
 
 class Backup:
     def __init__(
-            self,
-            path: Path | None,
-            backup_space: BackupSpace,
-            unique_id: uuid.UUID,
-            sha256sum: str,
-            comment: str,
-            created_at: TimeObject,
-            remote: Remote | None,
+        self,
+        path: Path | None,
+        backup_space: BackupSpace,
+        unique_id: uuid.UUID,
+        sha256sum: str,
+        comment: str,
+        created_at: TimeObject,
+        remote: Remote | None,
+        exclude: list[str] | None = None,
+        include: list[str] | None = None,
     ):
+        if exclude is None:
+            exclude = []
+        if include is None:
+            include = []
+
         self._path: Path | None = path
         self._backup_space: BackupSpace = backup_space
         self._uuid: uuid.UUID = unique_id
@@ -50,6 +53,8 @@ class Backup:
         self._config: TOMLConfiguration = TOMLConfiguration(
             backup_space.get_backup_dir() / (str(unique_id) + ".toml")
         )
+        self._exclude: list[str] = exclude
+        self._include: list[str] = include
 
     def calculate_hash(self) -> str:
         return calculate_sha256sum(self._path)
@@ -57,11 +62,11 @@ class Backup:
     def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
         if remote:
             return (
-                    self._remote.get_hash(
-                        target=self.get_remote_archive_path(),
-                        verbosity_level=verbosity_level,
-                    )
-                    == self._hash
+                self._remote.get_hash(
+                    target=self.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                )
+                == self._hash
             )
         else:
             return self.calculate_hash() == self._hash
@@ -116,6 +121,8 @@ class Backup:
             "comment": self._comment,
             "created_at": self._created_at.isoformat(),
             "remote": str(self._remote.get_uuid()) if self._remote else "",
+            "exclude": self._exclude,
+            "include": self._include,
         }
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
@@ -154,6 +161,16 @@ class Backup:
             f"{palette.base}{self._created_at.printformat()}",
         )
 
+        table.add_row(
+            f"{palette.sky}Excluded",
+            f"{palette.base}{self._exclude}",
+        )
+
+        table.add_row(
+            f"{palette.sky}Included",
+            f"{palette.base}{self._include}",
+        )
+
         remote = (
             self._remote.get_uuid()
             if self.has_remote_archive()
@@ -173,12 +190,12 @@ class Backup:
 
     @classmethod
     def load_by_uuid(
-            cls,
-            backup_space: BackupSpace,
-            unique_id: str,
-            check_hash: bool = True,
-            fail_invalid: bool = False,
-            verbosity_level: int = 1,
+        cls,
+        backup_space: BackupSpace,
+        unique_id: str,
+        check_hash: bool = True,
+        fail_invalid: bool = False,
+        verbosity_level: int = 1,
     ):
         unique_id = uuid.UUID(unique_id)
 
@@ -189,7 +206,7 @@ class Backup:
                 f"The Backup with UUID '{unique_id}' does not exist."
             )
 
-        config = TOMLConfiguration(config_path)
+        config = TOMLConfiguration(config_path, none_if_unknown_key=True)
 
         if not config.is_valid():
             raise InvalidBackupError(
@@ -198,7 +215,7 @@ class Backup:
             )
 
         archive_path = backup_space.get_backup_dir() / (
-                str(unique_id) + backup_space.get_compression_algorithm().extension
+            str(unique_id) + backup_space.get_compression_algorithm().extension
         )
 
         try:
@@ -219,9 +236,12 @@ class Backup:
             created_at=TimeObject.fromisoformat(config["created_at"]),
             remote=(
                 remote
-                if remote is not None and remote.get_uuid() != backup_space.get_remote().get_uuid()
+                if remote is not None
+                and remote.get_uuid() != backup_space.get_remote().get_uuid()
                 else backup_space.get_remote()
             ),
+            exclude=config["exclude"],
+            include=config["include"],
         )
 
         if check_hash:
@@ -249,14 +269,14 @@ class Backup:
 
     @classmethod
     def new(
-            cls,
-            source_path: Path,
-            backup_space: BackupSpace,
-            comment: str = "",
-            include: list[str] | None = None,
-            exclude: list[str] | None = None,
-            location: str = "all",
-            verbosity_level: int = 1,
+        cls,
+        source_path: Path,
+        backup_space: BackupSpace,
+        comment: str = "",
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
+        location: str = "all",
+        verbosity_level: int = 1,
     ):
         save_locally = location == "local" or location == "all"
         save_remotely = location == "remote" or location == "all"
@@ -271,6 +291,9 @@ class Backup:
 
         if exclude is None:
             exclude = []
+
+        if include is None:
+            include = []
 
         unique_id = uuid.uuid4()
         created_at = TimeObject.localnow()
@@ -298,6 +321,8 @@ class Backup:
             comment=comment,
             created_at=created_at,
             remote=backup_space.get_remote() if save_remotely else None,
+            exclude=exclude,
+            include=include,
         )
 
         cls._config.create()
@@ -357,8 +382,8 @@ class Backup:
         return str(
             Path(self._backup_space.get_remote_path())
             / (
-                    str(self._uuid)
-                    + self._backup_space.get_compression_algorithm().extension
+                str(self._uuid)
+                + self._backup_space.get_compression_algorithm().extension
             )
         )
 
@@ -387,3 +412,12 @@ class Backup:
 
     def get_file_size(self) -> int:
         return int(self._path.stat().st_size)
+
+    def get_exclude(self) -> list[str]:
+        return self._exclude
+
+    def get_include(self) -> list[str]:
+        return self._include
+
+    def is_full_backup(self) -> bool:
+        return len(self._exclude) == 0 and len(self._include) == 0

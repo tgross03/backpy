@@ -81,15 +81,28 @@ class FileBackupSpace(BackupSpace):
         start_time = time.time()
 
         if not incremental:
-            if verbosity_level >= 1:
-                print("Mode is non-incremental -> Attempting to delete old files ...")
 
-            was_dir = self._file_path.is_dir()
+            if backup.is_full_backup():
+                if verbosity_level >= 1:
+                    print(
+                        "Mode is non-incremental and is full backup -> Attempting to "
+                        "delete all files ..."
+                    )
 
-            shutil.rmtree(self._file_path)
+                was_dir = self._file_path.is_dir()
 
-            if was_dir:
-                self._file_path.mkdir(exist_ok=True, parents=True)
+                shutil.rmtree(self._file_path)
+
+                if was_dir:
+                    self._file_path.mkdir(exist_ok=True, parents=True)
+
+            else:
+                files, _ = compression.filter_paths(
+                    root_path=self._file_path,
+                    include=backup.get_include(),
+                    exclude=backup.get_exclude(),
+                )
+                # for file in files:
 
         if from_remote:
 

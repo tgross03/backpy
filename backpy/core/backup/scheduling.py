@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import uuid
 from pathlib import Path
-
 from typing import TYPE_CHECKING
 
 import crontab
@@ -16,6 +15,7 @@ COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
 
 if TYPE_CHECKING:
     from backpy.core.backup.backup_space import BackupSpace
+
 
 class Schedule:
     def __init__(
