@@ -165,8 +165,8 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 def create(
     backup_space: str,
     time_pattern: str,
-    include: str,
-    exclude: str,
+    include: list[str],
+    exclude: list[str],
     location: str,
     description: str,
     activate: bool,
@@ -192,7 +192,7 @@ def create(
                 debug=debug,
             )
 
-    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+    space = space.get_as_child_class()
 
     if not CronSlices.is_valid(time_pattern.split(" ")):
         return print_error_message(

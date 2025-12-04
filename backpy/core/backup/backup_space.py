@@ -205,12 +205,15 @@ class BackupSpace:
 
         return table
 
+    def get_as_child_class(self) -> "BackupSpace":
+        return self.get_type().child_class.load_by_uuid(unique_id=str(self._uuid))
+
     #####################
     #    CLASSMETHODS   #
     #####################
 
     @classmethod
-    def get_backup_spaces(cls) -> list[BackupSpace]:
+    def get_backup_spaces(cls) -> list["BackupSpace"]:
         spaces = []
         for directory in Path(
             VariableLibrary().get_variable("paths.backup_directory")
@@ -222,7 +225,7 @@ class BackupSpace:
         return spaces
 
     @classmethod
-    def load_by_uuid(cls, unique_id: str):
+    def load_by_uuid(cls, unique_id: str) -> "BackupSpace":
 
         from .types import BackupSpaceType
 
@@ -266,7 +269,7 @@ class BackupSpace:
         return cls
 
     @classmethod
-    def load_by_name(cls, name: str):
+    def load_by_name(cls, name: str) -> "BackupSpace":
         for tomlf in Path(
             VariableLibrary().get_variable("paths.backup_directory")
         ).rglob("config.toml"):
@@ -302,7 +305,7 @@ class BackupSpace:
         default_exclude: list[str] | None = None,
         remote: Remote = None,
         verbosity_level: int = 1,
-    ):
+    ) -> "BackupSpace":
         if not compression.is_algorithm_available(compression_algorithm):
             raise UnsupportedCompressionAlgorithmError(
                 f"The compression algorithm '{compression_algorithm}' is not available!"

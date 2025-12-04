@@ -54,7 +54,7 @@ def delete(backup_space: str, force: bool, verbose: bool, debug: bool) -> None:
                 debug=debug,
             )
 
-    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+    space = space.get_as_child_class()
 
     confirm = False or force
 

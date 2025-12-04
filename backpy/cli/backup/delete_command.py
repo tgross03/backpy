@@ -110,7 +110,7 @@ def delete(
                 debug=debug,
             )
 
-    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+    space = space.get_as_child_class()
 
     if len(space.get_backups(check_hash=False)) == 0:
         return print_error_message(

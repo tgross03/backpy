@@ -39,7 +39,7 @@ def edit_backup_space(
                 debug=debug,
             )
 
-    space = space.get_type().child_class.load_by_uuid(unique_id=str(space.get_uuid()))
+    space = space.get_as_child_class()
 
     prev_config = space.get_config().copy()
 

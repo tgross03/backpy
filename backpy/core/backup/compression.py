@@ -109,6 +109,11 @@ def filter_paths(
     exclude: list[str] | None = None,
 ) -> tuple[list[Path], float]:
 
+    if isinstance(root_path, str):
+        root_path = Path(root_path)
+
+    root_path = root_path.expanduser()
+
     files: Set[Path] = (
         set() if include is not None and len(include) > 0 else set(root_path.rglob("*"))
     )

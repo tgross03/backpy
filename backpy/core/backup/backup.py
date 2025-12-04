@@ -127,6 +127,9 @@ class Backup:
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
+    def restore(self, verbosity_level: int = 1) -> None:
+        self._backup_space
+
     def get_info_table(self) -> Table:
         table = Table(
             title=f"{palette.blue}BACKUP INFORMATION{RESET}",
@@ -420,4 +423,9 @@ class Backup:
         return self._include
 
     def is_full_backup(self) -> bool:
-        return len(self._exclude) == 0 and len(self._include) == 0
+        return (
+            len(self._exclude) == 0
+            and len(self._include) == 0
+            or len(self._exclude) == 0
+            and "*" in self._include
+        )

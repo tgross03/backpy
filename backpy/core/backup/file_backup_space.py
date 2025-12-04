@@ -85,7 +85,7 @@ class FileBackupSpace(BackupSpace):
             if backup.is_full_backup():
                 if verbosity_level >= 1:
                     print(
-                        "Mode is non-incremental and is full backup -> Attempting to "
+                        "Mode is non-incremental and is full backup ... Attempting to "
                         "delete all files ..."
                     )
 
@@ -102,7 +102,8 @@ class FileBackupSpace(BackupSpace):
                     include=backup.get_include(),
                     exclude=backup.get_exclude(),
                 )
-                # for file in files:
+                for file in files:
+                    file.unlink(missing_ok=True)
 
         if from_remote:
 
