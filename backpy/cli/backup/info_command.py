@@ -3,7 +3,12 @@ from rich.console import Console
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.cli.elements import BackupInput, BackupSpaceInput, print_error_message
+from backpy.cli.elements import (
+    BackupInput,
+    BackupSpaceInput,
+    ConfirmInput,
+    print_error_message,
+)
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidBackupSpaceError
 
 palette = get_default_palette()
@@ -23,7 +28,14 @@ def info_interactive(verbosity_level: int, debug: bool):
         suggest_matches=True,
     ).prompt()
 
-    Console().print(backup.get_info_table())
+    check_hash = ConfirmInput(
+        message=f"{palette.base}Should the SHA256 hash be checked?{RESET}",
+        default_value=True,
+    ).prompt()
+
+    Console().print(
+        backup.get_info_table(check_hash=check_hash, verbosity_level=verbosity_level)
+    )
 
     return None
 
@@ -36,6 +48,11 @@ def info_interactive(verbosity_level: int, debug: bool):
 )
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
+@click.option(
+    "--check-hash",
+    is_flag=True,
+    help="Whether to check the SHA256 hash of the backups.",
+)
 @click.option(
     "--verbose",
     "-v",
@@ -58,6 +75,7 @@ def info_interactive(verbosity_level: int, debug: bool):
 def info(
     backup_space: str | None,
     backup: str | None,
+    check_hash: bool,
     verbose: int,
     debug: bool,
     interactive: bool,
@@ -121,6 +139,8 @@ def info(
                     debug=debug,
                 )
 
-    Console().print(backup.get_info_table())
+    Console().print(
+        backup.get_info_table(check_hash=check_hash, verbosity_level=verbose)
+    )
 
     return None

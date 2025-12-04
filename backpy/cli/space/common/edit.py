@@ -65,26 +65,35 @@ def edit_backup_space(
         space._default_exclude = default_exclude
 
     if remote is not None:
-        try:
-            remote = Remote.load_by_uuid(unique_id=remote)
-        except Exception:
+
+        if remote == "None":
+            remote = None
+        else:
+
             try:
-                remote = Remote.load_by_name(name=remote)
+                remote = Remote.load_by_uuid(unique_id=remote)
             except Exception:
-                return print_error_message(
-                    error=InvalidRemoteError(
-                        "The given name or UUID does not match any remote's name or UUID!"
-                    ),
-                    debug=debug,
-                )
+                try:
+                    remote = Remote.load_by_name(name=remote)
+                except Exception:
+                    return print_error_message(
+                        error=InvalidRemoteError(
+                            "The given name or UUID does not match any remote's name or UUID!"
+                        ),
+                        debug=debug,
+                    )
 
         confirm = False or force
 
         if not force:
+            remote_str = (
+                f"{palette.sky}{remote.get_name()} (UUID: {remote.get_uuid()}){RESET}"
+                if remote is not None
+                else "None"
+            )
             confirm = ConfirmInput(
-                message=f"> Are you sure you want to change the remote of this backup space to "
-                f"{palette.sky}{remote.get_name()} "
-                f"(UUID: {remote.get_uuid()}){RESET}?\n{palette.red}WARNING! "
+                message=f"> Are you sure you want to change the remote of this backup space to {remote_str}?"
+                f"\n{palette.red}WARNING! "
                 f"{palette.maroon}This might affect every backup which is saved on this "
                 f"remote! Some backups might become unrestorable!{RESET}",
                 default_value=False,
@@ -159,7 +168,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
             type=str,
             default=None,
             help="The name or UUID of the remote to which the backups for this backup space "
-            "should be send.",
+            "should be send. If set to 'None', the existing remote will be removed.",
         )(func)
         func = click.option(
             "--force",

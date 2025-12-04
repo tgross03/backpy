@@ -232,7 +232,7 @@ class Remote:
         if live is not None:
             live.stop()
 
-        if verbosity_level > 1:
+        if verbosity_level >= 1:
             print(
                 f"Connection test to {self._hostname} with "
                 f"user {self._username} was successful."
@@ -598,11 +598,20 @@ class Remote:
 
     def delete(self, verbosity_level: int = 1):
 
+        from backpy.core.backup.backup_space import BackupSpace
+
         if self._context_managed:
             raise RuntimeError(
                 "The remote may not be deleted while "
                 "it is remote is used in a context manager."
             )
+
+        for space in BackupSpace.get_backup_spaces():
+            if space.get_remote().get_uuid() == self.get_uuid():
+                space._remote = None
+
+                if verbosity_level > 1:
+                    print(f"Deleted remote from backup space {space.get_uuid()}.")
 
         self.disconnect(verbosity_level=verbosity_level)
 
@@ -780,6 +789,9 @@ class Remote:
         verbosity_level: int = 1,
         test_connection: bool = True,
     ) -> "Remote":
+
+        if name == "None":
+            raise NameError("Remotes may not be named 'None'.")
 
         _protocol = Protocol.from_name(protocol)
 

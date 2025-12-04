@@ -56,10 +56,15 @@ class FileBackupSpace(BackupSpace):
         from backpy import Backup
 
         backup = Backup.load_by_uuid(
-            backup_space=self, unique_id=unique_id, fail_invalid=not force
+            backup_space=self,
+            unique_id=unique_id,
+            check_hash=False,
+            fail_invalid=not force,
         )
 
         from_remote = source == "remote"
+
+        print(from_remote)
 
         if verbosity_level >= 1:
             print(f"Restoring backup '{backup.get_uuid()}' ...")
@@ -83,7 +88,7 @@ class FileBackupSpace(BackupSpace):
         if not incremental:
 
             if backup.is_full_backup():
-                if verbosity_level >= 1:
+                if verbosity_level > 1:
                     print(
                         "Mode is non-incremental and is full backup ... Attempting to "
                         "delete all files ..."
@@ -119,7 +124,9 @@ class FileBackupSpace(BackupSpace):
             try:
                 with backup.get_remote()(context_verbosity=verbosity_level):
                     backup.get_remote().download(
-                        source=backup.get_remote_archive_path(), target=archive_path
+                        source=backup.get_remote_archive_path(),
+                        check_hash=True,
+                        target=archive_path,
                     )
             except InvalidChecksumError:
                 if force:
@@ -137,6 +144,8 @@ class FileBackupSpace(BackupSpace):
 
         else:
             archive_path = backup.get_path()
+
+        print(archive_path)
 
         compression.unpack(
             archive_path=archive_path,

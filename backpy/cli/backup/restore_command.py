@@ -1,4 +1,5 @@
 import click
+from rich.console import Console
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
@@ -31,7 +32,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 
     if backup.get_remote() is not None:
         source = TextInput(
-            message=f"{palette.base}From where do you want to restore to the backup file from? "
+            message=f"{palette.base}From where do you want to restore to the backup file? "
             f"('local' or 'remote') {RESET}",
             suggest_matches=True,
             suggestible_values=["local", "remote"],
@@ -41,11 +42,20 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
         source = "local"
 
     incremental = ConfirmInput(
-        message=f"{palette.base}Do you want to restore the backup incrementally?{RESET}",
+        message=f"{palette.base}Do you want to restore the backup incrementally? "
+        "This means that only content, which is included in the backup "
+        "will be affected. If this is 'False', the contents will be deleted and replaced "
+        f"by the backed up content.{RESET}",
         default_value=True,
     ).prompt()
 
+    Console().print(backup.get_info_table())
+    print(
+        f"{palette.base}Restore mode: {palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+    )
+
     if not force:
+
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to restore backup "
             f"{palette.maroon}{str(backup.get_uuid())} (Created at: "
@@ -55,10 +65,10 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 
         if confirm:
             try:
-                space.restore_backup(
-                    unique_id=str(backup.get_uuid()),
+                backup.restore(
                     incremental=incremental,
                     source=source,
+                    force=force,
                     verbosity_level=verbosity_level,
                 )
             except InvalidChecksumError as e:
@@ -72,11 +82,8 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
                 f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        space.restore_backup(
-            unique_id=str(backup.get_uuid()),
-            incremental=incremental,
-            source=source,
-            verbosity_level=verbosity_level,
+        backup.restore(
+            incremental=incremental, source=source, verbosity_level=verbosity_level
         )
 
     print(
@@ -95,7 +102,13 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
 @click.option(
-    "--incremental", "-i", is_flag=True, help="Restore the backup incrementally."
+    "--incremental",
+    type=bool,
+    default=True,
+    help="Restore the backup "
+    "incrementally. This means that only content, which is included in the backup "
+    "will be affected. If this is 'False', the contents will be deleted and replaced "
+    "by the backed up content.",
 )
 @click.option(
     "--source",
@@ -201,6 +214,11 @@ def restore(
             debug=debug,
         )
 
+    Console().print(backup.get_info_table())
+    print(
+        f"{palette.base}Restore mode: {palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+    )
+
     if not force:
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to restore backup "
@@ -209,13 +227,26 @@ def restore(
         ).prompt()
 
         if confirm:
-            pass
+            try:
+                backup.restore(
+                    incremental=incremental,
+                    source=source,
+                    force=force,
+                    verbosity_level=verbose,
+                )
+            except InvalidChecksumError as e:
+                print_error_message(
+                    error=e,
+                    debug=debug,
+                )
         else:
             print(
                 f"{palette.red}Canceled restoring of backup "
                 f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        backup.restore(verbosity_level=verbose)
+        backup.restore(
+            incremental=incremental, source=source, force=force, verbosity_level=verbose
+        )
 
     return None

@@ -61,6 +61,14 @@ class Backup:
 
     def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
         if remote:
+            print(
+                "Remote",
+                self._remote.get_hash(
+                    target=self.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                ),
+            )
+            print("Config", self._hash)
             return (
                 self._remote.get_hash(
                     target=self.get_remote_archive_path(),
@@ -68,7 +76,10 @@ class Backup:
                 )
                 == self._hash
             )
+
         else:
+            print("Local", self.calculate_hash())
+            print("Config", self._hash)
             return self.calculate_hash() == self._hash
 
     def delete(self, verbosity_level: int = 1) -> None:
@@ -127,10 +138,20 @@ class Backup:
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
-    def restore(self, verbosity_level: int = 1) -> None:
-        self._backup_space
+    def restore(
+        self, incremental: bool, source: str, force: bool, verbosity_level: int = 1
+    ) -> None:
+        self._backup_space.get_as_child_class().restore_backup(
+            unique_id=str(self._uuid),
+            incremental=incremental,
+            source=source,
+            force=force,
+            verbosity_level=verbosity_level,
+        )
 
-    def get_info_table(self) -> Table:
+    def get_info_table(
+        self, check_hash: bool = False, verbosity_level: int = 1
+    ) -> Table:
         table = Table(
             title=f"{palette.blue}BACKUP INFORMATION{RESET}",
             show_header=False,
@@ -151,6 +172,25 @@ class Backup:
             f"(UUID: {self._backup_space.get_uuid()})",
         )
         table.add_row(f"{palette.sky}SHA256 Hash", f"{palette.base}{self._hash}")
+        if check_hash:
+            table.add_section()
+            table.add_row(f"{palette.sky}Hash Check", "")  # same style as others
+
+            local_check = (
+                f"{palette.green}passed{RESET}"
+                if self.check_hash(remote=False, verbosity_level=verbosity_level)
+                else f"{palette.maroon}failed{RESET}"
+            )
+            table.add_row(f"{palette.sky}> Local", f"{palette.base}{local_check}")
+
+            if self.get_remote() is not None:
+                remote_check = (
+                    f"{palette.green}passed{RESET}"
+                    if self.check_hash(remote=True, verbosity_level=verbosity_level)
+                    else f"{palette.maroon}failed{RESET}"
+                )
+                table.add_row(f"{palette.sky}> Remote", f"{palette.base}{remote_check}")
+            table.add_section()
         table.add_row(
             f"{palette.sky}Comment",
             f"{palette.base}{self._comment or f'{EFFECTS.dim.on}N/A{EFFECTS.dim.off}'}",

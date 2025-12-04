@@ -56,71 +56,11 @@ def info_interactive(verbosity_level: int, debug: bool):
     help="Get information about a backup in interactive mode.",
 )
 def info(
-    backup_space: str | None,
-    backup: str | None,
     verbose: int,
     debug: bool,
     interactive: bool,
 ) -> None:
 
     verbose += 1
-
-    if interactive:
-        return info_interactive(verbosity_level=verbose, debug=debug)
-
-    if backup_space is None or backup is None:
-        return print_error_message(
-            ValueError(
-                "If the '--interactive' flag is not given, you have to supply "
-                "a valid value for the 'BACKUP_SPACE' and 'BACKUP' arguments."
-            ),
-            debug=debug,
-        )
-
-    try:
-        space = BackupSpace.load_by_uuid(backup_space)
-    except Exception:
-        try:
-            space = BackupSpace.load_by_name(backup_space)
-        except Exception:
-            return print_error_message(
-                InvalidBackupSpaceError(
-                    "There is no Backup Space with that name or UUID!"
-                ),
-                debug=debug,
-            )
-
-    space = space.get_as_child_class()
-
-    if len(space.get_backups(check_hash=False)) == 0:
-        return print_error_message(
-            InvalidBackupError("There is no Backup present in this Backup Space!"),
-            debug=debug,
-        )
-
-    match backup:
-        case "oldest":
-            backup = space.get_backups(sort_by="date", check_hash=False)[-1]
-        case "newest":
-            backup = space.get_backups(sort_by="date", check_hash=False)[0]
-        case "largest":
-            backup = space.get_backups(sort_by="size", check_hash=False)[0]
-        case "smallest":
-            backup = space.get_backups(sort_by="size", check_hash=False)[-1]
-        case _:
-            try:
-                backup = Backup.load_by_uuid(
-                    backup_space=space, unique_id=backup, verbosity_level=verbose
-                )
-            except Exception:
-                return print_error_message(
-                    InvalidBackupError(
-                        f"There is no Backup with that UUID in the Backup Space "
-                        f"'{space.get_name()}'"
-                    ),
-                    debug=debug,
-                )
-
-    Console().print(backup.get_info_table())
 
     return None
