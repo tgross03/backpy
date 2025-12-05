@@ -530,7 +530,7 @@ class Remote:
                 f"(Including parent directories: {parents})"
             )
 
-    def _is_dir(
+    def is_dir(
         self,
         target: str,
         sftp_client: SFTPClient | None = None,
@@ -555,6 +555,31 @@ class Remote:
 
         return result
 
+    def exists(
+        self,
+        target: str,
+        sftp_client: SFTPClient | None = None,
+        close_afterwards: bool = True,
+    ) -> bool:
+
+        if not sftp_client and not self._context_managed:
+            self.connect()
+            sftp_client = self._client.open_sftp()
+
+        if self._context_managed:
+            sftp_client = self._client.open_sftp()
+
+        result = False
+        try:
+            result = sftp_client.stat(target)
+        except IOError:
+            pass
+
+        if close_afterwards and not self._context_managed:
+            self.disconnect()
+
+        return result
+
     def remove(
         self,
         target: str,
@@ -570,7 +595,7 @@ class Remote:
         if self._context_managed:
             sftp_client = self._client.open_sftp()
 
-        if not self._is_dir(target, sftp_client=sftp_client, close_afterwards=False):
+        if not self.is_dir(target, sftp_client=sftp_client, close_afterwards=False):
             sftp_client.remove(target)
 
             if verbosity_level >= 2:
@@ -580,7 +605,7 @@ class Remote:
 
             for f in files:
                 filepath = str(Path(target) / f)
-                if self._is_dir(
+                if self.is_dir(
                     filepath, sftp_client=sftp_client, close_afterwards=False
                 ):
                     self.remove(

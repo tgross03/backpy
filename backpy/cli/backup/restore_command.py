@@ -30,14 +30,16 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 
     backup = BackupInput(backup_space=space, suggest_matches=True).prompt()
 
-    if backup.get_remote() is not None:
+    if backup.has_remote_archive() and backup.has_local_archive():
         source = TextInput(
             message=f"{palette.base}> From where do you want to restore to the backup file? "
             f"('local' or 'remote') {RESET}",
             suggest_matches=True,
             suggestible_values=["local", "remote"],
-            default_value="local",
+            default_value="local" if backup.has_local_archive() else "remote",
         ).prompt()
+    elif backup.has_remote_archive() and not backup.has_local_archive():
+        source = "remote"
     else:
         source = "local"
 
@@ -203,10 +205,17 @@ def restore(
                     debug=debug,
                 )
 
-    if source == "remote" and backup.get_remote() is None:
-        print_error_message(
+    if source == "remote" and not backup.has_remote_archive():
+        return print_error_message(
             InvalidBackupError(
                 f"The backup '{backup.get_uuid()}' does not have a remote backup file."
+            ),
+            debug=debug,
+        )
+    elif source == "local" and not backup.has_local_archive():
+        return print_error_message(
+            InvalidBackupError(
+                f"The backup '{backup.get_uuid()}' does not have a local backup file."
             ),
             debug=debug,
         )

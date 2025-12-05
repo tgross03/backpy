@@ -185,14 +185,15 @@ class Backup:
             table.add_section()
             table.add_row(f"{palette.sky}Hash Check", "")  # same style as others
 
-            local_check = (
-                f"{palette.green}passed{RESET}"
-                if self.check_hash(remote=False, verbosity_level=verbosity_level)
-                else f"{palette.maroon}failed{RESET}"
-            )
-            table.add_row(f"{palette.sky}> Local", f"{palette.base}{local_check}")
+            if self.has_local_archive():
+                local_check = (
+                    f"{palette.green}passed{RESET}"
+                    if self.check_hash(remote=False, verbosity_level=verbosity_level)
+                    else f"{palette.maroon}failed{RESET}"
+                )
+                table.add_row(f"{palette.sky}> Local", f"{palette.base}{local_check}")
 
-            if self.get_remote() is not None:
+            if self.has_remote_archive():
                 remote_check = (
                     f"{palette.green}passed{RESET}"
                     if self.check_hash(remote=True, verbosity_level=verbosity_level)
@@ -427,7 +428,9 @@ class Backup:
         return self._path is not None
 
     def has_remote_archive(self) -> bool:
-        return self._remote is not None
+        return self._remote is not None and self._remote.exists(
+            target=self.get_remote_archive_path()
+        )
 
     def get_path(self) -> Path:
         return self._path
@@ -467,8 +470,12 @@ class Backup:
     def get_file_size(self) -> int:
         if self.has_local_archive():
             return int(self._path.stat().st_size)
+        elif self.has_remote_archive():
+            return int(
+                self._remote.get_file_size(target=self.get_remote_archive_path())
+            )
         else:
-            return int(self.get_remote_archive_path())
+            return -1
 
     def get_exclude(self) -> list[str]:
         return self._exclude

@@ -89,15 +89,16 @@ def list_backups(
 
         if check_hash:
             hash_branch = backup_branch.add(f"{palette.lavender}Hash Check{RESET}")
-            local_check = (
-                f"{palette.green}passed{RESET}"
-                if backup.check_hash(remote=False, verbosity_level=verbose)
-                else "failed"
-            )
-            hash_branch.add(
-                f"{palette.lavender}Local: {palette.maroon}" f"{local_check}{RESET}"
-            )
-            if space.get_remote() is not None:
+            if backup.has_local_archive():
+                local_check = (
+                    f"{palette.green}passed{RESET}"
+                    if backup.check_hash(remote=False, verbosity_level=verbose)
+                    else "failed"
+                )
+                hash_branch.add(
+                    f"{palette.lavender}Local: {palette.maroon}" f"{local_check}{RESET}"
+                )
+            if backup.has_remote_archive() is not None:
                 remote_check = (
                     f"{palette.green}passed{RESET}"
                     if backup.check_hash(remote=True, verbosity_level=verbose)
