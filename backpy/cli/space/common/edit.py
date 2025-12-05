@@ -92,8 +92,8 @@ def edit_backup_space(
                 else "None"
             )
             confirm = ConfirmInput(
-                message=f"> Are you sure you want to change the remote of this backup space to {remote_str}?"
-                f"\n{palette.red}WARNING! "
+                message=f"> Are you sure you want to change the remote of this backup "
+                f"space to {remote_str}?\n{palette.red}WARNING! "
                 f"{palette.maroon}This might affect every backup which is saved on this "
                 f"remote! Some backups might become unrestorable!{RESET}",
                 default_value=False,
@@ -101,6 +101,15 @@ def edit_backup_space(
 
         if confirm:
             space._remote = remote
+
+            if remote is not None:
+                with space.get_remote()(context_verbosity=verbose) as remote:
+                    remote.mkdir(
+                        target=space.get_remote_path(),
+                        parents=True,
+                        verbosity_level=verbose,
+                    )
+
         else:
             print(
                 f"{palette.maroon}Remote change canceled. "

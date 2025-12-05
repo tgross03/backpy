@@ -64,8 +64,6 @@ class FileBackupSpace(BackupSpace):
 
         from_remote = source == "remote"
 
-        print(from_remote)
-
         if verbosity_level >= 1:
             print(f"Restoring backup '{backup.get_uuid()}' ...")
 
@@ -145,8 +143,6 @@ class FileBackupSpace(BackupSpace):
         else:
             archive_path = backup.get_path()
 
-        print(archive_path)
-
         compression.unpack(
             archive_path=archive_path,
             target_path=self._file_path,
@@ -155,7 +151,7 @@ class FileBackupSpace(BackupSpace):
 
         if verbosity_level >= 1:
             print(
-                f"Restored Backup with UUID '{unique_id}' from source {source}"
+                f"Restored Backup with UUID '{unique_id}' from source {source} "
                 f"at location {self._file_path}\n"
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
                 " seconds!"

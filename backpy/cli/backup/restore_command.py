@@ -32,7 +32,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 
     if backup.get_remote() is not None:
         source = TextInput(
-            message=f"{palette.base}From where do you want to restore to the backup file? "
+            message=f"{palette.base}> From where do you want to restore to the backup file? "
             f"('local' or 'remote') {RESET}",
             suggest_matches=True,
             suggestible_values=["local", "remote"],
@@ -42,24 +42,24 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
         source = "local"
 
     incremental = ConfirmInput(
-        message=f"{palette.base}Do you want to restore the backup incrementally? "
+        message=f"{palette.base}> Do you want to restore the backup incrementally? "
         "This means that only content, which is included in the backup "
-        "will be affected. If this is 'False', the contents will be deleted and replaced "
+        "will be affected. If not, the contents will be deleted and replaced "
         f"by the backed up content.{RESET}",
         default_value=True,
     ).prompt()
 
     Console().print(backup.get_info_table())
     print(
-        f"{palette.base}Restore mode: {palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+        f"{palette.base}Restore mode: "
+        f"{palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
     )
 
     if not force:
 
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to restore backup "
-            f"{palette.maroon}{str(backup.get_uuid())} (Created at: "
-            f"{backup.get_created_at().printformat()}{palette.base}?{RESET}",
+            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
             default_value=False,
         ).prompt()
 
@@ -86,10 +86,6 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
             incremental=incremental, source=source, verbosity_level=verbosity_level
         )
 
-    print(
-        f"Restored backup {backup.get_uuid()} (Created at: {backup.get_created_at()})"
-    )
-
     return None
 
 
@@ -114,6 +110,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
     "--source",
     "-s",
     type=click.Choice(["local", "remote"]),
+    default="local",
     help="The location from which to restore the backup.",
 )
 @click.option(
@@ -216,7 +213,8 @@ def restore(
 
     Console().print(backup.get_info_table())
     print(
-        f"{palette.base}Restore mode: {palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+        f"{palette.base}Restore mode: "
+        f"{palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
     )
 
     if not force:

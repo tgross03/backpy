@@ -333,13 +333,17 @@ class Remote:
                         self._client.get_transport(), progress=_progress
                     )
 
-                    if len(target.split("/")) > 1:
+                    # in Remote.upload, scp case
+                    print(target)
+                    dir_target = "/".join(target.split("/")[:-1])
+                    if dir_target:
                         self.mkdir(
-                            target=target,
+                            target=dir_target,
                             parents=True,
                             close_afterwards=False,
                             client=scp_client,
                         )
+                        print(dir_target)
 
                     scp_client.put(files=source, remote_path=target, recursive=True)
 
@@ -461,6 +465,8 @@ class Remote:
 
         subdirs = target.split("/")
 
+        print("subdirs", subdirs)
+
         match self._protocol.name:
             case "sftp":
                 sftp_client = (
@@ -501,7 +507,7 @@ class Remote:
                     if parents:
                         scp_client.put(
                             files=str(path / subdirs[0]),
-                            remote_path=subdirs[0],
+                            remote_path="~",
                             recursive=True,
                         )
                     else:
@@ -596,19 +602,41 @@ class Remote:
         if close_afterwards and not self._context_managed:
             self.disconnect(verbosity_level=verbosity_level)
 
-    def delete(self, verbosity_level: int = 1):
+    def delete(self, delete_files: bool, verbosity_level: int = 1):
 
         from backpy.core.backup.backup_space import BackupSpace
 
         if self._context_managed:
             raise RuntimeError(
-                "The remote may not be deleted while "
-                "it is remote is used in a context manager."
+                "The remote may not be deleted while it is remote is used in a context manager."
             )
 
         for space in BackupSpace.get_backup_spaces():
-            if space.get_remote().get_uuid() == self.get_uuid():
+            for backup in space.get_backups(check_hash=False):
+                if (
+                    backup.has_remote_archive()
+                    and backup.get_remote().get_uuid() == self.get_uuid()
+                ):
+                    backup._remote = None
+                    backup.update_config()
+
+            if (
+                space.get_remote() is not None
+                and space.get_remote().get_uuid() == self.get_uuid()
+            ):
+
+                if delete_files:
+                    self.remove(
+                        target=space.get_remote_path(), verbosity_level=verbosity_level
+                    )
+
+                    if verbosity_level > 1:
+                        print(
+                            f"Deleted backup space at remote path '{space.get_remote_path()}'."
+                        )
+
                 space._remote = None
+                space.update_config()
 
                 if verbosity_level > 1:
                     print(f"Deleted remote from backup space {space.get_uuid()}.")
@@ -641,6 +669,27 @@ class Remote:
             self.disconnect(verbosity_level=verbosity_level)
 
         return checksum
+
+    def get_file_size(
+        self,
+        target: str,
+        sftp_client: SFTPClient | None = None,
+        verbosity_level: int = 1,
+    ) -> int:
+
+        if not sftp_client and not self._context_managed:
+            self.connect(verbosity_level=verbosity_level)
+            sftp_client = self._client.open_sftp()
+
+        if self._context_managed:
+            sftp_client = self._client.open_sftp()
+
+        info = sftp_client.stat(target)
+
+        if not self._context_managed:
+            self.disconnect(verbosity_level=verbosity_level)
+
+        return info.st_size
 
     def get_info_table(self) -> Table:
 

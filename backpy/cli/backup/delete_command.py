@@ -1,4 +1,5 @@
 import click
+from rich.console import Console
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
@@ -141,6 +142,7 @@ def delete(
                     debug=debug,
                 )
 
+    Console().print(backup.get_info_table())
     if not force:
         confirm = ConfirmInput(
             message=f"{palette.base}Are you sure you want to delete backup "

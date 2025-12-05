@@ -118,8 +118,6 @@ def filter_paths(
         set() if include is not None and len(include) > 0 else set(root_path.rglob("*"))
     )
 
-    print(files)
-
     if include is not None and len(include) > 0:
         for inc in include:
             files.update(root_path.rglob(inc))
@@ -149,7 +147,7 @@ def _compress_zip(
 
     target_path = root_path.absolute().parent / (archive_name + ".zip")
 
-    if verbosity_level >= 1:
+    if verbosity_level > 1:
         print(f"Creating archive {target_path} ...")
 
     files, size = filter_paths(root_path=root_path, include=include, exclude=exclude)

@@ -61,14 +61,15 @@ class Backup:
 
     def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
         if remote:
-            print(
-                "Remote",
-                self._remote.get_hash(
-                    target=self.get_remote_archive_path(),
-                    verbosity_level=verbosity_level,
-                ),
-            )
-            print("Config", self._hash)
+            if verbosity_level >= 2:
+                print(
+                    "Remote ->",
+                    self._remote.get_hash(
+                        target=self.get_remote_archive_path(),
+                        verbosity_level=verbosity_level,
+                    ),
+                )
+                print("Config ->", self._hash)
             return (
                 self._remote.get_hash(
                     target=self.get_remote_archive_path(),
@@ -78,8 +79,10 @@ class Backup:
             )
 
         else:
-            print("Local", self.calculate_hash())
-            print("Config", self._hash)
+            if verbosity_level >= 2:
+                print("Local", self.calculate_hash())
+                print("Config", self._hash)
+
             return self.calculate_hash() == self._hash
 
     def delete(self, verbosity_level: int = 1) -> None:
@@ -95,8 +98,18 @@ class Backup:
                 print(f"Removed local backup at {self._path}.")
 
         if self.has_remote_archive():
-            if not self._remote.is_connected():
-                with self._remote(context_verbosity=verbosity_level):
+            try:
+                if not self._remote.is_connected():
+                    with self._remote(context_verbosity=verbosity_level):
+                        self._remote.remove(
+                            target=self.get_remote_archive_path(),
+                            verbosity_level=verbosity_level,
+                        )
+                        self._remote.remove(
+                            target=self.get_remote_config_path(),
+                            verbosity_level=verbosity_level,
+                        )
+                else:
                     self._remote.remove(
                         target=self.get_remote_archive_path(),
                         verbosity_level=verbosity_level,
@@ -105,14 +118,10 @@ class Backup:
                         target=self.get_remote_config_path(),
                         verbosity_level=verbosity_level,
                     )
-            else:
-                self._remote.remove(
-                    target=self.get_remote_archive_path(),
-                    verbosity_level=verbosity_level,
-                )
-                self._remote.remove(
-                    target=self.get_remote_config_path(),
-                    verbosity_level=verbosity_level,
+            except Exception:
+                print(
+                    f"The backup with UUID {self._uuid} could not be deleted from its remote. "
+                    f"You might have to delete it manually."
                 )
 
         if verbosity_level >= 1:
@@ -279,8 +288,11 @@ class Backup:
             created_at=TimeObject.fromisoformat(config["created_at"]),
             remote=(
                 remote
-                if remote is not None
-                and remote.get_uuid() != backup_space.get_remote().get_uuid()
+                if remote is None
+                or (
+                    remote is not None
+                    and remote.get_uuid() != backup_space.get_remote().get_uuid()
+                )
                 else backup_space.get_remote()
             ),
             exclude=config["exclude"],
@@ -296,7 +308,7 @@ class Backup:
                 checks.append(False)
 
             for remote in checks:
-                if not cls.check_hash(remote=remote):
+                if not cls.check_hash(remote=remote, verbosity_level=verbosity_level):
                     err_msg = (
                         f"The SHA256 of the loaded backup with UUID '{unique_id}' "
                         "is not identical with the one saved in its configuration. "
@@ -372,7 +384,7 @@ class Backup:
         cls.update_config()
         cls._config.prepend_no_edit_warning()
 
-        if verbosity_level >= 0:
+        if verbosity_level >= 1:
             print(
                 f"Created Backup with UUID '{unique_id}'. "
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
@@ -402,8 +414,7 @@ class Backup:
                     print(f"Removed local backup at {moved_path}.")
             else:
                 warnings.warn(
-                    "Since there is no remote defined, "
-                    "the backup can only be saved locally!"
+                    "Since there is no remote defined, the backup can only be saved locally!"
                 )
 
         return cls
@@ -454,7 +465,10 @@ class Backup:
         return self._config.as_dict()
 
     def get_file_size(self) -> int:
-        return int(self._path.stat().st_size)
+        if self.has_local_archive():
+            return int(self._path.stat().st_size)
+        else:
+            return int(self.get_remote_archive_path())
 
     def get_exclude(self) -> list[str]:
         return self._exclude

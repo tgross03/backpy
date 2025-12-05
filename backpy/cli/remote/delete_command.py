@@ -14,6 +14,9 @@ palette = get_default_palette()
 )
 @click.argument("remote", type=str, required=True)
 @click.option(
+    "--delete-files", is_flag=True, help="Delete all backup spaces on the remote."
+)
+@click.option(
     "--force",
     "-f",
     is_flag=True,
@@ -32,7 +35,9 @@ palette = get_default_palette()
     help="Activate the debug log for the command "
     "to print full error traces in case of a problem.",
 )
-def delete(remote: str, force: bool, verbose: int, debug: bool) -> None:
+def delete(
+    remote: str, delete_files: bool, force: bool, verbose: int, debug: bool
+) -> None:
     verbose += 1
 
     try:
@@ -61,7 +66,7 @@ def delete(remote: str, force: bool, verbose: int, debug: bool) -> None:
         ).prompt()
 
     if confirm:
-        remote.delete(verbosity_level=verbose)
+        remote.delete(delete_files=delete_files, verbosity_level=verbose)
     else:
         print(f"{palette.maroon}Deletion canceled.{RESET}")
 

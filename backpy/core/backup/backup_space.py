@@ -358,8 +358,11 @@ class BackupSpace:
     def get_remote(self) -> Remote:
         return self._remote
 
-    def get_remote_path(self) -> str:
-        return self._remote.get_relative_to_root("backups/" + str(self._uuid))
+    def get_remote_path(self) -> str | None:
+        if self._remote is not None:
+            return self._remote.get_relative_to_root(path=f"backups/{self._uuid}")
+        else:
+            return None
 
     def get_compression_algorithm(self) -> compression.CompressionAlgorithm:
         return self._compression_algorithm
