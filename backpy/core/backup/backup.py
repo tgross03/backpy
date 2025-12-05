@@ -60,7 +60,7 @@ class Backup:
         return calculate_sha256sum(self._path)
 
     def check_hash(self, remote=False, verbosity_level: int = 1) -> bool:
-        if remote:
+        if remote and self.has_remote_archive():
             if verbosity_level >= 2:
                 print(
                     "Remote ->",
@@ -78,12 +78,14 @@ class Backup:
                 == self._hash
             )
 
-        else:
+        elif self.has_local_archive():
             if verbosity_level >= 2:
                 print("Local", self.calculate_hash())
                 print("Config", self._hash)
 
             return self.calculate_hash() == self._hash
+        else:
+            return False
 
     def delete(self, verbosity_level: int = 1) -> None:
         start_time = time.time()
@@ -303,6 +305,11 @@ class Backup:
         if check_hash:
             checks = []
 
+            if not cls.has_remote_archive() and not cls.has_local_archive():
+                raise InvalidBackupError(
+                    "The backup exists but does not have any local or remote archives."
+                )
+
             if cls.has_remote_archive():
                 checks.append(True)
             if cls.has_local_archive():
@@ -425,14 +432,14 @@ class Backup:
     #####################
 
     def has_local_archive(self) -> bool:
-        return self._path is not None
+        return self._path is not None and self._path.exists()
 
     def has_remote_archive(self) -> bool:
         return self._remote is not None and self._remote.exists(
             target=self.get_remote_archive_path()
         )
 
-    def get_path(self) -> Path:
+    def get_path(self) -> Path | None:
         return self._path
 
     def get_remote_archive_path(self) -> str:
@@ -475,7 +482,7 @@ class Backup:
                 self._remote.get_file_size(target=self.get_remote_archive_path())
             )
         else:
-            return -1
+            raise FileNotFoundError("This backup does not have a valid archive!")
 
     def get_exclude(self) -> list[str]:
         return self._exclude

@@ -1,10 +1,9 @@
 import click
 from rich.console import Console
 
-from backpy import Backup, BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import BackupInput, BackupSpaceInput, print_error_message
-from backpy.core.utils.exceptions import InvalidBackupError, InvalidBackupSpaceError
+from backpy.core.utils.exceptions import InvalidBackupError
 
 palette = get_default_palette()
 

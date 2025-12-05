@@ -11,7 +11,11 @@ from rich.table import Table
 
 from backpy.core.backup import BackupSpace, compression
 from backpy.core.config import VariableLibrary
-from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidChecksumError
+from backpy.core.utils.exceptions import (
+    InvalidBackupError,
+    InvalidBackupSpaceError,
+    InvalidChecksumError,
+)
 
 if TYPE_CHECKING:
     from backpy import Backup
@@ -61,6 +65,15 @@ class FileBackupSpace(BackupSpace):
             check_hash=False,
             fail_invalid=not force,
         )
+
+        if source == "remote" and not backup.has_remote_archive():
+            raise InvalidBackupError(
+                f"The backup '{backup.get_uuid()}' does not have a remote backup file."
+            )
+        elif source == "local" and not backup.has_local_archive():
+            raise InvalidBackupError(
+                f"The backup '{backup.get_uuid()}' does not have a local backup file."
+            )
 
         from_remote = source == "remote"
 
