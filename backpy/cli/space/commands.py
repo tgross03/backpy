@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.space.clear_command import clear
 from backpy.cli.space.create_group import create

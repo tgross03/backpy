@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import click
+import rich_click as click
 
 from backpy import BackupSpaceType
 from backpy.cli.colors import RESET, get_default_palette

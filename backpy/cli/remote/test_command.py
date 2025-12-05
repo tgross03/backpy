@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import print_error_message

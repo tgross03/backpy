@@ -46,7 +46,7 @@ class BackupSpace:
         )
         self._compression_level: int = compression_level
         self._backup_dir: Path = Path(
-            VariableLibrary().get_variable("paths.backup_directory")
+            VariableLibrary.get_variable("paths.backup_directory")
         ) / str(self._uuid)
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=self._backup_dir / "config.toml",
@@ -216,7 +216,7 @@ class BackupSpace:
     def get_backup_spaces(cls) -> list["BackupSpace"]:
         spaces = []
         for directory in Path(
-            VariableLibrary().get_variable("paths.backup_directory")
+            VariableLibrary.get_variable("paths.backup_directory")
         ).glob("*"):
             tomlf = directory / "config.toml"
             if directory.is_dir() and TOMLConfiguration(tomlf).is_valid():
@@ -231,7 +231,7 @@ class BackupSpace:
 
         unique_id = uuid.UUID(unique_id)
 
-        path = Path(VariableLibrary().get_variable("paths.backup_directory")) / str(
+        path = Path(VariableLibrary.get_variable("paths.backup_directory")) / str(
             unique_id
         )
 
@@ -270,9 +270,9 @@ class BackupSpace:
 
     @classmethod
     def load_by_name(cls, name: str) -> "BackupSpace":
-        for tomlf in Path(
-            VariableLibrary().get_variable("paths.backup_directory")
-        ).rglob("config.toml"):
+        for tomlf in Path(VariableLibrary.get_variable("paths.backup_directory")).rglob(
+            "config.toml"
+        ):
             config = TOMLConfiguration(tomlf, create_if_not_exists=False)
 
             if not config.is_valid():
@@ -295,10 +295,10 @@ class BackupSpace:
         cls,
         name: str,
         space_type: BackupSpaceType,
-        compression_algorithm: str = VariableLibrary().get_variable(
+        compression_algorithm: str = VariableLibrary.get_variable(
             "backup.states.default_compression_algorithm"
         ),
-        compression_level: int = VariableLibrary().get_variable(
+        compression_level: int = VariableLibrary.get_variable(
             "backup.states.default_compression_level"
         ),
         default_include: list[str] | None = None,

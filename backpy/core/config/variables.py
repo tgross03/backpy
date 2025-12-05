@@ -7,7 +7,19 @@ from backpy.core.config.configuration import TOMLConfiguration
 
 
 class VariableLibrary:
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
+
         self._path: Path = Path.home() / ".backpy/config/variables.toml"
         self._config = backpy.TOMLConfiguration(self._path, create_if_not_exists=True)
 
@@ -42,6 +54,7 @@ class VariableLibrary:
             },
             "cli": {
                 "color_palette": "latte",
+                "rich": {"palette": "solarized", "style": "box"},
             },
         }
 
@@ -50,17 +63,27 @@ class VariableLibrary:
         )
         self._config.prepend_no_edit_warning()
 
-    def get_config(self) -> TOMLConfiguration:
-        return self._config
+    @classmethod
+    def get_config(cls) -> TOMLConfiguration:
+        instance = cls()
+        return instance._config
 
-    def get_path(self) -> Path:
-        return self._path
+    @classmethod
+    def get_path(cls) -> Path:
+        instance = cls()
+        return instance._path
 
-    def get_variable(self, key: str):
-        return self._config[key]
+    @classmethod
+    def get_variable(cls, key: str):
+        instance = cls()
+        return instance._config[key]
 
-    def set_variable(self, key: str, value: str) -> None:
-        self._config[key] = value
+    @classmethod
+    def set_variable(cls, key: str, value: str) -> None:
+        instance = cls()
+        instance._config[key] = value
 
-    def exists(self) -> bool:
-        return self._config.is_valid()
+    @classmethod
+    def exists(cls) -> bool:
+        instance = cls()
+        return instance._config.is_valid()

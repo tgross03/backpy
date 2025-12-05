@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 from fuzzyfinder import fuzzyfinder
 
 from backpy import VariableLibrary
@@ -31,7 +31,7 @@ palette = get_default_palette()
 )
 def set_value(key: str, value: str, force: bool, debug: bool) -> None:
     try:
-        prev_value = VariableLibrary().get_variable(key=key)
+        prev_value = VariableLibrary.get_variable(key=key)
 
         if prev_value == value:
             print(
@@ -51,12 +51,12 @@ def set_value(key: str, value: str, force: bool, debug: bool) -> None:
             ).prompt()
 
             if confirm:
-                VariableLibrary().set_variable(key=key, value=value)
+                VariableLibrary.set_variable(key=key, value=value)
             else:
                 print(f"{palette.red}Canceled variable change.{RESET}")
                 return None
         else:
-            VariableLibrary().set_variable(key=key, value=value)
+            VariableLibrary.set_variable(key=key, value=value)
 
     except InvalidTOMLConfigurationError:
         return print_error_message(
@@ -70,7 +70,7 @@ def set_value(key: str, value: str, force: bool, debug: bool) -> None:
         matched = list(
             fuzzyfinder(
                 key,
-                VariableLibrary().get_config().get_keys(non_dict_only=True),
+                VariableLibrary.get_config().get_keys(non_dict_only=True),
                 highlight=True,
             )
         )

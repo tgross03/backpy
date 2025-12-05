@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.schedule.create_command import create
 

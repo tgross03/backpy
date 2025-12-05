@@ -2,11 +2,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import click
+import rich_click as click
 
 import backpy
 import backpy.version
-from backpy import TOMLConfiguration
+from backpy import TOMLConfiguration, VariableLibrary
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 
 from .backup import commands as backup
@@ -16,6 +16,11 @@ from .schedule import commands as schedule
 from .space import commands as space
 
 palette = get_default_palette()
+
+click.rich_click.THEME = (
+    f"{VariableLibrary.get_variable('cli.rich.palette')}-"
+    f"{VariableLibrary.get_variable('cli.rich.style')}"
+)
 
 
 def _print_version(ctx, param, value):

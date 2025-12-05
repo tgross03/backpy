@@ -97,4 +97,4 @@ for effect in EFFECTS:
 
 
 def get_default_palette():
-    return PALETTE[VariableLibrary().get_variable("cli.color_palette")]
+    return PALETTE[VariableLibrary.get_variable("cli.color_palette")]

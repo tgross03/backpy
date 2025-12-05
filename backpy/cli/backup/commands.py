@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.backup.create_command import create
 from backpy.cli.backup.delete_command import delete

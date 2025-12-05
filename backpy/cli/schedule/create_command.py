@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 from crontab import CronSlices
 
 from backpy.cli.colors import RESET, get_default_palette

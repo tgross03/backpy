@@ -124,7 +124,7 @@ class FileBackupSpace(BackupSpace):
         if from_remote:
 
             archive_path = Path(
-                VariableLibrary().get_variable("paths.temporary_directory")
+                VariableLibrary.get_variable("paths.temporary_directory")
             )
             archive_path.mkdir(exist_ok=True, parents=True)
             archive_path /= backup.get_path().name

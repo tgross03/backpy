@@ -1,6 +1,6 @@
 from typing import Callable
 
-import click
+import rich_click as click
 
 from backpy import BackupSpace, BackupSpaceType, Remote
 from backpy.cli.colors import RESET, get_default_palette

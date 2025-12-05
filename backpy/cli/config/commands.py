@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.config.get_command import get_value
 from backpy.cli.config.list_command import list_variables

@@ -32,7 +32,7 @@ class Schedule:
         self._time_pattern: str = time_pattern
         self._description: str = description
         self._config: TOMLConfiguration = TOMLConfiguration(
-            path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
+            path=Path(VariableLibrary.get_variable("paths.schedule_directory"))
             / (str(self._uuid) + ".toml"),
             create_if_not_exists=True,
         )
@@ -84,7 +84,7 @@ class Schedule:
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "Schedule":
         config = TOMLConfiguration(
-            path=Path(VariableLibrary().get_variable("paths.schedule_directory"))
+            path=Path(VariableLibrary.get_variable("paths.schedule_directory"))
             / (unique_id + ".toml")
         )
         if not config.is_valid():
@@ -100,7 +100,7 @@ class Schedule:
     def load_by_backup_space(cls, backup_space: BackupSpace) -> list["Schedule"]:
         schedules = []
         for tomlf in Path(
-            VariableLibrary().get_variable("paths.schedule_directory")
+            VariableLibrary.get_variable("paths.schedule_directory")
         ).glob("*.toml"):
             try:
                 schedule = Schedule.load_by_uuid(unique_id=tomlf.stem)

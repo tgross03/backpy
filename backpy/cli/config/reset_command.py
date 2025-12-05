@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy import VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
@@ -38,7 +38,7 @@ def reset(force: bool) -> None:
 
     print(
         f"{palette.base}Regenerated variable configuration at "
-        f"{palette.sky}{VariableLibrary().get_path()}{palette.base}.{RESET}"
+        f"{palette.sky}{VariableLibrary.get_path()}{palette.base}.{RESET}"
     )
 
     return None

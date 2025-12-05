@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 
 from backpy.cli.space.file_system.create_command import create_file_system
 

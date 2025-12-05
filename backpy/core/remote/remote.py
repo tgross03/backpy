@@ -774,7 +774,7 @@ class Remote:
         return [
             Remote.load_by_uuid(tomlf.stem)
             for tomlf in Path(
-                VariableLibrary().get_variable("paths.remote_directory")
+                VariableLibrary.get_variable("paths.remote_directory")
             ).rglob("*.toml")
         ]
 
@@ -784,7 +784,7 @@ class Remote:
         unique_id = uuid.UUID(unique_id)
 
         config = TOMLConfiguration(
-            Path(VariableLibrary().get_variable("paths.remote_directory"))
+            Path(VariableLibrary.get_variable("paths.remote_directory"))
             / (str(unique_id) + ".toml"),
             create_if_not_exists=False,
         )
@@ -823,9 +823,9 @@ class Remote:
 
     @classmethod
     def load_by_name(cls, name: str) -> "Remote":
-        for tomlf in Path(
-            VariableLibrary().get_variable("paths.remote_directory")
-        ).rglob("*.toml"):
+        for tomlf in Path(VariableLibrary.get_variable("paths.remote_directory")).rglob(
+            "*.toml"
+        ):
             config = TOMLConfiguration(tomlf, create_if_not_exists=False)
 
             if not config.is_valid():
@@ -854,10 +854,10 @@ class Remote:
         ssh_key: str | None = None,
         use_system_keys: bool = False,
         connection_timeout: int | None = None,
-        root_dir: str = VariableLibrary().get_variable(
+        root_dir: str = VariableLibrary.get_variable(
             "backup.states.default_remote_root_dir"
         ),
-        sha256_cmd: str = VariableLibrary().get_variable(
+        sha256_cmd: str = VariableLibrary.get_variable(
             "backup.states.default_sha256_cmd"
         ),
         verbosity_level: int = 1,
@@ -911,7 +911,7 @@ class Remote:
         )
 
         cls._config = TOMLConfiguration(
-            Path(VariableLibrary().get_variable("paths.remote_directory"))
+            Path(VariableLibrary.get_variable("paths.remote_directory"))
             / (str(unique_id) + ".toml"),
             create_if_not_exists=True,
         )

@@ -1,4 +1,4 @@
-import click
+import rich_click as click
 from fuzzyfinder import fuzzyfinder
 from rich.console import Console
 from rich.tree import Tree
@@ -27,9 +27,9 @@ palette = get_default_palette()
 def list_variables(key: str | None, debug: bool) -> None:
     try:
         if key is None:
-            value = VariableLibrary().get_config().as_dict()
+            value = VariableLibrary.get_config().as_dict()
         else:
-            value = VariableLibrary().get_variable(key=key)
+            value = VariableLibrary.get_variable(key=key)
     except InvalidTOMLConfigurationError:
         return print_error_message(
             error=InvalidTOMLConfigurationError(
@@ -40,7 +40,7 @@ def list_variables(key: str | None, debug: bool) -> None:
         )
     except KeyError:
         matched = list(
-            fuzzyfinder(key, VariableLibrary().get_config().get_keys(), highlight=True)
+            fuzzyfinder(key, VariableLibrary.get_config().get_keys(), highlight=True)
         )
         return print_error_message(
             error=KeyError(

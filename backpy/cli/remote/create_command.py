@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import click
+import rich_click as click
 
 from backpy import Protocol, Remote, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
@@ -100,7 +100,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 
     root_dir = TextInput(
         message=f"{palette.base}> Enter the root directory of backpy on the remote:{RESET}",
-        default_value=VariableLibrary().get_variable(
+        default_value=VariableLibrary.get_variable(
             "backup.states.default_remote_root_dir"
         ),
     ).prompt()
@@ -108,9 +108,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     sha256_cmd = TextInput(
         message=f"{palette.base}> Enter the shell command to calculate a file's SHA-256 sum on "
         f"the remote server:{RESET}",
-        default_value=VariableLibrary().get_variable(
-            "backup.states.default_sha256_cmd"
-        ),
+        default_value=VariableLibrary.get_variable("backup.states.default_sha256_cmd"),
     ).prompt()
 
     remote = Remote.new(
@@ -188,14 +186,14 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 @click.option(
     "--root-dir",
     type=str,
-    default=VariableLibrary().get_variable("backup.states.default_remote_root_dir"),
+    default=VariableLibrary.get_variable("backup.states.default_remote_root_dir"),
     help="The backpy root directory on the remote server. If not set, the default value set in the "
     "variable configuration is used.",
 )
 @click.option(
     "--sha256-cmd",
     type=str,
-    default=VariableLibrary().get_variable("backup.states.default_sha256_cmd"),
+    default=VariableLibrary.get_variable("backup.states.default_sha256_cmd"),
     help="The shell command to calculate a file's SHA-256 sum on the remote server. "
     "If not set, the default value set in the variable configuration is used.",
 )

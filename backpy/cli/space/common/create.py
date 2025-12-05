@@ -1,6 +1,6 @@
 from typing import Callable
 
-import click
+import rich_click as click
 
 from backpy import BackupSpace, BackupSpaceType, Remote, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
@@ -42,7 +42,7 @@ def create_backup_space_interactive(
     compression_algorithm = TextInput(
         message="> Enter the compression algorithm to be used to compress the backed up files:",
         suggest_matches=True,
-        default_value=VariableLibrary().get_variable(
+        default_value=VariableLibrary.get_variable(
             "backup.states.default_compression_algorithm"
         ),
         suggestible_values=[method.name for method in compression._compression_methods],
@@ -54,7 +54,7 @@ def create_backup_space_interactive(
         compression_level = IntegerInput(
             message="> Enter the compression level to which the backed up files should "
             "be compressed:",
-            default_value=VariableLibrary().get_variable(
+            default_value=VariableLibrary.get_variable(
                 "backup.states.default_compression_level"
             ),
             min_value=0,
@@ -62,7 +62,7 @@ def create_backup_space_interactive(
         ).prompt()
     else:
         compression_level = (
-            VariableLibrary().get_variable("backup.states.default_compression_level"),
+            VariableLibrary.get_variable("backup.states.default_compression_level"),
         )
 
     if space_type.use_inclusion:
@@ -187,7 +187,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
             type=click.Choice(
                 [method.name for method in compression._compression_methods]
             ),
-            default=VariableLibrary().get_variable(
+            default=VariableLibrary.get_variable(
                 "backup.states.default_compression_algorithm"
             ),
             help="The compression algorithm to be used to compress the backed up files.",
@@ -195,7 +195,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
         func = click.option(
             "--compression-level",
             type=click.IntRange(0, 9),
-            default=VariableLibrary().get_variable(
+            default=VariableLibrary.get_variable(
                 "backup.states.default_compression_level"
             ),
             help="The compression level to which the backed up files should be compressed. "
