@@ -6,6 +6,7 @@ from fuzzyfinder import fuzzyfinder
 
 from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
+from backpy.core.backup import Schedule
 from backpy.core.remote import Remote
 
 palette = get_default_palette()
@@ -251,6 +252,7 @@ class BackupSpaceInput(TextInput):
     def __init__(
         self,
         validate: Callable[[str], bool] = _validate_always,
+        allow_none: bool = False,
         suggest_matches: bool = False,
         case_sensitive: bool = True,
         confirm_suggestion: bool = True,
@@ -285,6 +287,7 @@ class BackupSpaceInput(TextInput):
             validate=validate,
             suggest_matches=suggest_matches,
             suggestible_values=space_names_uuids,
+            allow_none=allow_none,
             case_sensitive=case_sensitive,
             confirm_suggestion=confirm_suggestion,
             highlight_suggestion=highlight_suggestion,
@@ -400,7 +403,8 @@ class RemoteInput(TextInput):
         super().__init__(
             message=f"{palette.base}> Enter the {palette.lavender}name{palette.base} "
             f"or {palette.lavender}UUID{palette.base} of the {EFFECTS.underline.on}"
-            f"Remote{RESET}{palette.base} to which the backups should be saved: ",
+            f"Remote{RESET}{palette.base} to which the backups should be saved"
+            f"{' (may be empty)' if allow_none else ''}: ",
             invalid_error_message=f"{palette.maroon}There is no Remote with "
             f"{palette.red}name{palette.maroon} "
             f"or {palette.red}UUID {EFFECTS.reverse.on}{palette.peach}"
@@ -429,6 +433,50 @@ class RemoteInput(TextInput):
             remote = Remote.load_by_name(result)
 
         return remote
+
+
+class ScheduleInput(TextInput):
+    def __init__(
+        self,
+        validate: Callable[[str], bool] = _validate_always,
+        default_value: str | None = None,
+        allow_none: bool = False,
+        only_active: bool = False,
+        suggest_matches: bool = False,
+        case_sensitive: bool = True,
+        confirm_suggestion: bool = True,
+        highlight_suggestion: bool = True,
+    ):
+
+        schedules = Schedule.get_schedules(active=only_active)
+        schedule_uuids = [str(schedule.get_uuid()) for schedule in schedules]
+
+        super().__init__(
+            message=f"{palette.base}> Enter the {palette.lavender}UUID{palette.base} of "
+            f"the {EFFECTS.underline.on}"
+            f"Schedule{RESET}{palette.base}{' (may be empty)' if allow_none else ''}: ",
+            invalid_error_message=f"{palette.maroon}There is no Schedule with "
+            f"the {palette.red}UUID {EFFECTS.reverse.on}{palette.peach}"
+            "{value}"
+            f"{EFFECTS.reverse.off}"
+            f"{palette.maroon}. Please try again!{RESET}",
+            validate=validate,
+            default_value=default_value,
+            allow_none=allow_none,
+            suggest_matches=suggest_matches,
+            suggestible_values=schedule_uuids,
+            case_sensitive=case_sensitive,
+            confirm_suggestion=confirm_suggestion,
+            highlight_suggestion=highlight_suggestion,
+        )
+
+    def prompt(self) -> Schedule | None:
+        result = super().prompt()
+
+        if result is None and self.allow_none:
+            return None
+
+        return Schedule.load_by_uuid(result)
 
 
 class EnumerationInput(TextInput):

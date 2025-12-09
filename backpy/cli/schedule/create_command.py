@@ -1,3 +1,4 @@
+import crontab
 import rich_click as click
 from crontab import CronSlices
 
@@ -19,15 +20,18 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 
     space = BackupSpaceInput(suggest_matches=True).prompt()
 
-    def _validate_time(value: str):
+    def _validate_time(value: str) -> bool:
         if value is None:
             return False
-        return CronSlices.is_valid(value.split(" "))
+        return (
+            CronSlices.is_valid(value.split(" "))
+            or value.removeprefix("@") in crontab.SPECIALS
+        )
 
     time_pattern = TextInput(
         message=f"{palette.base}> Enter a {palette.lavender}time pattern{palette.base} following "
         f"which the schedule should be executed. The provided pattern has to be a valid "
-        f"UNIX cron format pattern:{RESET}",
+        f"UNIX cron format pattern (e.g. '* */10 * * *' or '@hourly'):{RESET}",
         validate=_validate_time,
         invalid_error_message=f"{palette.maroon}The given value is not a valid UNIX cron "
         f"time pattern. Please try again.{RESET}",
@@ -36,7 +40,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     def _validate_location(value: str):
         return value in ["all", "local", "remote"]
 
-    if space.get_remote():
+    if space.get_remote() is not None:
         location = TextInput(
             message=f"{palette.base}> Enter at which {palette.lavender}locations{palette.base} "
             f"the backup should be saved (options: 'all', 'remote', 'local'):{RESET}",
@@ -83,27 +87,43 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
         default_value=True,
     ).prompt()
 
-    try:
-        Schedule.create_from_backup_space(
-            backup_space=space,
-            time_pattern=time_pattern,
-            description=description,
-            exclude=exclude,
-            include=include,
-            location=location,
-            activate=activate,
-            verbosity_level=verbosity_level,
+    schedule = Schedule.create_from_backup_space(
+        backup_space=space,
+        time_pattern=time_pattern,
+        description=description,
+        exclude=exclude,
+        include=include,
+        location=location,
+        verbosity_level=verbosity_level,
+    )
+
+    if activate:
+        try:
+            schedule.activate()
+
+            if verbosity_level > 1:
+                print(f"Activated schedule '{schedule.get_uuid()}'.")
+
+        except Exception as e:
+            schedule.delete()
+            print(
+                f"Failed to activate schedule '{schedule.get_uuid()}'. Deleting schedule."
+            )
+            return print_error_message(error=e, debug=debug)
+
+    if verbosity_level >= 1:
+        activation_status = "active" if activate else "inactive"
+        print(
+            f"Created {activation_status} schedule {schedule.get_uuid()} for backup space "
+            f"{space.get_uuid()}."
         )
-    except Exception as e:
-        print_error_message(
-            error=e,
-            debug=debug,
-        )
+
+    return None
 
 
 @click.command(
     "create",
-    help=f"Creates a schedule for a {palette.sky}BACKUP_SPACE{RESET} given a specific UNIX cron"
+    help=f"Creates a schedule for a {palette.sky}BACKUP_SPACE{RESET} given a specific UNIX cron "
     f"{palette.sky}TIME_PATTERN{RESET}.",
 )
 @click.argument("backup_space", type=str, required=False)
@@ -160,7 +180,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     "mode to print full error traces in case of a problem.",
 )
 @click.option(
-    "--interactive", "-i", is_flag=True, help="Create the remote in interactive mode."
+    "--interactive", "-i", is_flag=True, help="Create the schedule in interactive mode."
 )
 def create(
     backup_space: str,
@@ -194,7 +214,10 @@ def create(
 
     space = space.get_as_child_class()
 
-    if not CronSlices.is_valid(time_pattern.split(" ")):
+    if (
+        not CronSlices.is_valid(time_pattern.split(" "))
+        and not time_pattern.removeprefix("@") in crontab.SPECIALS
+    ):
         return print_error_message(
             ValueError("The given value is not a valid UNIX cron time pattern."),
             debug=debug,
@@ -221,9 +244,21 @@ def create(
         exclude=exclude,
         location=location,
         description=description,
-        activate=activate,
         verbosity_level=verbose,
     )
+
+    if activate:
+        try:
+            schedule.activate()
+
+            if verbose > 1:
+                print(f"Activated schedule '{schedule.get_uuid()}'.")
+        except Exception as e:
+            schedule.delete()
+            print(
+                f"Failed to activate schedule '{schedule.get_uuid()}'. Deleting schedule."
+            )
+            return print_error_message(error=e, debug=debug)
 
     if verbose >= 1:
         activation_status = "active" if activate else "inactive"

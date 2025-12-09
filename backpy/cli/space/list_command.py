@@ -14,7 +14,7 @@ palette = get_default_palette()
     "--depth",
     type=int,
     default=1,
-    help="The amount of details to show for each remote. Default is 1.",
+    help="The amount of details to show for each backup space. Default is 1.",
 )
 @click.option(
     "--debug",

@@ -15,7 +15,7 @@ from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidSchedul
 palette = get_default_palette()
 
 
-def delete_interactive(force: bool, verbosity_level: int, debug: bool):
+def activate_interactive(force: bool, verbosity_level: int, debug: bool):
 
     schedule = ScheduleInput(suggest_matches=True, allow_none=True).prompt()
 
@@ -43,7 +43,7 @@ def delete_interactive(force: bool, verbosity_level: int, debug: bool):
             Console().print(schedule.get_info_table())
 
         confirm = ConfirmInput(
-            message=f"{palette.base}Are you sure you want to delete the "
+            message=f"{palette.base}Are you sure you want to activate the "
             f"{'schedule' if len(schedules) == 1 else 'schedules'} "
             f"{schedule_str}?{RESET}",
             default_value=False,
@@ -51,28 +51,28 @@ def delete_interactive(force: bool, verbosity_level: int, debug: bool):
 
         if confirm:
             for schedule in schedules:
-                schedule.delete(verbosity_level=verbosity_level)
+                schedule.activate()
                 print(
-                    f"Deleted schedule{'s' if len(schedules) > 1 else ''} {schedule_str}."
+                    f"Activated schedule{'s' if len(schedules) > 1 else ''} {schedule_str}."
                 )
 
         else:
             print(
-                f"{palette.red}Canceled removal of schedules "
+                f"{palette.red}Canceled activation of schedules "
                 f"{palette.maroon}{schedule_str}{palette.red}.{RESET}"
             )
     else:
-        schedule.delete(verbosity_level=verbosity_level)
-        print(f"Deleted schedules {schedule_str}.")
+        schedule.activate()
+        print(f"Activated schedules {schedule_str}.")
 
     return None
 
 
 @click.command(
-    "delete",
-    help=f"Delete a {palette.sky}'SCHEDULE'{RESET} identified by its UUID. "
+    "activate",
+    help=f"Activate a {palette.sky}'SCHEDULE'{RESET} identified by its UUID. "
     f"Alternatively every schedule for a specific {palette.sky}backup space{RESET} "
-    "can be deleted by not providing a schedule and instead providing the name or UUID of a "
+    "can be activated by not providing a schedule and instead providing the name or UUID of a "
     f"backup space to the {palette.sky}--backup-space{RESET} option.",
 )
 @click.argument("schedule", type=str, default=None, required=False)
@@ -81,7 +81,7 @@ def delete_interactive(force: bool, verbosity_level: int, debug: bool):
     "--force",
     "-f",
     is_flag=True,
-    help="Force the deletion of the schedule. This will skip the confirmation step.",
+    help="Force the activation of the schedule. This will skip the confirmation step.",
 )
 @click.option(
     "--verbose",
@@ -100,9 +100,9 @@ def delete_interactive(force: bool, verbosity_level: int, debug: bool):
     "--interactive",
     "-i",
     is_flag=True,
-    help="Delete the schedule(s) in interactive mode.",
+    help="Activate the schedule(s) in interactive mode.",
 )
-def delete(
+def activate(
     schedule: str | None,
     backup_space: str | None,
     force: bool,
@@ -113,7 +113,7 @@ def delete(
     verbose += 1
 
     if interactive:
-        return delete_interactive(force=force, verbosity_level=verbose, debug=debug)
+        return activate_interactive(force=force, verbosity_level=verbose, debug=debug)
 
     if schedule is None and backup_space is None:
         return print_error_message(
@@ -171,7 +171,7 @@ def delete(
             Console().print(schedule.get_info_table())
 
         confirm = ConfirmInput(
-            message=f"{palette.base}Are you sure you want to delete the "
+            message=f"{palette.base}Are you sure you want to activate the "
             f"{'schedule' if len(schedules) == 1 else 'schedules'} "
             f"{schedule_str}?{RESET}",
             default_value=False,
@@ -179,18 +179,18 @@ def delete(
 
         if confirm:
             for schedule in schedules:
-                schedule.delete(verbosity_level=verbose)
+                schedule.activate()
                 print(
-                    f"Deleted schedule{'s' if len(schedules) > 1 else ''} {schedule_str}."
+                    f"Activated schedule{'s' if len(schedules) > 1 else ''} {schedule_str}."
                 )
 
         else:
             print(
-                f"{palette.red}Canceled removal of schedules "
+                f"{palette.red}Canceled activation of schedules "
                 f"{palette.maroon}{schedule_str}{palette.red}.{RESET}"
             )
     else:
-        schedule.delete(verbosity_level=verbose)
-        print(f"Deleted schedules {schedule_str}.")
+        schedule.activate()
+        print(f"Activated schedules {schedule_str}.")
 
     return None

@@ -402,7 +402,7 @@ class Backup:
         if verbosity_level >= 2:
             print(f"SHA256 Hash: {cls.get_hash()}")
 
-        if cls.has_remote_archive():
+        if cls.get_remote() is not None:
             with cls._remote(context_verbosity=verbosity_level):
                 cls._remote.upload(
                     source=moved_path,
@@ -416,7 +416,7 @@ class Backup:
                 )
 
         if not save_locally:
-            if cls.has_remote_archive():
+            if cls.get_remote() is not None:
                 moved_path.unlink()
                 if verbosity_level >= 2:
                     print(f"Removed local backup at {moved_path}.")

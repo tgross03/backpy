@@ -334,7 +334,6 @@ class Remote:
                     )
 
                     # in Remote.upload, scp case
-                    print(target)
                     dir_target = "/".join(target.split("/")[:-1])
                     if dir_target:
                         self.mkdir(
@@ -343,7 +342,6 @@ class Remote:
                             close_afterwards=False,
                             client=scp_client,
                         )
-                        print(dir_target)
 
                     scp_client.put(files=source, remote_path=target, recursive=True)
 
@@ -464,8 +462,6 @@ class Remote:
             self.connect(verbosity_level=verbosity_level)
 
         subdirs = target.split("/")
-
-        print("subdirs", subdirs)
 
         match self._protocol.name:
             case "sftp":

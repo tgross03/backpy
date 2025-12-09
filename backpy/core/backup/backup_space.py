@@ -15,6 +15,7 @@ from backpy.core.backup import compression
 from backpy.core.backup.scheduling import Schedule
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
+from backpy.core.utils import format_bytes
 from backpy.core.utils.exceptions import (
     InvalidBackupSpaceError,
     UnsupportedCompressionAlgorithmError,
@@ -53,6 +54,7 @@ class BackupSpace:
         )
         self._default_include: list[str] = default_include
         self._default_exclude: list[str] = default_exclude
+
         self._remote: Remote | None = remote
 
     def create_backup(
@@ -170,6 +172,8 @@ class BackupSpace:
             "Name": self._name,
             "UUID": self._uuid,
             "Type": self._type.full_name,
+            "Backups": len(self.get_backups()),
+            "Disk Usage": format_bytes(self.get_disk_usage()),
             "Remote": (
                 f"{self._remote.get_name()} " f"(UUID: {self._remote.get_uuid()})"
                 if self._remote is not None
@@ -383,6 +387,7 @@ class BackupSpace:
         return self._config.as_dict()
 
     def get_disk_usage(self) -> int:
-        return np.sum(
+        size = np.sum(
             [backup.get_file_size() for backup in self.get_backups(check_hash=False)]
         )
+        return np.max([0, size])
