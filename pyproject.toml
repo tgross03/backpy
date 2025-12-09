@@ -1,0 +1,71 @@
+# This file was adapted from:
+#   - pyvisgen (https://github.com/radionets-project/pyvisgen/blob/main/pyproject.toml)
+#     Originally licensed under MIT License. Copyright (c) 2021 radionets-project.
+
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backpy"
+dynamic = ["version"]
+description = "A Python based CLI tool for backing up data and databases."
+readme = "README.md"
+authors = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
+maintainers = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
+license = { text = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0" }
+classifiers = [
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Operating System :: Unix",
+    "Natural Language :: English",
+    "Topic :: System :: Archiving :: Backup",
+    "Development Status :: 4 - Beta",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "toml",
+    "rich",
+    "pandas",
+    "click",
+    "rich-click",
+    "click-params",
+    "fuzzyfinder",
+    "scp",
+    "paramiko",
+    "cryptography",
+    "mergedeep",
+    "python-crontab",
+    "catppuccin",
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "jupyterlab",
+    "pre-commit",
+]
+
+tests = [
+    "pytest >= 7.0",
+    "pytest-cov",
+]
+
+[project.scripts]
+backpy = "backpy.cli.cli:entry_point"
+
+[project.urls]
+Documentation = "https://github.com/tgross03/backpy"
+Repository = "https://github.com/tgross03/backpy"
+
+[tool.setuptools_scm]
+write_to = "backpy/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["."]

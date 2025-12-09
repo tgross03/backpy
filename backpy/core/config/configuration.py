@@ -1,0 +1,161 @@
+from pathlib import Path
+
+import toml
+
+from backpy.core.utils.exceptions import InvalidTOMLConfigurationError
+
+
+def _parse_key(key: str):
+    key_components = key.split(".")
+    return key_components
+
+
+class TOMLConfiguration:
+    def __init__(
+        self,
+        path: str | Path,
+        create_if_not_exists: bool = False,
+        none_if_unknown_key: bool = False,
+    ):
+        self._path: Path = Path(path) if isinstance(path, str) else path
+        self._none_if_unknown_key: bool = none_if_unknown_key
+
+        if self._path.suffix != ".toml":
+            raise InvalidTOMLConfigurationError(
+                "The given configuration file has to be a TOML file!"
+            )
+
+        if create_if_not_exists:
+            self.create()
+
+    def is_valid(self) -> bool:
+        return self._path.is_file() and self._path.suffix == ".toml"
+
+    def __getitem__(self, item: str):
+        if not self.is_valid():
+            raise InvalidTOMLConfigurationError(
+                "The given configuration file is not valid!"
+            )
+
+        keys = _parse_key(item)
+        content_dict = toml.load(self._path)
+
+        content = content_dict
+        for key in keys:
+            if isinstance(content, dict):
+                try:
+                    content = content[key]
+                except KeyError as error:
+                    if self._none_if_unknown_key:
+                        return None
+                    else:
+                        raise error
+            else:
+                raise KeyError(
+                    f"The key component '{key}' is set to a non-dict value and "
+                    "therefore there cannot be a child value!"
+                )
+
+        return content
+
+    def __setitem__(self, key: str, value: object):
+        if not self.is_valid():
+            raise InvalidTOMLConfigurationError(
+                "The variable configuration could not "
+                f"be found at location {str(self._path)}!"
+            )
+
+        keys = _parse_key(key)
+        content_dict = toml.load(self._path)
+
+        content = content_dict
+        for i in range(len(keys)):
+            key = keys[i]
+            if i < len(keys) - 1:
+
+                if key not in content:
+                    content[key] = dict()
+                    content = content[key]
+                else:
+                    if isinstance(content[key], dict):
+                        content = content[key]
+                    else:
+                        raise KeyError(
+                            f"The key component '{key}' is already "
+                            "set to a non-dict value!"
+                        )
+            else:
+                content[key] = value
+
+        with open(self._path, "w") as file:
+            toml.dump(o=content_dict, f=file)
+
+    def __contains__(self, item: str):
+        try:
+            value = self[item]
+
+            if value is None:
+                return False
+
+        except KeyError:
+            return False
+        return True
+
+    def create(self, create_parents: bool = True) -> None:
+        if create_parents:
+            self._path.parent.mkdir(exist_ok=True, parents=True)
+
+        self._path.touch(exist_ok=True)
+
+    def dump_dict(self, content: dict) -> None:
+        with open(self._path, "w") as file:
+            toml.dump(o=content, f=file)
+
+    def as_dict(self) -> dict:
+        return toml.load(self._path)
+
+    def prepend_comments(
+        self, comments: list[str] | str, linebreak: bool = True
+    ) -> None:
+        if isinstance(comments, str):
+            comments = [comments]
+
+        # Adapted from https://stackoverflow.com/a/5917395
+        with open(self._path, "r+") as file:
+            content = file.read()
+            file.seek(0, 0)
+            file.write(
+                "\n".join([("# " + comment) for comment in comments])
+                + "\n" * (2 if linebreak else 1)
+                + content
+            )
+
+    def get_keys(self, non_dict_only: bool = False):
+        def recursive_keys(dictionary: dict, parent: str | None = None) -> list[str]:
+            keys = []
+            for key, value in dictionary.items():
+                parent_key = f"{parent}.{key}" if parent is not None else key
+                if isinstance(value, dict):
+                    if not non_dict_only:
+                        keys.append(key)
+                    keys.extend(recursive_keys(dictionary=value, parent=parent_key))
+                else:
+                    keys.append(parent_key)
+            return keys
+
+        return recursive_keys(dictionary=self.as_dict())
+
+    def prepend_no_edit_warning(self):
+        self.prepend_comments(
+            [
+                "======================================"
+                "======================================",
+                "   WARNING! DO NOT EDIT THIS FILE MANUALLY! "
+                "THIS COULD BREAK YOUR BACKPY!",
+                "======================================"
+                "======================================",
+            ]
+        )
+
+    def get_path(self) -> Path:
+        return self._path
