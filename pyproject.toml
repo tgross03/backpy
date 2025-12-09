@@ -35,6 +35,7 @@ dependencies = [
     "pandas",
     "click",
     "rich-click",
+    "click-params",
     "fuzzyfinder",
     "scp",
     "paramiko",

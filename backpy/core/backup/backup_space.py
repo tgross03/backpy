@@ -15,7 +15,7 @@ from backpy.core.backup import compression
 from backpy.core.backup.scheduling import Schedule
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
-from backpy.core.utils import format_bytes
+from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import (
     InvalidBackupSpaceError,
     UnsupportedCompressionAlgorithmError,
@@ -38,6 +38,10 @@ class BackupSpace:
         default_include: list[str],
         default_exclude: list[str],
         remote: Remote | None,
+        max_backups: int = -1,
+        max_size: int = -1,
+        auto_deletion: bool = False,
+        auto_deletion_rule: str = "oldest",
     ):
         self._uuid: uuid.UUID = unique_id
         self._name: str = name
@@ -55,6 +59,16 @@ class BackupSpace:
         self._default_include: list[str] = default_include
         self._default_exclude: list[str] = default_exclude
 
+        self._max_backups: int = max_backups if max_backups is not None else -1
+        self._max_size: int = max_size if max_size is not None else -1
+
+        self._auto_deletion: bool = (
+            auto_deletion if auto_deletion is not None else False
+        )
+        self._auto_deletion_rule: str = (
+            auto_deletion_rule if auto_deletion_rule is not None else "oldest"
+        )
+
         self._remote: Remote | None = remote
 
     def create_backup(
@@ -62,6 +76,7 @@ class BackupSpace:
         comment: str = "",
         include: list[str] | None = None,
         exclude: list[str] | None = None,
+        lock: bool = False,
         location: str = "all",
         verbosity_level: int = 1,
     ) -> None:
@@ -78,7 +93,11 @@ class BackupSpace:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def get_backups(
-        self, sort_by: str | None = None, check_hash: bool = True
+        self,
+        sort_by: str | None = None,
+        check_hash: bool = True,
+        unlocked_only: bool = False,
+        verbosity_level: int = 1,
     ) -> list[Backup]:
 
         from backpy import Backup
@@ -91,11 +110,12 @@ class BackupSpace:
 
         for config in configurations:
             try:
-                backups.append(
-                    Backup.load_by_uuid(
-                        backup_space=self, unique_id=config.stem, check_hash=check_hash
-                    )
+                backup = Backup.load_by_uuid(
+                    backup_space=self, unique_id=config.stem, check_hash=check_hash
                 )
+                if backup.is_locked() and unlocked_only:
+                    continue
+                backups.append(backup)
             except Exception:
                 pass
 
@@ -106,7 +126,10 @@ class BackupSpace:
                         key=lambda b: b.get_created_at().get_datetime(), reverse=True
                     )
                 case "size":
-                    backups.sort(key=lambda b: b.get_file_size(), reverse=True)
+                    backups.sort(
+                        key=lambda b: b.get_file_size(verbosity_level=verbosity_level),
+                        reverse=True,
+                    )
 
         return backups
 
@@ -123,13 +146,23 @@ class BackupSpace:
                 "compression_level": self._compression_level,
                 "default_include": self._default_include,
                 "default_exclude": self._default_exclude,
-            }
+            },
+            "limits": {
+                "max_backups": self._max_backups,
+                "max_size": self._max_size,
+                "auto_deletion": self._auto_deletion,
+                "auto_deletion_rule": self._auto_deletion_rule,
+            },
         }
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def clear(self, verbosity_level: int = 1):
-        with self._remote(context_verbosity=verbosity_level):
+        if self._remote is not None:
+            with self._remote(context_verbosity=verbosity_level):
+                for backup in self.get_backups(check_hash=False):
+                    backup.delete(verbosity_level=verbosity_level)
+        else:
             for backup in self.get_backups(check_hash=False):
                 backup.delete(verbosity_level=verbosity_level)
 
@@ -156,24 +189,67 @@ class BackupSpace:
                     )
                 except FileNotFoundError:
                     pass
+
+            if verbosity_level > 1:
+                print(
+                    f"Removing remote backup directory from remote {self._remote.get_name()} "
+                    f"(UUID: {self._remote.get_uuid()}) at {self.get_remote_path()}."
+                )
+
+        if verbosity_level >= 1:
+            print(f"Deleted backup space (UUID: {self._uuid})")
+
+    def perform_auto_deletion(self, verbosity_level: int = 1):
+
         if verbosity_level > 1:
             print(
-                f"Removing remote backup directory from remote {self._remote.get_name()} "
-                f"(UUID: {self._remote.get_uuid()}) at {self.get_remote_path()}."
+                f"Performing automatic deletion of '{self._auto_deletion_rule}' backup."
             )
 
-    def get_info_table(self) -> Table:
+        while len(self.get_backups()) > 0 and (
+            self.is_backup_limit_reached()
+            or self.is_disk_limit_reached(verbosity_level=verbosity_level)
+        ):
+            match self._auto_deletion_rule:
+                case "oldest":
+                    backup = self.get_backups(sort_by="date", check_hash=False)[-1]
+                case "newest":
+                    backup = self.get_backups(sort_by="date", check_hash=False)[0]
+                case "largest":
+                    backup = self.get_backups(sort_by="size", check_hash=False)[0]
+                case "smallest":
+                    backup = self.get_backups(sort_by="size", check_hash=False)[-1]
+            backup.delete(verbosity_level=verbosity_level)
+
+    def get_info_table(self, verbosity_level: int = 1) -> Table:
         raise NotImplementedError("This method is abstract and has to be overridden!")
 
     def _get_info_table(
-        self, additional_info_idx: list[int], additional_info: dict
+        self,
+        additional_info_idx: list[int],
+        additional_info: dict,
+        verbosity_level: int = 1,
     ) -> Table:
         info = {
             "Name": self._name,
             "UUID": self._uuid,
             "Type": self._type.full_name,
-            "Backups": len(self.get_backups()),
-            "Disk Usage": format_bytes(self.get_disk_usage()),
+            "Backups": f"{len(self.get_backups())} / "
+            f"{'∞' if self._max_backups == -1 else self._max_backups}",
+        }
+
+        if self._remote is not None:
+            info = info | {
+                "Disk Usage": f"{bytes2str(self.get_disk_usage(verbosity_level=verbosity_level))} "
+                f"/ {bytes2str(self._max_size)}"
+            }
+        else:
+            info = info | {
+                "Disk Usage": f"{bytes2str(self.get_disk_usage(verbosity_level=verbosity_level))} "
+                f"/ {bytes2str(self._max_size)}"
+            }
+
+        info = info | {
             "Remote": (
                 f"{self._remote.get_name()} " f"(UUID: {self._remote.get_uuid()})"
                 if self._remote is not None
@@ -183,7 +259,14 @@ class BackupSpace:
             "Compression Level": self._compression_level,
             "Include": self._default_include,
             "Exclude": self._default_exclude,
+            "Automatic Deletion active?": self._auto_deletion,
         }
+
+        if self._auto_deletion:
+            info = info | {
+                "Automatic Deletion rule": self._auto_deletion_rule,
+            }
+
         keys, values = list(info.keys()), list(info.values())
         additional_keys, additional_values = (
             list(additional_info.keys()),
@@ -244,7 +327,7 @@ class BackupSpace:
                 f"There is no BackupSpace present with the UUID '{unique_id}'."
             )
 
-        config = TOMLConfiguration(path=path / "config.toml")
+        config = TOMLConfiguration(path=path / "config.toml", none_if_unknown_key=True)
 
         if not config.is_valid():
             raise InvalidBackupSpaceError(
@@ -268,6 +351,10 @@ class BackupSpace:
             compression_level=config["general.compression_level"],
             default_include=config["general.default_include"],
             default_exclude=config["general.default_exclude"],
+            max_backups=config["limits.max_backups"],
+            max_size=config["limits.max_size"],
+            auto_deletion=config["limits.auto_deletion"],
+            auto_deletion_rule=config["limits.auto_deletion_rule"],
             remote=remote,
         )
         return cls
@@ -307,6 +394,10 @@ class BackupSpace:
         ),
         default_include: list[str] | None = None,
         default_exclude: list[str] | None = None,
+        max_backups: int = -1,
+        max_size: int = -1,
+        auto_deletion: bool = False,
+        auto_deletion_rule: str = False,
         remote: Remote = None,
         verbosity_level: int = 1,
     ) -> "BackupSpace":
@@ -325,6 +416,10 @@ class BackupSpace:
             compression_level=compression_level,
             default_include=default_include if default_include is not None else [],
             default_exclude=default_exclude if default_exclude is not None else [],
+            max_backups=max_backups,
+            max_size=max_size,
+            auto_deletion=auto_deletion,
+            auto_deletion_rule=auto_deletion_rule,
             remote=remote,
         )
         cls._backup_dir.mkdir(exist_ok=True, parents=True)
@@ -380,14 +475,51 @@ class BackupSpace:
     def get_default_exclude(self) -> list[str]:
         return self._default_exclude
 
+    def is_backup_limit_reached(self, post_creation: bool = False) -> bool:
+        if self._max_backups == -1:
+            return False
+
+        offset = 0 if not post_creation else 1
+        return len(self.get_backups()) - offset >= self._max_backups
+
+    def is_disk_limit_reached(self, verbosity_level: int = 1) -> bool:
+        if self._max_size == -1:
+            return False
+
+        return self.get_disk_usage(verbosity_level=verbosity_level) >= self._max_size
+
+    def get_max_backups(self) -> int:
+        return self._max_backups
+
+    def get_max_size(self) -> int:
+        return self._max_size
+
+    def is_auto_deletion_active(self) -> bool:
+        return self._auto_deletion
+
+    def get_auto_deletion_rule(self) -> str:
+        return self._auto_deletion_rule
+
     def get_backup_dir(self) -> Path:
         return self._backup_dir
 
     def get_config(self) -> dict:
         return self._config.as_dict()
 
-    def get_disk_usage(self) -> int:
-        size = np.sum(
-            [backup.get_file_size() for backup in self.get_backups(check_hash=False)]
-        )
+    def get_disk_usage(self, verbosity_level: int = 1) -> int:
+        if self._remote is not None:
+            with self._remote(context_verbosity=verbosity_level):
+                size = np.sum(
+                    [
+                        backup.get_file_size(verbosity_level=verbosity_level)
+                        for backup in self.get_backups(check_hash=False)
+                    ]
+                )
+        else:
+            size = np.sum(
+                [
+                    backup.get_file_size(verbosity_level=verbosity_level)
+                    for backup in self.get_backups(check_hash=False)
+                ]
+            )
         return np.max([0, size])

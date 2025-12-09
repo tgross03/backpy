@@ -8,6 +8,7 @@ from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.core.backup import Schedule
 from backpy.core.remote import Remote
+from backpy.core.utils.utils import str2bytes
 
 palette = get_default_palette()
 
@@ -33,6 +34,18 @@ def _validate_file_path(value: str) -> bool:
 
 def _validate_directory_path(value: str) -> bool:
     return Path(value).expanduser().is_dir(follow_symlinks=True)
+
+
+def _validate_memory(value: str) -> bool:
+    try:
+        str2bytes(value)
+        return True
+    except ValueError:
+        try:
+            int(value)
+            return True
+        except Exception:
+            return False
 
 
 def _validate_integer(value: str) -> bool:
@@ -681,3 +694,47 @@ class FloatInput(TextInput):
             return None
 
         return float(prompt)
+
+
+class MemorySizeInput(TextInput):
+    def __init__(
+        self,
+        message: str,
+        default_value: int | str | None = None,
+        allow_none: bool = False,
+        validate: Callable[[str], bool] = _validate_memory,
+        invalid_error_message: str | None = None,
+    ):
+
+        super().__init__(
+            message=message,
+            default_value=str(default_value) if default_value else None,
+            allow_none=allow_none,
+            validate=validate,
+            suggest_matches=False,
+            case_sensitive=False,
+            suggestible_values=[],
+            confirm_suggestion=False,
+            highlight_suggestion=False,
+            invalid_error_message=(
+                invalid_error_message
+                if invalid_error_message
+                else f"{palette.maroon}Invalid memory size input. "
+                f"Enter an integer for a size in bytes or a string like '1 kB'! "
+                f"Please try again.{RESET}"
+            ),
+        )
+
+    def prompt(self) -> int | None:
+
+        prompt = super().prompt()
+
+        if prompt is None and self.allow_none:
+            return None
+
+        try:
+            value = int(prompt)
+        except Exception:
+            value = str2bytes(prompt)
+
+        return value

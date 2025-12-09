@@ -16,7 +16,7 @@ from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration
 from backpy.core.remote import Remote
-from backpy.core.utils import TimeObject, calculate_sha256sum, format_bytes
+from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
@@ -37,6 +37,7 @@ class Backup:
         remote: Remote | None,
         exclude: list[str] | None = None,
         include: list[str] | None = None,
+        locked: bool = False,
     ):
         if exclude is None:
             exclude = []
@@ -55,6 +56,7 @@ class Backup:
         )
         self._exclude: list[str] = exclude
         self._include: list[str] = include
+        self._locked: bool = locked
 
     def calculate_hash(self) -> str:
         return calculate_sha256sum(self._path)
@@ -133,7 +135,15 @@ class Backup:
                 "seconds."
             )
 
-    def update_config(self):
+    def lock(self, verbosity_level: int = 1):
+        self._locked = True
+        self.update_config(verbosity_level=verbosity_level)
+
+    def unlock(self, verbosity_level: int = 1):
+        self._locked = False
+        self.update_config(verbosity_level=verbosity_level)
+
+    def update_config(self, verbosity_level: int = 1):
         current_content = self._config.as_dict()
 
         content = {
@@ -145,9 +155,20 @@ class Backup:
             "remote": str(self._remote.get_uuid()) if self._remote else "",
             "exclude": self._exclude,
             "include": self._include,
+            "locked": self._locked,
         }
 
         self._config.dump_dict(dict(merge({}, current_content, content)))
+
+        if self.has_remote_archive():
+            with self._remote():
+                self._remote.remove(
+                    target=self.get_remote_config_path(),
+                    verbosity_level=verbosity_level,
+                )
+                self._remote.upload(
+                    source=self._config.get_path(), target=self.get_remote_config_path()
+                )
 
     def restore(
         self, incremental: bool, source: str, force: bool, verbosity_level: int = 1
@@ -182,6 +203,10 @@ class Backup:
             f"{palette.base}{self._backup_space.get_name()} "
             f"(UUID: {self._backup_space.get_uuid()})",
         )
+        table.add_row(
+            f"{palette.sky}Locked",
+            f"{palette.red if self._locked else palette.green}{self._locked}",
+        )
         table.add_row(f"{palette.sky}SHA256 Hash", f"{palette.base}{self._hash}")
         if check_hash:
             table.add_section()
@@ -209,7 +234,7 @@ class Backup:
         )
         table.add_row(
             f"{palette.sky}File size",
-            f"{palette.base}{format_bytes(self.get_file_size())}",
+            f"{palette.base}{bytes2str(self.get_file_size(verbosity_level=verbosity_level))}",
         )
         table.add_row(
             f"{palette.sky}Created At",
@@ -300,6 +325,7 @@ class Backup:
             ),
             exclude=config["exclude"],
             include=config["include"],
+            locked=config["locked"] if config["locked"] is not None else False,
         )
 
         if check_hash:
@@ -338,6 +364,7 @@ class Backup:
         comment: str = "",
         include: list[str] | None = None,
         exclude: list[str] | None = None,
+        lock: bool = False,
         location: str = "all",
         verbosity_level: int = 1,
     ):
@@ -386,11 +413,35 @@ class Backup:
             remote=backup_space.get_remote() if save_remotely else None,
             exclude=exclude,
             include=include,
+            locked=lock,
         )
 
         cls._config.create()
         cls.update_config()
         cls._config.prepend_no_edit_warning()
+
+        if cls._backup_space.is_backup_limit_reached(post_creation=True):
+            if cls._backup_space.is_auto_deletion_active():
+                cls._backup_space.perform_auto_deletion(verbosity_level=verbosity_level)
+            else:
+                moved_path.unlink(missing_ok=True)
+                cls._config.get_path().unlink(missing_ok=True)
+                raise MemoryError(
+                    f"The backup space has reached its maximum number of backups: "
+                    f"{len(cls._backup_space.get_backups())} / "
+                    f"{cls._backup_space.get_max_backups()}."
+                )
+
+        if cls._backup_space.is_disk_limit_reached(verbosity_level=verbosity_level):
+            error_msg = (
+                f"The backup space has reached its maximum disk usage: "
+                f"{bytes2str(cls._backup_space.get_disk_usage(verbosity_level=verbosity_level))} / "
+                f"{bytes2str(cls._backup_space.get_max_size())}. "
+                f"Delete a backup or raise the limit."
+            )
+            moved_path.unlink(missing_ok=True)
+            cls._config.get_path().unlink(missing_ok=True)
+            raise MemoryError(error_msg)
 
         if verbosity_level >= 1:
             print(
@@ -474,12 +525,15 @@ class Backup:
     def get_config(self) -> dict:
         return self._config.as_dict()
 
-    def get_file_size(self) -> int:
+    def get_file_size(self, verbosity_level: int = 1) -> int:
         if self.has_local_archive():
             return int(self._path.stat().st_size)
         elif self.has_remote_archive():
             return int(
-                self._remote.get_file_size(target=self.get_remote_archive_path())
+                self._remote.get_file_size(
+                    target=self.get_remote_archive_path(),
+                    verbosity_level=verbosity_level,
+                )
             )
         else:
             raise FileNotFoundError("This backup does not have a valid archive!")
@@ -489,6 +543,9 @@ class Backup:
 
     def get_include(self) -> list[str]:
         return self._include
+
+    def is_locked(self) -> bool:
+        return self._locked
 
     def is_full_backup(self) -> bool:
         return (

@@ -5,7 +5,7 @@ from rich.tree import Tree
 from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import print_error_message
-from backpy.core.utils import format_bytes
+from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()
@@ -82,48 +82,65 @@ def list_backups(
     except Exception as e:
         return print_error_message(error=e, debug=debug)
 
-    for backup in backups:
-        backup_branch = tree.add(
-            f"{palette.sky}{backup.get_uuid()}{RESET}",
-        )
-
-        if check_hash:
-            hash_branch = backup_branch.add(f"{palette.lavender}Hash Check{RESET}")
-            if backup.has_local_archive():
-                local_check = (
-                    f"{palette.green}passed{RESET}"
-                    if backup.check_hash(remote=False, verbosity_level=verbose)
-                    else "failed"
-                )
-                hash_branch.add(
-                    f"{palette.lavender}Local: {palette.maroon}" f"{local_check}{RESET}"
-                )
-            if backup.has_remote_archive() is not None:
-                remote_check = (
-                    f"{palette.green}passed{RESET}"
-                    if backup.check_hash(remote=True, verbosity_level=verbose)
-                    else "failed"
-                )
-                hash_branch.add(
-                    f"{palette.lavender}Remote: {palette.maroon}"
-                    f"{remote_check}{RESET}"
-                )
-
-        if depth > 1:
-            backup_branch.add(
-                f"{palette.lavender}Created at: "
-                f"{palette.maroon}{backup.get_created_at().printformat()}{RESET}"
-            )
-            backup_branch.add(
-                f"{palette.lavender}Size: "
-                f"{palette.maroon}{format_bytes(backup.get_file_size())}{RESET}"
+    def _generate_tree():
+        for backup in backups:
+            backup_branch = tree.add(
+                f"{palette.sky}{'🔒 ' if backup.is_locked() else '🔓 '}{backup.get_uuid()}{RESET}",
             )
 
-        if depth > 2:
-            comment = backup.get_comment() if backup.get_comment() != "" else "- none -"
-            backup_branch.add(
-                f"{palette.lavender}Comment: {palette.maroon}{comment}{RESET}"
-            )
+            if check_hash:
+                hash_branch = backup_branch.add(f"{palette.lavender}Hash Check{RESET}")
+                if backup.has_local_archive():
+                    local_check = (
+                        f"{palette.green}passed{RESET}"
+                        if backup.check_hash(remote=False, verbosity_level=verbose)
+                        else "failed"
+                    )
+                    hash_branch.add(
+                        f"{palette.lavender}Local: {palette.maroon}"
+                        f"{local_check}{RESET}"
+                    )
+                if backup.has_remote_archive() is not None:
+                    remote_check = (
+                        f"{palette.green}passed{RESET}"
+                        if backup.check_hash(remote=True, verbosity_level=verbose)
+                        else "failed"
+                    )
+                    hash_branch.add(
+                        f"{palette.lavender}Remote: {palette.maroon}"
+                        f"{remote_check}{RESET}"
+                    )
+
+            if depth > 1:
+                backup_branch.add(
+                    f"{palette.lavender}Created at: "
+                    f"{palette.maroon}{backup.get_created_at().printformat()}{RESET}"
+                )
+                backup_branch.add(
+                    f"{palette.lavender}Locked: "
+                    f"{palette.red if backup.is_locked() else palette.green}"
+                    f"{backup.is_locked()}{RESET}"
+                )
+                backup_branch.add(
+                    f"{palette.lavender}Size: "
+                    f"{palette.maroon}{bytes2str(backup.get_file_size(verbosity_level=verbose))}"
+                    f"{RESET}"
+                )
+
+            if depth > 2:
+                comment = (
+                    backup.get_comment() if backup.get_comment() != "" else "- none -"
+                )
+                backup_branch.add(
+                    f"{palette.lavender}Comment: {palette.maroon}{comment}{RESET}"
+                )
+
+    remote = space.get_remote()
+    if remote is not None:
+        with remote(context_verbosity=verbose, debug=debug):
+            _generate_tree()
+    else:
+        _generate_tree()
 
     Console().print(tree)
 

@@ -20,13 +20,21 @@ palette = get_default_palette()
     required=True,
 )
 @click.option(
+    "--verbose",
+    "-v",
+    count=True,
+    help="Sets the verbosity level of the output.",
+)
+@click.option(
     "--debug",
     "-d",
     is_flag=True,
     help="Activate the debug log for the command or interactive "
     "mode to print full error traces in case of a problem.",
 )
-def info(backup_space: str, debug: bool) -> None:
+def info(backup_space: str, verbose: int, debug: bool) -> None:
+
+    verbose += 1
 
     try:
         space = BackupSpace.load_by_uuid(backup_space)
@@ -43,6 +51,12 @@ def info(backup_space: str, debug: bool) -> None:
 
     space = space.get_as_child_class()
 
-    Console().print(space.get_info_table())
+    remote = space.get_remote()
+
+    if remote is not None:
+        with remote(context_verbosity=verbose, debug=debug):
+            Console().print(space.get_info_table(verbosity_level=verbose))
+    else:
+        Console().print(space.get_info_table(verbosity_level=verbose))
 
     return None

@@ -4,11 +4,15 @@ from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     BackupSpaceInput,
+    ConfirmInput,
     EnumerationInput,
     TextInput,
     print_error_message,
 )
-from backpy.core.utils.exceptions import InvalidBackupSpaceError
+from backpy.core.utils.exceptions import (
+    BackupLimitExceededError,
+    InvalidBackupSpaceError,
+)
 
 palette = get_default_palette()
 
@@ -16,6 +20,12 @@ palette = get_default_palette()
 def create_interactive(verbosity_level: int) -> None:
 
     space = BackupSpaceInput(suggest_matches=True).prompt()
+
+    if space.is_backup_limit_reached():
+        raise BackupLimitExceededError(
+            "The given Backup Space has reached its maximum number of backups. "
+            "Delete a backup or raise the limit."
+        )
 
     def _validate_location(value: str):
         return value in ["all", "local", "remote"]
@@ -62,11 +72,17 @@ def create_interactive(verbosity_level: int) -> None:
     else:
         exclude = []
 
+    lock = ConfirmInput(
+        message="Should the backup be locked? This means that it cannot be deleted automatically.",
+        default_value=False,
+    ).prompt()
+
     space.create_backup(
         location=location,
         comment=comment,
         include=include,
         exclude=exclude,
+        lock=lock,
         verbosity_level=verbosity_level,
     )
 
@@ -113,6 +129,12 @@ def create_interactive(verbosity_level: int) -> None:
     "Important: Symbols like ',' and '\"' have to be escaped!",
 )
 @click.option(
+    "--lock",
+    type=bool,
+    is_flag=True,
+    help="Whether to lock the backup, meaning it cannot be deleted automatically.",
+)
+@click.option(
     "--verbose",
     "-v",
     count=True,
@@ -134,6 +156,7 @@ def create(
     comment: str,
     include: list[str],
     exclude: list[str],
+    lock: bool,
     verbose: int,
     debug: bool,
     interactive: bool,
@@ -168,11 +191,23 @@ def create(
 
     space = space.get_as_child_class()
 
+    if space.is_backup_limit_reached():
+        if space.is_auto_deletion_active():
+            space.perform_auto_deletion(verbosity_level=verbose)
+        else:
+            return print_error_message(
+                error=BackupLimitExceededError(
+                    "The given Backup Space has reached its maximum number of backups. "
+                    "Delete a backup or raise the limit."
+                ),
+                debug=debug,
+            )
+
     if not space.get_type().use_exclusion and exclude is not None:
         print(
             f"{palette.yellow}The Backup Space type {space.get_type().name} "
             "does not use exclusions. "
-            f"The parameter has therefore no effect."
+            "The parameter has therefore no effect."
         )
 
     if not space.get_type().use_inclusion and include is not None:
@@ -182,12 +217,16 @@ def create(
             f"The parameter has therefore no effect."
         )
 
-    space.create_backup(
-        location=location,
-        comment=comment,
-        include=include,
-        exclude=exclude,
-        verbosity_level=verbose,
-    )
+    try:
+        space.create_backup(
+            location=location,
+            comment=comment,
+            include=include,
+            exclude=exclude,
+            lock=lock,
+            verbosity_level=verbose,
+        )
+    except Exception as e:
+        print_error_message(error=e, debug=debug)
 
     return None

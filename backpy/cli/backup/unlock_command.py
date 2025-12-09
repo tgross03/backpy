@@ -14,7 +14,8 @@ from backpy.core.utils.exceptions import InvalidBackupError, InvalidBackupSpaceE
 palette = get_default_palette()
 
 
-def info_interactive(verbosity_level: int, debug: bool):
+def unlock_interactive(force: bool, debug: bool, verbosity_level: int):
+
     space = BackupSpaceInput(suggest_matches=True).prompt()
 
     if len(space.get_backups(check_hash=False)) == 0:
@@ -23,35 +24,43 @@ def info_interactive(verbosity_level: int, debug: bool):
             debug=debug,
         )
 
-    backup = BackupInput(
-        backup_space=space,
-        suggest_matches=True,
-    ).prompt()
+    backup = BackupInput(backup_space=space, suggest_matches=True).prompt()
 
-    check_hash = ConfirmInput(
-        message=f"{palette.base}> Should the SHA256 hash be checked?{RESET}",
-        default_value=True,
-    ).prompt()
+    Console().print(backup.get_info_table(verbosity_level=verbosity_level))
+    if not force:
+        confirm = ConfirmInput(
+            message=f"{palette.base}Are you sure you want to unlock backup "
+            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
+            default_value=False,
+        ).prompt()
 
-    Console().print(
-        backup.get_info_table(check_hash=check_hash, verbosity_level=verbosity_level)
-    )
+        if confirm:
+            backup.unlock(verbosity_level=verbosity_level)
+        else:
+            print(
+                f"{palette.red}Canceled unlocking of backup "
+                f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
+            )
+    else:
+        backup.unlock(verbosity_level=verbosity_level)
 
     return None
 
 
 @click.command(
-    "info",
-    help=f"Get info about a {palette.sky}'BACKUP'{RESET} identified by its UUID or a "
+    "unlock",
+    help=f"Unlock a {palette.sky}'BACKUP'{RESET} identified by its UUID or a "
     f"keyword ('latest', 'oldest' or 'largest', 'smallest') "
-    f"from a {palette.sky}'BACKUP_SPACE'{RESET} identified by its UUID or name.",
+    f"from a {palette.sky}'BACKUP_SPACE'{RESET} identified by its UUID or name. "
+    f"An unlocked backup can be deleted automatically (e.g. if the backup space is full).",
 )
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
 @click.option(
-    "--check-hash",
+    "--force",
+    "-f",
     is_flag=True,
-    help="Whether to check the SHA256 hash of the backups.",
+    help="Force the locking of the backup. This will skip the confirmation step.",
 )
 @click.option(
     "--verbose",
@@ -67,24 +76,20 @@ def info_interactive(verbosity_level: int, debug: bool):
     "mode to print full error traces in case of a problem.",
 )
 @click.option(
-    "--interactive",
-    "-i",
-    is_flag=True,
-    help="Get information about a backup in interactive mode.",
+    "--interactive", "-i", is_flag=True, help="Lock the backup in interactive mode."
 )
-def info(
+def unlock(
     backup_space: str | None,
     backup: str | None,
-    check_hash: bool,
+    force: bool,
     verbose: int,
     debug: bool,
     interactive: bool,
 ) -> None:
-
     verbose += 1
 
     if interactive:
-        return info_interactive(verbosity_level=verbose, debug=debug)
+        return unlock_interactive(force=force, debug=debug, verbosity_level=verbose)
 
     if backup_space is None or backup is None:
         return print_error_message(
@@ -133,22 +138,33 @@ def info(
             except Exception:
                 return print_error_message(
                     InvalidBackupError(
-                        f"There is no Backup with that UUID in the Backup Space "
-                        f"'{space.get_name()}'"
+                        f"There is no Backup with that UUID in the Backup "
+                        f"Space '{space.get_name()}'"
                     ),
                     debug=debug,
                 )
 
-    remote = backup.get_remote()
+    if not backup.is_locked():
+        return print_error_message(
+            error=ValueError("This backup is not locked!"), debug=debug
+        )
 
-    if remote is not None:
-        with remote(context_verbosity=verbose, debug=debug):
-            Console().print(
-                backup.get_info_table(check_hash=check_hash, verbosity_level=verbose)
+    Console().print(backup.get_info_table(verbosity_level=verbose))
+    if not force:
+        confirm = ConfirmInput(
+            message=f"{palette.base}Are you sure you want to lock backup "
+            f"{palette.maroon}{str(backup.get_uuid())}{palette.base}?{RESET}",
+            default_value=False,
+        ).prompt()
+
+        if confirm:
+            backup.unlock(verbosity_level=verbose)
+        else:
+            print(
+                f"{palette.red}Canceled unlocking of backup "
+                f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        Console().print(
-            backup.get_info_table(check_hash=check_hash, verbosity_level=verbose)
-        )
+        backup.unlock(verbosity_level=verbose)
 
     return None

@@ -1,13 +1,16 @@
 from typing import Callable
 
 import rich_click as click
+from click_params import FirstOf
 
 from backpy import BackupSpace, BackupSpaceType, Remote
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import ConfirmInput, print_error_message
 from backpy.core.backup import compression
 from backpy.core.backup.compression import CompressionAlgorithm
+from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidRemoteError
+from backpy.core.utils.utils import str2bytes
 
 palette = get_default_palette()
 
@@ -18,6 +21,10 @@ def edit_backup_space(
     compression_level: int | None,
     default_include: list[str] | None,
     default_exclude: list[str] | None,
+    max_backups: int | None,
+    max_size: str | int | None,
+    auto_delete: bool | None,
+    auto_delete_rule: str | None,
     remote: str | None,
     force: bool,
     verbose: int,
@@ -63,6 +70,42 @@ def edit_backup_space(
         if isinstance(default_exclude, str):
             default_exclude = [default_exclude]
         space._default_exclude = default_exclude
+
+    if max_backups is not None:
+        num_backups = len(space.get_backups())
+
+        if num_backups > max_backups:
+            return print_error_message(
+                error=ValueError(
+                    f"The given maximum amount of backups ({max_backups}) is "
+                    f"smaller than the current amount of backups ({num_backups})!"
+                ),
+                debug=debug,
+            )
+        space._max_backups = max_backups
+
+    if max_size is not None:
+        current_size = space.get_disk_usage(verbosity_level=verbose)
+
+        if isinstance(max_size, str):
+            max_size = str2bytes(max_size)
+
+        if current_size > max_size:
+            return print_error_message(
+                error=ValueError(
+                    f"The given maximum disk usage of the backup space ({bytes2str(max_size)}) "
+                    f"is smaller than the current "
+                    f"disk usage ({bytes2str(current_size)})!"
+                ),
+                debug=debug,
+            )
+        space._max_size = max_size
+
+    if auto_delete is not None:
+        space._auto_deletion = auto_delete
+
+    if auto_delete_rule is not None:
+        space._auto_deletion_rule = auto_delete_rule
 
     if remote is not None:
 
@@ -171,6 +214,37 @@ def common_options(space_type: BackupSpaceType) -> Callable:
                 "in every backup. Depending on the Backup Space this might not have an effect. "
                 "Important: Symbols like ',' and '\"' have to be escaped!",
             )(func)
+        func = click.option(
+            "--max-backups",
+            type=int,
+            default=None,
+            help="The maximum allowed number of backups in the backup space.",
+        )(func)
+        func = click.option(
+            "--max-size",
+            type=FirstOf(click.INT, click.STRING),
+            default=-1,
+            help="The maximum disk usage of the backup space as an integer in "
+            "bytes or as a string (e.g. '1 kB').",
+        )(func)
+        func = click.option(
+            "--auto-delete",
+            type=bool,
+            default=None,
+            help="Whether or not to automatically delete backups when the backup space is full "
+            "or out of disk space.",
+        )(func)
+        func = click.option(
+            "--auto-delete-rule",
+            type=click.Choice(["oldest", "newest", "largest", "smallest"]),
+            default=None,
+            help="The rule after which to choose the backup which should be automatically deleted. "
+            "The possible values are: "
+            "'oldest' (the oldest backup), "
+            "'newest' (the newest backup), "
+            "'largest' (the backup with the largest file size'), "
+            "'smallest' (the backup with the smallest file size).",
+        )(func)
         func = click.option(
             "--remote",
             "-r",

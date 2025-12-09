@@ -27,6 +27,7 @@ class FileBackupSpace(BackupSpace):
         comment: str = "",
         include: list[str] | None = None,
         exclude: list[str] | None = None,
+        lock: bool = False,
         location: str = "all",
         verbosity_level: int = 1,
     ) -> Backup:
@@ -42,6 +43,7 @@ class FileBackupSpace(BackupSpace):
             comment=comment,
             include=list(set(include) | set(self._default_include)),
             exclude=list(set(exclude) | set(self._default_exclude)),
+            lock=lock,
             location=location,
             verbosity_level=verbosity_level,
         )
@@ -176,9 +178,11 @@ class FileBackupSpace(BackupSpace):
 
             archive_path.unlink()
 
-    def get_info_table(self) -> Table:
+    def get_info_table(self, verbosity_level: int = 1) -> Table:
         return super()._get_info_table(
-            additional_info_idx=[3], additional_info={"Directory": self._file_path}
+            additional_info_idx=[3],
+            additional_info={"Directory": self._file_path},
+            verbosity_level=verbosity_level,
         )
 
     #####################
