@@ -90,7 +90,7 @@ def edit_backup_space(
         if isinstance(max_size, str):
             max_size = str2bytes(max_size)
 
-        if current_size > max_size:
+        if max_size != -1 and current_size > max_size:
             return print_error_message(
                 error=ValueError(
                     f"The given maximum disk usage of the backup space ({bytes2str(max_size)}) "
