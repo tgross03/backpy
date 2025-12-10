@@ -52,6 +52,11 @@ dev = [
     "pre-commit",
 ]
 
+docs = [
+  "sphinx",
+  "sphinx-autobuild",
+]
+
 tests = [
     "pytest >= 7.0",
     "pytest-cov",
