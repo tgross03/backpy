@@ -1,4 +1,5 @@
 import re
+
 from docutils import nodes
 from sphinx.application import Sphinx
 
@@ -9,6 +10,7 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 def clean_ansi(text: str) -> str:
     text = COLOR_RE.sub("", text)
     return ANSI_RE.sub("", text)
+
 
 def strip_ansi_from_nodes(node):
     for child in node.traverse(nodes.Text):
@@ -30,4 +32,3 @@ def setup(app: Sphinx):
         "parallel_read_safe": True,
         "parallel_write_safe": True,
     }
-

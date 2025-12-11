@@ -6,18 +6,15 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-import backpy
-import backpy.version
-from backpy import TOMLConfiguration, VariableLibrary
-
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from datetime import datetime
+import backpy
+import backpy.version
+from backpy import TOMLConfiguration
 
-pyproject = TOMLConfiguration(
-    Path(backpy.__file__).parent.parent / "pyproject.toml"
-)
+pyproject = TOMLConfiguration(Path(backpy.__file__).parent.parent / "pyproject.toml")
 authors = pyproject["project.authors"]
 authors = ",".join([author["name"] for author in authors])
 year = datetime.now().year
@@ -33,9 +30,16 @@ release = version
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-sys.path.append(str(Path('_extensions').resolve()))
+sys.path.append(str(Path("_extensions").resolve()))
 
-extensions = ["sphinx_iconify", "sphinx_design", "sphinx_copybutton", "sphinx_togglebutton", "sphinx_click", "no_ansi"]
+extensions = [
+    "sphinx_iconify",
+    "sphinx_design",
+    "sphinx_copybutton",
+    "sphinx_togglebutton",
+    "sphinx_click",
+    "no_ansi",
+]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -69,7 +73,7 @@ html_theme_options = {
                     "title": "About",
                     "url": "user-guide/about",
                 },
-            ]
+            ],
         },
-    ]
+    ],
 }
