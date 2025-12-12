@@ -58,20 +58,16 @@ html_theme_options = {
     "accent_color": "blue",
     "nav_links": [
         {
-            "title": "User Guide",
-            "url": "writing",
+            "title": "Getting Started",
+            "url": "getting-started/index",
             "children": [
                 {
-                    "title": "Quickstart",
-                    "url": "user-guide/quickstart",
+                    "title": "Overview",
+                    "url": "getting-started/overview",
                 },
                 {
                     "title": "Installation",
-                    "url": "user-guide/installation",
-                },
-                {
-                    "title": "About",
-                    "url": "user-guide/about",
+                    "url": "getting-started/installation",
                 },
             ],
         },

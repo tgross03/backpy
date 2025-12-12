@@ -1,13 +1,12 @@
 .. _user-guide:
 
-**********
-User Guide
-**********
+***************
+Getting started
+***************
 
 .. toctree::
    :maxdepth: 1
    :glob:
 
-  quickstart
+  overview
   installation
-  about

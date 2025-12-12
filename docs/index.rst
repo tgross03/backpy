@@ -6,6 +6,6 @@ backpy documentation
 .. toctree::
    :maxdepth: 2
 
-  user-guide/index
+  getting-started/index
   api-reference/index
 
