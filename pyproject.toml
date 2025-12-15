@@ -53,14 +53,15 @@ dev = [
 ]
 
 docs = [
-  "sphinx",
-  "sphinx-autobuild",
-  "sphinx-iconify",
-  "sphinx-design",
-  "sphinx-copybutton",
-  "sphinx-togglebutton",
-  "sphinx-click",
-  "shibuya",
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-iconify",
+    "sphinx-design",
+    "sphinx-copybutton",
+    "sphinx-togglebutton",
+    "sphinx-click",
+    "numpydoc",
+    "shibuya",
 ]
 
 tests = [

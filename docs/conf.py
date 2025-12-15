@@ -38,6 +38,8 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_togglebutton",
     "sphinx_click",
+    "sphinx.ext.autodoc",
+    "numpydoc",
     "no_ansi",
 ]
 
@@ -57,19 +59,19 @@ html_theme_options = {
     "github_url": "https://github.com/tgross03/backpy",
     "accent_color": "blue",
     "nav_links": [
-        {
-            "title": "Getting Started",
-            "url": "getting-started/index",
-            "children": [
-                {
-                    "title": "Overview",
-                    "url": "getting-started/overview",
-                },
-                {
-                    "title": "Installation",
-                    "url": "getting-started/installation",
-                },
-            ],
-        },
+        # {
+        #     "title": "Getting Started",
+        #     "url": "getting-started/index",
+        #     "children": [
+        #         {
+        #             "title": "Overview",
+        #             "url": "getting-started/overview",
+        #         },
+        #         {
+        #             "title": "Installation",
+        #             "url": "getting-started/installation",
+        #         },
+        #     ],
+        # },
     ],
 }
