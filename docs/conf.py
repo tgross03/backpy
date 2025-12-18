@@ -53,11 +53,14 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "shibuya"
 html_static_path = ["_static"]
 
+html_favicon = "_static/backpy_icon_dark.png"
+
 html_theme_options = {
     "light_logo": "_static/backpy_header_light.png",
     "dark_logo": "_static/backpy_header_dark.png",
     "github_url": "https://github.com/tgross03/backpy",
     "accent_color": "blue",
+    "globaltoc_expand_depth": 1,
     "nav_links": [
         # {
         #     "title": "Getting Started",

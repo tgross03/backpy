@@ -15,3 +15,10 @@ The following references give a technical overview for the API and CLI of ``back
     .. grid-item-card:: API Reference
         :link: api-reference
         :link-type: ref
+
+.. toctree::
+    :hidden:
+    :max-depth: 2
+
+    api/index
+    cli/index
