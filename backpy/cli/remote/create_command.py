@@ -286,10 +286,11 @@ def create(
     try:
         remote.test_connection(verbosity_level=verbose)
     except Exception as e:
-        print_error_message(error=e, debug=debug)
+        remote.delete(delete_files=False, verbosity_level=verbose)
         print(
-            f"{palette.red}HINT:{palette.maroon} If you are experiencing connection problems "
-            "due to wrong settings of the remote, edit or remove it via the CLI."
+            f"{palette.red}ERROR:{palette.maroon} An error occurred while testing the connection! "
+            f"The remote has been deleted."
         )
+        return print_error_message(error=e, debug=debug)
 
     return None

@@ -1,0 +1,32 @@
+
+/* Cards for sphinx-design */
+.sd-card.phase-1,
+.card.phase-1 {
+    border-left: 4px solid #d20f39;
+    border-radius: 0.5rem;
+}
+.sd-card.phase-2,
+.card.phase-2 {
+    border-left: 4px solid #e64553;
+    border-radius: 0.5rem;
+}
+.sd-card.phase-3,
+.card.phase-3 {
+    border-left: 4px solid #fe640b;
+    border-radius: 0.5rem;
+}
+.sd-card.phase-4,
+.card.phase-4 {
+    border-left: 4px solid #df8e1d;
+    border-radius: 0.5rem;
+}
+.sd-card.phase-5,
+.card.phase-5 {
+    border-left: 4px solid #40a02b;
+    border-radius: 0.5rem;
+}
+.sd-card.phase-6,
+.card.phase-6 {
+    border-left: 4px solid #7287fd;
+    border-radius: 0.5rem;
+}

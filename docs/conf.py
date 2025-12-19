@@ -10,7 +10,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import backpy
 import backpy.version
 from backpy import TOMLConfiguration
 
@@ -26,6 +25,10 @@ copyright = f"© {year}, {authors}"
 author = authors
 version = version
 release = version
+
+rst_prolog = f"""
+.. |version| replace:: ``{version}``
+"""
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -46,35 +49,28 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-
 # -- Options for HTMLoutput -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "shibuya"
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 
-html_favicon = "_static/backpy_icon_dark.png"
+html_favicon = "_static/logos/backpy_icon_dark.png"
 
 html_theme_options = {
-    "light_logo": "_static/backpy_header_light.png",
-    "dark_logo": "_static/backpy_header_dark.png",
+    "light_logo": "_static/logos/backpy_header_light.png",
+    "dark_logo": "_static/logos/backpy_header_dark.png",
     "github_url": "https://github.com/tgross03/backpy",
     "accent_color": "blue",
-    "globaltoc_expand_depth": 1,
-    "nav_links": [
-        # {
-        #     "title": "Getting Started",
-        #     "url": "getting-started/index",
-        #     "children": [
-        #         {
-        #             "title": "Overview",
-        #             "url": "getting-started/overview",
-        #         },
-        #         {
-        #             "title": "Installation",
-        #             "url": "getting-started/installation",
-        #         },
-        #     ],
-        # },
-    ],
+    "announcement": "This package is still in development and not stable at this time! "
+    "Features and functionalities might not work as expected.",
+}
+
+html_context = {
+    "source_type": "github",
+    "source_user": "tgross03",
+    "source_repo": "backpy",
+    "source_version": "main",  # Optional
+    "source_docs_path": "/docs/",  # Optional
 }
