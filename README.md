@@ -1,7 +1,7 @@
 # backpy [![CI Status](https://github.com/tgross03/backpy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tgross03/backpy/actions/workflows/ci.yml?branch=main) [![codecov](https://codecov.io/gh/tgross03/backpy/graph/badge.svg?token=NSQD951ZPJ)](https://codecov.io/gh/tgross03/backpy) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/tgross03/backpy/main.svg)](https://results.pre-commit.ci/latest/github/tgross03/backpy/main) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
-[![BackPy Logo](./docs/_static/backpy_logo_dark.png)](https://github.com/tgross03/backpy)
+[![BackPy Logo](./docs/_static/logos/backpy_logo_dark.png)](https://github.com/tgross03/backpy)
 
 > [!CAUTION]
 > This package is still in development and not stable at this time! Features and functionalities might not work as expected.
