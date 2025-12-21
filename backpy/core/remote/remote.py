@@ -144,9 +144,9 @@ class Remote:
             "token": self._token if self._token else "",
             "ssh_key": str(self._ssh_key) if self._ssh_key else "",
             "use_system_keys": self._use_system_keys,
-            "connection_timeout": self._connection_timeout
-            if self._connection_timeout
-            else -1,
+            "connection_timeout": (
+                self._connection_timeout if self._connection_timeout else -1
+            ),
             "root_dir": self._root_dir,
             "sha256_cmd": self._sha256_cmd,
         }
