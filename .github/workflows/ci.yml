@@ -33,7 +33,7 @@ jobs:
         pip install --upgrade pip
         pip install -e ".[tests]"
         pip freeze
-        
+
     - name: Test with pytest
       run: |
         pytest --cov --cov-branch --cov-report=xml
@@ -47,8 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
-    
+        python-version: ["3.14"]
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
