@@ -8,4 +8,4 @@ First Steps
 *Interactive Mode*
 ------------------
 
-The
+The ``backpy`` CLI contains many different subcommands

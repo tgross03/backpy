@@ -42,9 +42,15 @@ extensions = [
     "sphinx_togglebutton",
     "sphinx_click",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
     "numpydoc",
     "no_ansi",
 ]
+
+autosummary_generate = True
+autodoc_typehints = "description"
+numpydoc_show_class_members = False
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
