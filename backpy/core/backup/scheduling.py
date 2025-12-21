@@ -17,7 +17,7 @@ from backpy.core.utils.exceptions import InvalidScheduleError
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
 
 if TYPE_CHECKING:
-    from backpy.core.backup.backup_space import BackupSpace
+    from backpy.core.space.backup_space import BackupSpace
 
 palette = get_default_palette()
 
@@ -137,7 +137,7 @@ class Schedule:
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "Schedule":
 
-        from backpy.core.backup.backup_space import BackupSpace
+        from backpy.core.space.backup_space import BackupSpace
 
         config = TOMLConfiguration(
             path=Path(VariableLibrary.get_variable("paths.schedule_directory"))

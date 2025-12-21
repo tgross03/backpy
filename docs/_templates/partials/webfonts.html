@@ -1,8 +1,9 @@
 <style>
+
     /* Fira Sans */
     @font-face {
         font-family: "Fira Sans";
-        src: url("../../_static/fonts/fira_sans/FiraSans-Regular.ttf") format("truetype");
+        src: url("{{ pathto('_static/fonts/fira_sans/FiraSans-Regular.ttf', 1) }}") format("truetype");
         font-weight: 400;
         font-style: normal;
         font-display: swap;
@@ -10,7 +11,7 @@
 
     @font-face {
         font-family: "Fira Sans";
-        src: url("../../_static/fonts/fira_sans/FiraSans-Italic.ttf") format("truetype");
+        src: url("{{ pathto('_static/fonts/fira_sans/FiraSans-Italic.ttf', 1) }}") format("truetype");
         font-weight: 400;
         font-style: italic;
         font-display: swap;
@@ -18,7 +19,7 @@
 
     @font-face {
         font-family: "Fira Sans";
-        src: url("../../_static/fonts/fira_sans/FiraSans-Bold.ttf") format("truetype");
+        src: url("{{ pathto('_static/fonts/fira_sans/FiraSans-Bold.ttf', 1) }}") format("truetype");
         font-weight: 700;
         font-style: normal;
         font-display: swap;
@@ -26,7 +27,7 @@
 
     @font-face {
         font-family: "Fira Sans";
-        src: url("../../_static/fonts/fira_sans/FiraSans-BoldItalic.ttf") format("truetype");
+        src: url("{{ pathto('_static/fonts/fira_sans/FiraSans-BoldItalic.ttf', 1) }}") format("truetype");
         font-weight: 700;
         font-style: italic;
         font-display: swap;
@@ -35,7 +36,7 @@
     /* JetBrains Mono */
     @font-face {
         font-family: "JetBrains Mono";
-        src: url("../../_static/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf") format("truetype");
+        src: url("{{ pathto('_static/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf', 1) }}") format("truetype");
         font-weight: 400;
         font-style: normal;
         font-display: swap;
@@ -46,4 +47,5 @@
         --sy-f-heading: "Fira Sans", var(--sy-f-sys), sans-serif;
         --sy-f-text: "Fira Sans", var(--sy-f-sys), sans-serif;
     }
+
 </style>

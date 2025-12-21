@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 
 from rich.table import Table
 
-from backpy.core.backup import BackupSpace, compression
+from backpy.core.backup import compression
 from backpy.core.config import VariableLibrary
+from backpy.core.space.backup_space import BackupSpace
 from backpy.core.utils.exceptions import (
     InvalidBackupError,
     InvalidBackupSpaceError,

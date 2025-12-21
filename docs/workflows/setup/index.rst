@@ -4,7 +4,9 @@
 Setup
 *****
 
-.. include:: creating-a-backup-space.rst
+These guides give an overview for some setup actions.
 
-.. include:: connect-to-remote.rst
+.. toctree::
+   creating-a-remote
+   creating-a-file-backup-space
 

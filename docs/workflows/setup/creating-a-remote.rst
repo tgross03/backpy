@@ -1,6 +1,6 @@
 .. _workflows-connect-to-remote:
 
-Connecting to a Remote
+Creating a Remote
 ----------------------
 
 Connecting to a remote is relatively simple.

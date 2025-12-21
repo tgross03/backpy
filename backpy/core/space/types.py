@@ -25,7 +25,7 @@ class BackupSpaceType:
 
 
 def _get_backups_space_type():
-    from .file_backup_space import FileBackupSpace
+    from backpy.core.space.file_backup_space import FileBackupSpace
 
     return [
         # BackupSpaceType(

@@ -41,9 +41,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_togglebutton",
     "sphinx_click",
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.viewcode",
+    "sphinx_automodapi.automodapi",
     "numpydoc",
     "no_ansi",
 ]
@@ -71,6 +69,7 @@ html_theme_options = {
     "accent_color": "blue",
     "announcement": "This package is still in development and not stable at this time! "
     "Features and functionalities might not work as expected.",
+    "show_ai_links": False,
 }
 
 html_context = {

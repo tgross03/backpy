@@ -14,10 +14,10 @@ from backpy.core.utils.times import TimeObject
 from backpy.core.remote import Remote, Protocol
 
 # Import in the correct order to avoid circular imports
-from backpy.core.backup.types import BackupSpaceType
-from backpy.core.backup.backup_space import BackupSpace
+from backpy.core.space.types import BackupSpaceType
+from backpy.core.space.backup_space import BackupSpace
 from backpy.core.backup.backup import Backup
-from backpy.core.backup.file_backup_space import FileBackupSpace
+from backpy.core.space.file_backup_space import FileBackupSpace
 
 __all__ = [
     "FileBackupSpace",

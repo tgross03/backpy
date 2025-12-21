@@ -625,7 +625,7 @@ class Remote:
 
     def delete(self, delete_files: bool, verbosity_level: int = 1):
 
-        from backpy.core.backup.backup_space import BackupSpace
+        from backpy.core.space.backup_space import BackupSpace
 
         if self._context_managed:
             raise RuntimeError(
