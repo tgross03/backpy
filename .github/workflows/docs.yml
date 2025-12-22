@@ -42,12 +42,14 @@ jobs:
         install -m 600 -D /dev/null ~/.ssh/id_key
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_key
         ssh-keyscan -vvv -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
-    - name: Upload to server
-      run: |
-        scp -i ~/.ssh/id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
-        ssh -i ~/.ssh/id_key -vvv -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
       env:
         SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+        SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
+    - name: Upload to server
+      run: |
+        scp -i ~/.ssh/id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":"$SSH_TARGET_DIR"/html.zip
+        ssh -i ~/.ssh/id_key -vvv -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
+      env:
         SSH_USER: ${{secrets.SSH_USER}}
         SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
         SSH_TARGET_DIR: ${{secrets.SSH_TARGET_DIR}}
