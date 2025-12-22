@@ -40,8 +40,10 @@ jobs:
       run: |
         echo "$SSH_PRIVATE_KEY" > ../id_key
         sudo chmod 600 ../id_key
-        scp -i ../id_key -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
-        ssh -i ../id_key -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
+        ls -la ..
+        ls -la docs/_build
+        scp -i ../id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
+        ssh -i ../id_key -vvv -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
       env:
         SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
         SSH_USER: ${{secrets.SSH_USER}}
