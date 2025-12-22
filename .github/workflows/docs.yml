@@ -1,0 +1,57 @@
+name: Docs
+
+on:
+  release:
+    types: [published]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -e ".[docs]"
+        pip freeze
+    - name: Generate towncrier changelog
+      run: |
+          python ./scripts/generate_changelog.py
+    - name: Build sphinx docs
+      run: |
+        make -C docs html
+    - name: Compress build
+      run: |
+        sudo apt update --yes && sudo apt install zip
+        zip -r docs/_build/html.zip docs/_build/html
+    - name: Create SSH key
+      run: |
+        echo "$SSH_PRIVATE_KEY" > ../id_key
+        sudo chmod 600 ../id_key
+      env:
+          SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+    - name: Upload to server
+      run: |
+          scp -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip -i ../id_key
+          ssh -i ../id_key -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
+      env:
+        SSH_USER: ${{secrets.SSH_USER}}
+        SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
+        SSH_TARGET_DIR: ${{secrets.SSH_TARGET_DIR}}
+    - name: Cleanup
+      run: |
+        rm ../id_key
+        rm -rf docs/_build
+
