@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
 if TYPE_CHECKING:
-    from backpy import BackupSpace
+    from backpy.core.space import BackupSpace
 
 
 @dataclass

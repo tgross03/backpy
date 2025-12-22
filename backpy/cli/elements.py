@@ -4,10 +4,10 @@ from pathlib import Path
 
 from fuzzyfinder import fuzzyfinder
 
-from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
-from backpy.core.backup import Schedule
+from backpy.core.backup import Backup, Schedule
 from backpy.core.remote import Remote
+from backpy.core.space import BackupSpace
 from backpy.core.utils.utils import str2bytes
 
 palette = get_default_palette()

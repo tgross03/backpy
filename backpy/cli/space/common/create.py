@@ -3,7 +3,7 @@ from typing import Callable
 import rich_click as click
 from click_params import FirstOf
 
-from backpy import BackupSpace, BackupSpaceType, Remote, VariableLibrary
+from backpy import VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     ConfirmInput,
@@ -15,6 +15,8 @@ from backpy.cli.elements import (
     print_error_message,
 )
 from backpy.core.backup import compression
+from backpy.core.remote import Remote
+from backpy.core.space import BackupSpace, BackupSpaceType
 from backpy.core.utils.exceptions import InvalidRemoteError
 from backpy.core.utils.utils import str2bytes
 

@@ -19,7 +19,7 @@ from backpy.core.utils.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from backpy import Backup
+    from backpy.core.backup import Backup
 
 
 class FileBackupSpace(BackupSpace):
@@ -33,7 +33,7 @@ class FileBackupSpace(BackupSpace):
         verbosity_level: int = 1,
     ) -> Backup:
 
-        from backpy import Backup
+        from backpy.core.backup import Backup
 
         if exclude is None:
             exclude = []
@@ -60,7 +60,7 @@ class FileBackupSpace(BackupSpace):
         verbosity_level: int = 1,
     ) -> None:
 
-        from backpy import Backup
+        from backpy.core.backup import Backup
 
         backup = Backup.load_by_uuid(
             backup_space=self,
@@ -230,7 +230,7 @@ class FileBackupSpace(BackupSpace):
         **kwargs,
     ) -> "FileBackupSpace":
 
-        from backpy import BackupSpaceType
+        from backpy.core.space import BackupSpaceType
 
         parent = super(FileBackupSpace, cls).new(
             name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs

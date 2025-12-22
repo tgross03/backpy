@@ -2,7 +2,7 @@ from pathlib import Path
 
 import rich_click as click
 
-from backpy import Protocol, Remote, VariableLibrary
+from backpy import VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     ConfirmInput,
@@ -12,6 +12,7 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
+from backpy.core.remote import Protocol, Remote
 from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
 

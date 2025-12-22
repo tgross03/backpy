@@ -22,7 +22,8 @@ from backpy.core.utils.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from backpy import Backup, BackupSpaceType
+    from backpy.core.backup import Backup
+    from backpy.core.space import BackupSpaceType
 
 palette = get_default_palette()
 
@@ -100,7 +101,7 @@ class BackupSpace:
         verbosity_level: int = 1,
     ) -> list[Backup]:
 
-        from backpy import Backup
+        from backpy.core.backup import Backup
 
         configurations = [
             file if file.is_file() else None for file in self._backup_dir.glob("*.toml")

@@ -2,10 +2,10 @@ from pathlib import Path
 
 import rich_click as click
 
-from backpy import BackupSpaceType
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import DirectoryPathInput
 from backpy.cli.space.common.create import common_options, create_backup_space
+from backpy.core.space import BackupSpaceType
 
 palette = get_default_palette()
 

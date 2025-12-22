@@ -2,9 +2,9 @@ import rich_click as click
 from rich.console import Console
 from rich.tree import Tree
 
-from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import print_error_message
+from backpy.core.space import BackupSpace
 from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import InvalidBackupSpaceError
 

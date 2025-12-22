@@ -1,6 +1,5 @@
 import rich_click as click
 
-from backpy import BackupSpace
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     BackupSpaceInput,
@@ -9,6 +8,7 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
+from backpy.core.space import BackupSpace
 from backpy.core.utils.exceptions import (
     BackupLimitExceededError,
     InvalidBackupSpaceError,

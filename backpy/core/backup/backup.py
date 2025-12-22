@@ -20,7 +20,7 @@ from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
-    from backpy import BackupSpace
+    from backpy.core.space import BackupSpace
 
 palette = get_default_palette()
 
