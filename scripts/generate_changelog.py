@@ -4,8 +4,10 @@ from pathlib import Path
 import backpy
 from backpy import TOMLConfiguration
 
-if __name__ == "__main__":
+# FIXME: The changelog has to be generated without the
+# --draft option in order to delete the fragments
 
+if __name__ == "__main__":
     backpy_dir = Path(backpy.__file__).parent.parent
     pyproject = TOMLConfiguration(backpy_dir / "pyproject.toml")
     changelog_location = pyproject["tool.towncrier.filename"]
