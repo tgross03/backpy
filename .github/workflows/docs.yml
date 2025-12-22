@@ -48,9 +48,9 @@ jobs:
         SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
     - name: Upload to server
       run: |
-        ssh -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "rm -rf '$SSH_TARGET_DIR/' && mkdir -p '$SSH_TARGET_DIR'"
-        scp -i ~/.ssh/id_key -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":"$SSH_TARGET_DIR"/html.zip
-        ssh -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "unzip -o '$SSH_TARGET_DIR/html.zip' -d '$SSH_TARGET_DIR' && rm -rf '$SSH_TARGET_DIR/html.zip'"
+        ssh -v -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "rm -rf '$SSH_TARGET_DIR/' && mkdir -p '$SSH_TARGET_DIR'"
+        scp -v -i ~/.ssh/id_key -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":"$SSH_TARGET_DIR"/html.zip
+        ssh -v -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "unzip -o '$SSH_TARGET_DIR/html.zip' -d '$SSH_TARGET_DIR' && rm -rf '$SSH_TARGET_DIR/html.zip'"
       env:
         SSH_USER: ${{secrets.SSH_USER}}
         SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
