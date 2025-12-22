@@ -32,7 +32,6 @@ dependencies = [
     "numpy",
     "toml",
     "rich",
-    "pandas",
     "click",
     "rich-click",
     "click-params",
