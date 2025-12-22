@@ -49,7 +49,7 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str) -> "Protocol" | None:
+    def from_name(cls, name: str):
         for protocol in protocols:
             if protocol.name == name:
                 return protocol
