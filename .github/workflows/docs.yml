@@ -34,24 +34,16 @@ jobs:
         make -C docs html
     - name: Compress build
       run: |
-        sudo apt update --yes && sudo apt install zip
+        sudo apt update --yes && sudo apt install zip --yes
         zip -r docs/_build/html.zip docs/_build/html
-    - name: Create SSH key
+    - name: Upload to server
       run: |
         echo "$SSH_PRIVATE_KEY" > ../id_key
         sudo chmod 600 ../id_key
+        scp -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip -i ../id_key
+        ssh -i ../id_key -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
       env:
-          SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
-    - name: Upload to server
-      run: |
-          scp -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip -i ../id_key
-          ssh -i ../id_key -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
-      env:
+        SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
         SSH_USER: ${{secrets.SSH_USER}}
         SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
         SSH_TARGET_DIR: ${{secrets.SSH_TARGET_DIR}}
-    - name: Cleanup
-      run: |
-        rm ../id_key
-        rm -rf docs/_build
-
