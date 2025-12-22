@@ -36,12 +36,12 @@ jobs:
       run: |
         sudo apt update --yes && sudo apt install zip --yes
         zip -r docs/_build/html.zip docs/_build/html
+    # Inspired by: https://stackoverflow.com/a/60479844 and https://stackoverflow.com/a/70447517
     - name: Create SSH key
       run: |
-        mkdir -p ~/.ssh/
+        install -m 600 -D /dev/null ~/.ssh/id_key
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_key
-        sudo chmod 600 ~/.ssh/id_key
-        ssh-keyscan -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
+        ssh-keyscan -vvv -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
     - name: Upload to server
       run: |
         scp -i ~/.ssh/id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
