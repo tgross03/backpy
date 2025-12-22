@@ -36,14 +36,15 @@ jobs:
       run: |
         sudo apt update --yes && sudo apt install zip --yes
         zip -r docs/_build/html.zip docs/_build/html
+    - name: Create SSH key
+      run: |
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_key
+        sudo chmod 600 ~/.ssh/id_key
+        ssh-keyscan -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
     - name: Upload to server
       run: |
-        echo "$SSH_PRIVATE_KEY" > ../id_key
-        sudo chmod 600 ../id_key
-        ls -la ..
-        ls -la docs/_build
-        scp -i ../id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
-        ssh -i ../id_key -vvv -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
+        scp -i ~/.ssh/id_key -vvv -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":SSH_TARGET_DIR/html.zip
+        ssh -i ~/.ssh/id_key -vvv -t "$SSH_USER"@"$SSH_HOSTNAME" 'unzip "$SSH_TARGET_DIR"/html.zip; rm "$SSH_TARGET_DIR"/html.zip'
       env:
         SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
         SSH_USER: ${{secrets.SSH_USER}}
