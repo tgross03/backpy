@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 palette = get_default_palette()
 
+__all__ = ["Schedule"]
+
 
 class Schedule:
     def __init__(

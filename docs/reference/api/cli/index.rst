@@ -6,13 +6,14 @@ CLI (``backpy.cli``)
 
 .. currentmodule:: backpy.cli
 
-.. automodapi:: backpy.cli
-   :no-heading:
-   :no-inheritance-diagram:
-   :include: backpy.cli.colors, backpy.cli.elements
+The :mod:`backpy.cli` module contains functions and classes
+used to interact with the :ref:`CLI <cli-reference>`.
+
+Submodules
+----------
 
 .. toctree::
-  :hidden:
+  :maxdepth: 1
 
   colors
   elements

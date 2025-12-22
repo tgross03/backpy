@@ -18,13 +18,13 @@ class BackupSpaceType:
 
     @classmethod
     def from_name(cls, name):
-        for backup_space_type in _get_backups_space_type():
+        for backup_space_type in get_backup_space_types():
             if backup_space_type.name == name:
                 return backup_space_type
         return None
 
 
-def _get_backups_space_type():
+def get_backup_space_types() -> list[BackupSpaceType]:
     from backpy.core.space.file_backup_space import FileBackupSpace
 
     return [

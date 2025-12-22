@@ -2,6 +2,8 @@ from pathlib import Path
 
 from cryptography.fernet import Fernet
 
+__all__ = ["encrypt", "decrypt"]
+
 
 def _get_fernet() -> Fernet:
     key_file = Path.home() / ".backpy/config/.key"

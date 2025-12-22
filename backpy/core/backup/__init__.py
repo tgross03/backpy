@@ -6,6 +6,6 @@ from backpy.core.backup.scheduling import Schedule
 
 __all__ = [
     "Backup",
-    "compression",
     "Schedule",
+    "compression",
 ]

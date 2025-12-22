@@ -50,6 +50,9 @@ autosummary_generate = True
 autodoc_typehints = "description"
 numpydoc_show_class_members = False
 
+automodapi_toctreedirnm = "_generated"
+automodapi_inheritance_diagram = False
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 

@@ -33,6 +33,8 @@ palette = get_default_palette()
 
 _DEFAULT_CONTEXT_VERBOSITY: int = 1
 
+__all__ = ["Remote", "Protocol", "get_protocols"]
+
 
 def _calculate_hash(path: Path) -> str:
     with open(path, "rb") as f:
@@ -47,11 +49,15 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str):
+    def from_name(cls, name: str) -> Protocol | None:
         for protocol in protocols:
             if protocol.name == name:
                 return protocol
         return None
+
+
+def get_protocols() -> list[Protocol]:
+    return protocols
 
 
 protocols = [

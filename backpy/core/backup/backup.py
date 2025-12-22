@@ -24,6 +24,8 @@ if TYPE_CHECKING:
 
 palette = get_default_palette()
 
+__all__ = ["Backup"]
+
 
 class Backup:
     def __init__(

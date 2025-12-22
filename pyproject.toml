@@ -60,6 +60,7 @@ docs = [
     "sphinx-copybutton",
     "sphinx-togglebutton",
     "sphinx-click",
+    "sphinx-automodapi",
     "numpydoc",
     "shibuya",
 ]
