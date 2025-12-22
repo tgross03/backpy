@@ -62,6 +62,7 @@ docs = [
     "sphinx-automodapi",
     "numpydoc",
     "shibuya",
+    "towncrier",
 ]
 
 tests = [
@@ -81,3 +82,25 @@ write_to = "backpy/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.towncrier]
+directory = "docs/changes"
+filename = "docs/changes/CHANGELOG.rst"
+package = "backpy"
+issue_format = "`#{issue} <https://github.com/tgross03/backpy/issues/{issue}>`_"
+
+[[tool.towncrier.type]]
+directory = "api"
+name = "API Changes"
+
+[[tool.towncrier.type]]
+directory = "cli"
+name = "CLI Changes"
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Documentation Changes"
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"
