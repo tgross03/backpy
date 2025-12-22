@@ -38,6 +38,7 @@ jobs:
         zip -r docs/_build/html.zip docs/_build/html
     - name: Create SSH key
       run: |
+        mkdir -p ~/.ssh/
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_key
         sudo chmod 600 ~/.ssh/id_key
         ssh-keyscan -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
