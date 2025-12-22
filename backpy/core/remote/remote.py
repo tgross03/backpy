@@ -49,7 +49,7 @@ class Protocol:
     supports_ssh_keys: bool
 
     @classmethod
-    def from_name(cls, name: str) -> Protocol | None:
+    def from_name(cls, name: str) -> "Protocol" | None:
         for protocol in protocols:
             if protocol.name == name:
                 return protocol
@@ -128,7 +128,6 @@ class Remote:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
-
         if not self._context_managed:
             return False
 
@@ -138,7 +137,6 @@ class Remote:
         return False
 
     def update_config(self):
-
         current_content = self._config.as_dict()
 
         content = {
@@ -160,7 +158,6 @@ class Remote:
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
     def connect(self, verbosity_level: int = 1) -> None:
-
         if self._client is not None:
             self._client.close()
 
@@ -201,7 +198,6 @@ class Remote:
             print(f"Connected to {self._hostname} with user {self._username}.")
 
     def disconnect(self, verbosity_level: int = 1) -> None:
-
         if self._client is not None:
             self._client.close()
 
@@ -209,7 +205,6 @@ class Remote:
             print(f"Connection to {self._hostname} was closed.")
 
     def test_connection(self, verbosity_level: int = 1) -> None:
-
         if self._context_managed:
             raise RuntimeError(
                 "The connection of the remote may not be tested while "
@@ -253,7 +248,6 @@ class Remote:
         max_retries: int = 3,
         verbosity_level: int = 1,
     ) -> None:
-
         if isinstance(source, str):
             source = Path(source)
 
@@ -263,7 +257,6 @@ class Remote:
         with Progress(
             *Progress.get_default_columns(), DownloadColumn(), TransferSpeedColumn()
         ) as progress:
-
             task = progress.add_task(
                 f"Uploading {source.name}", visible=verbosity_level >= 1
             )
@@ -312,7 +305,6 @@ class Remote:
                         for root, dirs, files in Path(source).walk(
                             follow_symlinks=False
                         ):
-
                             self.mkdir(
                                 target=str(target / root),
                                 parents=True,
@@ -330,7 +322,6 @@ class Remote:
                                 )
 
                 case "scp":
-
                     _progress = lambda filename, total, sent: progress.update(
                         task, total=total, completed=sent
                     )
@@ -390,7 +381,6 @@ class Remote:
         max_retries: int = 3,
         verbosity_level: int = 1,
     ) -> None:
-
         if isinstance(target, str):
             target = Path(target)
 
@@ -463,7 +453,6 @@ class Remote:
         client: SFTPClient | SCPClient | None = None,
         verbosity_level: int = 1,
     ) -> None:
-
         if not client and not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
 
@@ -538,7 +527,6 @@ class Remote:
         sftp_client: SFTPClient | None = None,
         close_afterwards: bool = True,
     ) -> bool:
-
         if not sftp_client and not self._context_managed:
             self.connect()
             sftp_client = self._client.open_sftp()
@@ -563,7 +551,6 @@ class Remote:
         sftp_client: SFTPClient | None = None,
         close_afterwards: bool = True,
     ) -> bool:
-
         if not sftp_client and not self._context_managed:
             self.connect()
             sftp_client = self._client.open_sftp()
@@ -589,7 +576,6 @@ class Remote:
         close_afterwards: bool = True,
         verbosity_level: int = 1,
     ) -> None:
-
         if not sftp_client and not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
             sftp_client = self._client.open_sftp()
@@ -630,7 +616,6 @@ class Remote:
             self.disconnect(verbosity_level=verbosity_level)
 
     def delete(self, delete_files: bool, verbosity_level: int = 1):
-
         from backpy.core.space.backup_space import BackupSpace
 
         if self._context_managed:
@@ -651,7 +636,6 @@ class Remote:
                 space.get_remote() is not None
                 and space.get_remote().get_uuid() == self.get_uuid()
             ):
-
                 if delete_files:
                     self.remove(
                         target=space.get_remote_path(), verbosity_level=verbosity_level
@@ -678,7 +662,6 @@ class Remote:
         print(f"Remote with UUID {self._uuid} was deleted.")
 
     def get_hash(self, target: str, verbosity_level: int = 1) -> str:
-
         if not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
 
@@ -703,7 +686,6 @@ class Remote:
         sftp_client: SFTPClient | None = None,
         verbosity_level: int = 1,
     ) -> int:
-
         if not sftp_client and not self._context_managed:
             self.connect(verbosity_level=verbosity_level)
             sftp_client = self._client.open_sftp()
@@ -719,7 +701,6 @@ class Remote:
         return info.st_size
 
     def get_info_table(self) -> Table:
-
         table = Table(
             title=f"{palette.peach}REMOTE INFORMATION{RESET}",
             show_header=False,
@@ -782,7 +763,6 @@ class Remote:
 
     @classmethod
     def load_by_uuid(cls, unique_id: str) -> "Remote":
-
         unique_id = uuid.UUID(unique_id)
 
         config = TOMLConfiguration(
@@ -865,7 +845,6 @@ class Remote:
         verbosity_level: int = 1,
         test_connection: bool = True,
     ) -> "Remote":
-
         if name == "None":
             raise NameError("Remotes may not be named 'None'.")
 
