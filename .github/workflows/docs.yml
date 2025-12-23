@@ -25,9 +25,9 @@ jobs:
         pip install --upgrade pip
         pip install -e ".[docs]"
         pip freeze
-    - name: Generate towncrier changelog
+    - name: Build towncrier
       run: |
-          python ./scripts/generate_changelog.py
+          towncrier build --yes
     - name: Build sphinx docs
       run: |
         make -C docs html
