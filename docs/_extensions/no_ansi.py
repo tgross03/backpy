@@ -1,6 +1,7 @@
 # Transparency notice:
 # A substantial amount of this extension's code generated
-# by the generative AI ChatGPT 5.1
+# by the generative AI ChatGPT 5.1 and modified by the
+# developer.
 #
 # More on the topic of ethical usage of generative AI
 # can be found in https://doi.org/10.48550/arXiv.2408.10554.
