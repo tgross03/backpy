@@ -19,6 +19,23 @@ About ``backpy``
 
         Here you find the license for backpy and its assets.
 
+.. grid:: 2
+    :class-row: surface
+
+    .. grid-item-card:: :octicon:`heart` Acknowledgements
+        :link: acknowledgements
+        :link-type: ref
+
+        Here you can find the acknowledgements of other works
+        that inspired parts of this project.
+
+    .. grid-item-card:: :iconify:`mingcute:ai-line` Usage of Generative AI
+        :link: use-of-gen-ai
+        :link-type: ref
+
+        This is a short statement about our use and ethical standpoint
+        towards the usage of Generative Artificial Intelligence.
+
 .. grid:: 1
     :class-row: surface
 
@@ -26,11 +43,14 @@ About ``backpy``
         :link: changelog
         :link-type: ref
 
-        Want to know what is planned for the future? Find out here!
+        Here you can track the changes of the package over the course
+        of time.
 
 .. toctree::
     :hidden:
 
     roadmap
     license
+    acknowledgements
+    usage-of-generative-ai
     changelog

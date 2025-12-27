@@ -1,3 +1,10 @@
+# Transparency notice:
+# A substantial amount of this extension's code generated
+# by the generative AI ChatGPT 5.1
+#
+# More on the topic of ethical usage of generative AI
+# can be found in https://doi.org/10.48550/arXiv.2408.10554.
+
 import re
 
 from docutils import nodes
