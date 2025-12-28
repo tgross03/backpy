@@ -33,8 +33,8 @@ About ``backpy``
         :link: use-of-gen-ai
         :link-type: ref
 
-        This is a short statement about our use and ethical standpoint
-        towards the usage of Generative Artificial Intelligence.
+        Here you can find a statement and several principles about the usage of generative
+        artificial intelligence in this project.
 
 .. grid:: 1
     :class-row: surface
