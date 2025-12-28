@@ -80,7 +80,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
-docs/build
+docs/_generated
+docs/changes/CHANGELOG.rst
 
 # PyBuilder
 .pybuilder/

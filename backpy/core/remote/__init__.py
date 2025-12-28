@@ -1,4 +1,6 @@
-from backpy.core.remote import password
-from backpy.core.remote.remote import Remote, Protocol
+from __future__ import annotations
 
-__all__ = ["password", "Remote", "Protocol"]
+from backpy.core.remote import password
+from backpy.core.remote.remote import Remote, Protocol, get_protocols
+
+__all__ = ["password", "Remote", "Protocol", "get_protocols"]

@@ -10,7 +10,8 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
-from backpy.core.backup import BackupSpace, Schedule
+from backpy.core.backup import Schedule
+from backpy.core.space import BackupSpace
 from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 palette = get_default_palette()

@@ -1,0 +1,38 @@
+/*
+    Transparency notice:
+    A substantial amount of this CSS code was generated
+    by the generative AI Claude Sonnet 4.5 and modified by the
+    developer.
+*/
+
+div.sd-card {
+    border-radius: 10px;
+}
+
+div.sd-card.principle {
+    border-left: 3px solid #4a4a95;
+}
+
+div.sd-card.phase-1 {
+    border-left: 4px solid #d20f39;
+}
+
+div.sd-card.phase-2 {
+    border-left: 4px solid #e64553;
+}
+
+div.sd-card.phase-3 {
+    border-left: 4px solid #df8e1d;
+}
+
+div.sd-card.phase-4 {
+    border-left: 4px solid #df8e1d;
+}
+
+div.sd-card.phase-5 {
+    border-left: 4px solid #40a02b;
+}
+
+div.sd-card.phase-6 {
+    border-left: 4px solid #7287fd;
+}

@@ -1,0 +1,56 @@
+name: Docs
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -e ".[docs]"
+        pip freeze
+    - name: Build towncrier
+      run: |
+          towncrier build --yes
+    - name: Build sphinx docs
+      run: |
+        make -C docs html
+    - name: Compress build
+      run: |
+        sudo apt update --yes && sudo apt install zip --yes
+        cd docs/_build/html && zip -r ../html.zip ./*
+        cd ../../../
+    # Inspired by: https://stackoverflow.com/a/60479844 and https://stackoverflow.com/a/70447517
+    - name: Create SSH key
+      run: |
+        install -m 600 -D /dev/null ~/.ssh/id_key
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_key
+        ssh-keyscan -H "$SSH_HOSTNAME" > ~/.ssh/known_hosts
+      env:
+        SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
+        SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
+    - name: Upload to server
+      run: |
+        ssh -v -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "rm -rf '$SSH_TARGET_DIR/' && mkdir -p '$SSH_TARGET_DIR'"
+        scp -v -i ~/.ssh/id_key -r docs/_build/html.zip "$SSH_USER"@"$SSH_HOSTNAME":"$SSH_TARGET_DIR"/html.zip
+        ssh -v -i ~/.ssh/id_key "$SSH_USER@$SSH_HOSTNAME" "unzip -o '$SSH_TARGET_DIR/html.zip' -d '$SSH_TARGET_DIR' && rm -rf '$SSH_TARGET_DIR/html.zip'"
+      env:
+        SSH_USER: ${{secrets.SSH_USER}}
+        SSH_HOSTNAME: ${{secrets.SSH_HOSTNAME}}
+        SSH_TARGET_DIR: ${{secrets.SSH_TARGET_DIR}}
