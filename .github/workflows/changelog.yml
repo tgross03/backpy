@@ -9,8 +9,6 @@ permissions:
 
 env:
   PR_NUMBER: ${{ github.event.number }}
-  IGNORE_LABEL: no-changelog-needed
-
 
 jobs:
   check:
@@ -18,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Check for ignore label
-      if: contains( github.event.pull_request.labels.*.name, "$IGNORE_LABEL")
+      if: contains( github.event.pull_request.labels.*.name, "no-changelog-needed")
       run: |
           echo Ignore label set. Check successful.
           exit 0
