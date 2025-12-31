@@ -33,12 +33,12 @@ Enter the number of the **pull request** your changes are included in.
 
 Then you have to enter the type of the changes:
 Choose the appropriate label for your changes. If you have changes with different types, **create a changelog for every change**.
-  
+
 .. code-block::
 
   > Fragment type (api, cli, docs, bugfix): █
 
-Now a text editor should open where you can specify your changes. 
+Now a text editor should open where you can specify your changes.
 Keep the description short and concise. You can use sphinx's ``rst`` syntax.
 
  **Tip:** Refer to this cheat sheet to look up possible ``rst`` commands: https://sphinx-tutorial.readthedocs.io/cheatsheet/
@@ -64,11 +64,11 @@ Create a file with the following naming scheme:
 
 The possible types are:
 
-============ ======================= 
-``api``      API Changes            
-``cli``      CLI Changes            
-``docs``     Documentation Changes  
-``bugfix``   Bug Fixes              
+============ =======================
+``api``      API Changes
+``cli``      CLI Changes
+``docs``     Documentation Changes
+``bugfix``   Bug Fixes
 ============ =======================
 
 Open the created file with a editor of your choice and document your changes.
@@ -78,4 +78,4 @@ Keep the description short and concise. You can use sphinx's ``rst`` syntax.
 
 Finally, save your document and commit it to the branch you created the pull request for.
 
-  
+
