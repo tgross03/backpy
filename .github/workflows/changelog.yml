@@ -19,7 +19,7 @@ jobs:
       if: ${{ hashFiles('docs/changes/"$PR_NUMBER".*.rst') == '' }} &&
           ${{ github.event.pull_request.user.login != 'pre-commit-ci[bot]' }} &&
           ${{ github.event.pull_request.user.login != 'dependabot[bot]' }} &&
-          !contains( toJson(github.event.pull_request.labels), 'no-changelog-needed') &&
+          !contains( toJson(github.event.pull_request.labels), 'no-changelog-needed')
       run: |
           echo ERROR: No changelog file found for pull request \#"$PR_NUMBER"!
           exit 1
