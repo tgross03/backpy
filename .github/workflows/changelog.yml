@@ -9,15 +9,22 @@ permissions:
 
 env:
   PR_NUMBER: ${{ github.event.number }}
+  IGNORE_LABELS: no-changelog-needed
+
 
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
+    - name: Check for ignore label
+      if: contains( github.event.pull_request.labels.*.name, '"$IGNORE_LABELS"')
+      run: |
+          echo Ignore label set. Check successful.
+          exit 0
     - name: Check for file
       if: ${{ hashFiles('docs/changes/"$PR_NUMBER".*.rst') == '' }}
       run: |
-          echo ERROR: No changelog file found for "$PR_NUMBER"!
+          echo ERROR: No changelog file found for pull request \#"$PR_NUMBER"!
           exit 1
 
