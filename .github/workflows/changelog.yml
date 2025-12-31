@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Check for ignore label
-      if: contains( github.event.pull_request.labels.*.name, "no-changelog-needed")
+      if: contains( github.event.pull_request.labels.*.name, 'no-changelog-needed')
       run: |
           echo Ignore label set. Check successful.
           exit 0
