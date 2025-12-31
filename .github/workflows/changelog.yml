@@ -1,0 +1,23 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+env:
+  PR_NUMBER: ${{ github.event.number }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Check for file
+      if: ${{ hashFiles('docs/changes/"$PR_NUMBER".*.rst') == '' }}
+      run: |
+          echo ERROR: No changelog file found for "$PR_NUMBER"!
+          exit 1
+
