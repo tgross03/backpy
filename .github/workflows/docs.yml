@@ -31,10 +31,18 @@ jobs:
       run: |
           towncrier build --yes
 
+    - name: Build sphinx docs
+      run: |
+        make -C docs html
+    - name: Compress build
+      run: |
+        sudo apt update --yes && sudo apt install zip --yes
+        cd docs/_build/html && zip -r ../html.zip ./*
+        cd ../../../
+
     # The App Token creation and git config setup were adapted from:
     #   - create-github-app-token (https://github.com/actions/create-github-app-token)
     #     Originally licensed under MIT License. Copyright (c) 2023 Gregor Martynus, Parker Brown.
-
     - name: Create GitHub App token
       id: app-token
       uses: actions/create-github-app-token@v2
@@ -44,6 +52,8 @@ jobs:
     - name: Get GitHub App User ID
       id: get-user-id
       run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
     - name: Setup git config
       run: |
         set +x
@@ -53,19 +63,12 @@ jobs:
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
       run: |
+        set +x
         git add -u docs/changes/
         git add docs/changes/*.rst
         git commit -m "Create Changelog for ${{ github.event.release.tag_name }}" || exit 0
 
         git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${{ github.event.release.target_commitish }}
-    - name: Build sphinx docs
-      run: |
-        make -C docs html
-    - name: Compress build
-      run: |
-        sudo apt update --yes && sudo apt install zip --yes
-        cd docs/_build/html && zip -r ../html.zip ./*
-        cd ../../../
 
     # Inspired by: https://stackoverflow.com/a/60479844 and https://stackoverflow.com/a/70447517
     - name: Create SSH key
