@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -28,6 +30,33 @@ jobs:
     - name: Build towncrier
       run: |
           towncrier build --yes
+
+    # The App Token creation was adapted from:
+    #   - create-github-app-token (https://github.com/actions/create-github-app-token)
+    #     Originally licensed under MIT License. Copyright (c) 2023 Gregor Martynus, Parker Brown.
+
+    - name: Create GitHub App token
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ secrets.APP_ID }}
+        private-key: ${{ secrets.APP_PRIVATE_KEY }}
+    - name: Get GitHub App User ID
+      id: get-user-id
+      run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+    - run: |
+        set +x
+        git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+        git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+    - name: Commit and Push
+      run: |
+        git add -u docs/changes/
+        git add docs/changes/*.rst
+        git commit -m "Create Changelog for ${{ github.event.release.tag_name }}" || exit 0
+
+        git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
     - name: Build sphinx docs
       run: |
         make -C docs html
@@ -36,6 +65,7 @@ jobs:
         sudo apt update --yes && sudo apt install zip --yes
         cd docs/_build/html && zip -r ../html.zip ./*
         cd ../../../
+
     # Inspired by: https://stackoverflow.com/a/60479844 and https://stackoverflow.com/a/70447517
     - name: Create SSH key
       run: |
