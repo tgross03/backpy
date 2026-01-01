@@ -16,8 +16,12 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Check for file
-      if: ${{ hashFiles('docs/changes/"$PR_NUMBER".*.rst') == '' && ! contains( github.event.pull_request.labels.*.name, 'skip-changelog') }}
+      if: ${{
+        hashFiles(format('docs/changes/{0}.*.rst', github.event.number)) == '' &&
+        ! contains( github.event.pull_request.labels.*.name, 'skip-changelog')
+        }}
       run: |
+          ls docs/changes
           echo ERROR: No changelog file found for pull request \#"$PR_NUMBER"!
           exit 1
 
