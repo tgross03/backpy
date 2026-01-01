@@ -31,7 +31,7 @@ jobs:
       run: |
           towncrier build --yes
 
-    # The App Token creation was adapted from:
+    # The App Token creation and git config setup were adapted from:
     #   - create-github-app-token (https://github.com/actions/create-github-app-token)
     #     Originally licensed under MIT License. Copyright (c) 2023 Gregor Martynus, Parker Brown.
 
@@ -46,7 +46,8 @@ jobs:
       run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
-    - run: |
+    - name: Setup git config
+      run: |
         set +x
         git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
         git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
