@@ -88,7 +88,7 @@ directory = "docs/changes"
 filename = "docs/changes/CHANGELOG.rst"
 package = "backpy"
 issue_format = "`#{issue} <https://github.com/tgross03/backpy/issues/{issue}>`_"
-ignore = ["tutorial-towncrier.rst"]
+ignore = ["tutorial-towncrier.rst", "CHANGELOG.rst"]
 
 [[tool.towncrier.type]]
 directory = "api"
