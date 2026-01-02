@@ -427,7 +427,6 @@ class BackupSpace:
 
         cls._config.create()
         cls.update_config()
-        cls._config.prepend_no_edit_warning()
 
         if cls._remote:
             with cls._remote(context_verbosity=verbosity_level):

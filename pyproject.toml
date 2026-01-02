@@ -30,7 +30,7 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "numpy",
-    "toml",
+    "tomli-w",
     "rich",
     "click",
     "rich-click",

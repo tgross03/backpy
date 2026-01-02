@@ -115,7 +115,7 @@ class Remote:
         self._context_managed: bool = False
         self._context_verbosity: int = _DEFAULT_CONTEXT_VERBOSITY
 
-    def __call__(self, context_verbosity: int, *args, **kwargs):
+    def __call__(self, context_verbosity: int = 1, *args, **kwargs):
         self._context_verbosity = context_verbosity
         return self
 
