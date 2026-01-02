@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -e ".[tests]"
+        pip install -e . --group tests
         pip freeze
 
     - name: Test with pytest
@@ -56,7 +56,7 @@ jobs:
     - name: Install documentation dependencies
       run: |
         pip install --upgrade pip
-        pip install -e ".[docs]"
+        pip install -e . --group docs
         pip freeze
     - name: Build documentation
       run: |

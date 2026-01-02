@@ -44,7 +44,13 @@ dependencies = [
     "catppuccin",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
+
+all = [
+  {include-group = "dev"},
+  {include-group = "docs"},
+  {include-group = "tests"},
+]
 
 dev = [
     "jupyterlab",
@@ -63,11 +69,13 @@ docs = [
     "numpydoc",
     "shibuya",
     "towncrier",
+    {include-group = "dev"},
 ]
 
 tests = [
     "pytest >= 7.0",
     "pytest-cov",
+    {include-group = "dev"}
 ]
 
 [project.scripts]
