@@ -10,6 +10,15 @@ from rich.progress import track
 
 from backpy.core.utils.exceptions import UnsupportedCompressionAlgorithmError
 
+__all__ = [
+    "compress",
+    "unpack",
+    "is_algorithm_available",
+    "filter_paths",
+    "CompressionAlgorithm",
+    "_compression_methods",
+]
+
 
 @dataclass
 class CompressionAlgorithm:

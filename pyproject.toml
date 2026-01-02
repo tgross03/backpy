@@ -30,9 +30,8 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "numpy",
-    "toml",
+    "tomli-w",
     "rich",
-    "pandas",
     "click",
     "rich-click",
     "click-params",
@@ -45,7 +44,13 @@ dependencies = [
     "catppuccin",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
+
+all = [
+  {include-group = "dev"},
+  {include-group = "docs"},
+  {include-group = "tests"},
+]
 
 dev = [
     "jupyterlab",
@@ -53,13 +58,24 @@ dev = [
 ]
 
 docs = [
-  "sphinx",
-  "sphinx-autobuild",
+    "sphinx",
+    "sphinx-autobuild",
+    "sphinx-iconify",
+    "sphinx-design",
+    "sphinx-copybutton",
+    "sphinx-togglebutton",
+    "sphinx-click",
+    "sphinx-automodapi",
+    "numpydoc",
+    "shibuya",
+    "towncrier",
+    {include-group = "dev"},
 ]
 
 tests = [
     "pytest >= 7.0",
     "pytest-cov",
+    {include-group = "dev"}
 ]
 
 [project.scripts]
@@ -74,3 +90,26 @@ write_to = "backpy/_version.py"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.towncrier]
+directory = "docs/changes"
+filename = "docs/changes/CHANGELOG.rst"
+package = "backpy"
+issue_format = "`#{issue} <https://github.com/tgross03/backpy/issues/{issue}>`_"
+ignore = ["tutorial-towncrier.rst", "CHANGELOG.rst"]
+
+[[tool.towncrier.type]]
+directory = "api"
+name = "API Changes"
+
+[[tool.towncrier.type]]
+directory = "cli"
+name = "CLI Changes"
+
+[[tool.towncrier.type]]
+directory = "docs"
+name = "Documentation Changes"
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Bug Fixes"

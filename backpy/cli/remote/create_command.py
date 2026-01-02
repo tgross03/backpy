@@ -2,7 +2,7 @@ from pathlib import Path
 
 import rich_click as click
 
-from backpy import Protocol, Remote, VariableLibrary
+from backpy import VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import (
     ConfirmInput,
@@ -12,6 +12,7 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
+from backpy.core.remote import Protocol, Remote
 from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
 
@@ -286,10 +287,11 @@ def create(
     try:
         remote.test_connection(verbosity_level=verbose)
     except Exception as e:
-        print_error_message(error=e, debug=debug)
+        remote.delete(delete_files=False, verbosity_level=verbose)
         print(
-            f"{palette.red}HINT:{palette.maroon} If you are experiencing connection problems "
-            "due to wrong settings of the remote, edit or remove it via the CLI."
+            f"{palette.red}ERROR:{palette.maroon} An error occurred while testing the connection! "
+            f"The remote has been deleted."
         )
+        return print_error_message(error=e, debug=debug)
 
     return None

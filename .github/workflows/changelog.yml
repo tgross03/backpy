@@ -1,0 +1,27 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+env:
+  PR_NUMBER: ${{ github.event.number }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Check for file
+      if: ${{
+        hashFiles(format('docs/changes/{0}.*.rst', github.event.number)) == '' &&
+        ! contains( github.event.pull_request.labels.*.name, 'skip-changelog')
+        }}
+      run: |
+          ls docs/changes
+          echo ERROR: No changelog file found for pull request \#"$PR_NUMBER"!
+          exit 1
+
