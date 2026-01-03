@@ -26,11 +26,17 @@ class BackupSpaceType:
 
 def get_backup_space_types() -> list[BackupSpaceType]:
     from backpy.core.space.file_backup_space import FileBackupSpace
+    from backpy.core.space.mysql_backup_space import MySQLBackupSpace
 
     return [
-        # BackupSpaceType(
-        #     "SQL_DATABASE", "Backup-Space of a MariaDB or MySQL database and its tables."
-        # ),
+        BackupSpaceType(
+            name="MySQL_DATABASE",
+            full_name="MySQL/MariaDB Database Backup Space",
+            description="Backup-Space of a MariaDB or MySQL database and its tables.",
+            use_inclusion=True,
+            use_exclusion=True,
+            child_class=MySQLBackupSpace,
+        ),
         BackupSpaceType(
             name="FILE_SYSTEM",
             full_name="File System Backup Space",

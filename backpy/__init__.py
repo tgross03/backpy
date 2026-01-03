@@ -7,9 +7,9 @@ from backpy import version
 
 from rich import traceback
 
-traceback.install(show_locals=True)
-
 VariableLibrary()
+
+traceback.install(show_locals=VariableLibrary.get_variable("exceptions.show_locals"))
 
 __all__ = [
     "VariableLibrary",

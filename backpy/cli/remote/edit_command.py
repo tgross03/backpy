@@ -4,8 +4,8 @@ import rich_click as click
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import PasswordInput, print_error_message
+from backpy.core.encryption.password import encrypt
 from backpy.core.remote import Protocol, Remote
-from backpy.core.remote.password import encrypt
 from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
 

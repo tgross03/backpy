@@ -22,7 +22,7 @@ from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
-from backpy.core.remote.password import decrypt, encrypt
+from backpy.core.encryption.password import decrypt, encrypt
 from backpy.core.utils.exceptions import (
     InvalidChecksumError,
     InvalidRemoteError,

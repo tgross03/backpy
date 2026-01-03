@@ -17,6 +17,7 @@ from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration
 from backpy.core.remote import Remote
 from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
+from backpy.core.utils.enum import Enum
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
@@ -24,7 +25,18 @@ if TYPE_CHECKING:
 
 palette = get_default_palette()
 
-__all__ = ["Backup"]
+__all__ = ["Backup", "RestoreMode"]
+
+
+class RestoreMode(Enum):
+    OVERWRITE = "Replaces existing objects and add missing"
+    MERGE = "Preserves existing objects and adds missing"
+    REPLACE = "Replaces existing objects and does not add missing"
+    CLEAN = "Deletes all existing objects and replaces with backup"
+    default = OVERWRITE
+
+    def __init__(self, description: str):
+        self.description = description
 
 
 class Backup:

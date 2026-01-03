@@ -44,6 +44,9 @@ class VariableLibrary:
                 "schedule_directory": str(Path.home() / ".backpy/schedules"),
                 "temporary_directory": str(Path.home() / ".backpy/.temp"),
             },
+            "database": {
+                "mysql_directory": str(Path.home() / ".backpy/databases/mysql"),
+            },
             "backup": {
                 "states": {
                     "default_compression_algorithm": "zip",
@@ -54,7 +57,13 @@ class VariableLibrary:
             },
             "cli": {
                 "color_palette": "latte",
-                "rich": {"palette": "solarized", "style": "box"},
+                "rich": {
+                    "palette": "solarized",
+                    "style": "box",
+                },
+            },
+            "exceptions": {
+                "show_locals": False,
             },
         }
 

@@ -42,6 +42,7 @@ dependencies = [
     "mergedeep",
     "python-crontab",
     "catppuccin",
+    "mysql-connector-python",
 ]
 
 [dependency-groups]
