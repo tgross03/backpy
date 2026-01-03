@@ -2,6 +2,10 @@
 #   - pyvisgen (https://github.com/radionets-project/pyvisgen/blob/main/.pre-commit-config.yaml)
 #     Originally licensed under MIT License. Copyright (c) 2021 radionets-project.
 
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
