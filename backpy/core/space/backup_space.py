@@ -12,6 +12,7 @@ from rich.table import Table
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.core.backup import compression
+from backpy.core.backup.backup import RestoreMode
 from backpy.core.backup.scheduling import Schedule
 from backpy.core.config import TOMLConfiguration, VariableLibrary
 from backpy.core.remote import Remote
@@ -86,7 +87,7 @@ class BackupSpace:
     def restore_backup(
         self,
         unique_id: str,
-        incremental: bool,
+        mode: RestoreMode,
         source: str = "local",
         force: bool = False,
         verbosity_level: int = 1,
@@ -345,7 +346,7 @@ class BackupSpace:
         cls = cls(
             name=config["general.name"],
             unique_id=unique_id,
-            space_type=BackupSpaceType.from_name(config["general.type"]),
+            space_type=BackupSpaceType[config["general.type"]],
             compression_algorithm=compression.CompressionAlgorithm.from_name(
                 config["general.compression_algorithm"]
             ),

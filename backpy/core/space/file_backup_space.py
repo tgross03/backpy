@@ -233,7 +233,7 @@ class FileBackupSpace(BackupSpace):
         from backpy.core.space import BackupSpaceType
 
         parent = super(FileBackupSpace, cls).new(
-            name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
+            name=name, space_type=BackupSpaceType.FILE_SYSTEM, **kwargs
         )
         cls = cls.__new__(cls)
         cls.__dict__.update(parent.__dict__)

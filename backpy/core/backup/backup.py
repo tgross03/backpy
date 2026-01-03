@@ -185,11 +185,11 @@ class Backup:
                 )
 
     def restore(
-        self, incremental: bool, source: str, force: bool, verbosity_level: int = 1
+        self, mode: RestoreMode, source: str, force: bool, verbosity_level: int = 1
     ) -> None:
         self._backup_space.get_as_child_class().restore_backup(
             unique_id=str(self._uuid),
-            incremental=incremental,
+            mode=mode,
             source=source,
             force=force,
             verbosity_level=verbosity_level,

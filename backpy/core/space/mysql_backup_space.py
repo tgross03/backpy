@@ -95,7 +95,7 @@ class MySQLBackupSpace(BackupSpace):
 
         parent = super(MySQLBackupSpace, cls).new(
             name=name,
-            space_type=BackupSpaceType.from_name("MySQLBackupSpace"),
+            space_type=BackupSpaceType.MYSQL_DATABASE,
             **kwargs,
         )
         cls = cls.__new__(cls)

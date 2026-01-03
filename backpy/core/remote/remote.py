@@ -23,6 +23,7 @@ from scp import SCPClient
 from backpy import TOMLConfiguration, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.core.encryption.password import decrypt, encrypt
+from backpy.core.utils import Enum
 from backpy.core.utils.exceptions import (
     InvalidChecksumError,
     InvalidRemoteError,
@@ -33,7 +34,7 @@ palette = get_default_palette()
 
 _DEFAULT_CONTEXT_VERBOSITY: int = 1
 
-__all__ = ["Remote", "Protocol", "get_protocols"]
+__all__ = ["Remote", "Protocol"]
 
 
 def _calculate_hash(path: Path) -> str:
@@ -43,36 +44,21 @@ def _calculate_hash(path: Path) -> str:
 
 
 @dataclass
-class Protocol:
-    name: str
+class ProtocolData:
     description: str
     supports_ssh_keys: bool
 
-    @classmethod
-    def from_name(cls, name: str):
-        for protocol in protocols:
-            if protocol.name == name:
-                return protocol
-        return None
 
-
-def get_protocols() -> list[Protocol]:
-    return protocols
-
-
-protocols = [
-    Protocol(
-        name="scp",
-        description="Uses the the 'scp.py' module to transfer files using scp (Secure Copy).",
-        supports_ssh_keys=True,
-    ),
-    Protocol(
-        name="sftp",
-        description="Uses the 'paramiko' module to transfer files using SFTP "
+class Protocol(ProtocolData, Enum):
+    SCP = (
+        "Uses the the 'scp.py' module to transfer files using scp (Secure Copy).",
+        True,
+    )
+    SFTP = (
+        "Uses the 'paramiko' module to transfer files using SFTP "
         "(Safe File Transport Protocol).",
-        supports_ssh_keys=True,
-    ),
-]
+        True,
+    )
 
 
 class Remote:
@@ -262,7 +248,7 @@ class Remote:
             )
 
             match self._protocol.name:
-                case "sftp":
+                case "SFTP":
                     sftp_client = self._client.open_sftp()
 
                     if source.is_file():
@@ -321,7 +307,7 @@ class Remote:
                                     callback=_progress,
                                 )
 
-                case "scp":
+                case "SCP":
                     _progress = lambda filename, total, sent: progress.update(
                         task, total=total, completed=sent
                     )
@@ -781,7 +767,7 @@ class Remote:
         cls = cls(
             name=config["name"],
             unique_id=unique_id,
-            protocol=Protocol.from_name(config["protocol"]),
+            protocol=Protocol[config["protocol"]],
             hostname=config["hostname"],
             username=config["username"],
             token=config["token"] if config["token"] != "" else None,

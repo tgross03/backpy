@@ -167,7 +167,7 @@ def create_backup_space(
 ) -> None:
     verbose += 1
 
-    backup_space_type = BackupSpaceType.from_name(name=space_type)
+    backup_space_type = BackupSpaceType[space_type]
 
     if interactive:
         return create_backup_space_interactive(

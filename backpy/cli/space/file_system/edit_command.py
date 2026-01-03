@@ -20,7 +20,7 @@ palette = get_default_palette()
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="The path to the directory that should be backed up.",
 )
-@common_options(space_type=BackupSpaceType.from_name("FILE_SYSTEM"))
+@common_options(space_type=BackupSpaceType.FILE_SYSTEM)
 def edit_file_system(file_path: str | None, **kwargs) -> None:
 
     force = kwargs["force"]

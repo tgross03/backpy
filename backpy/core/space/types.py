@@ -3,46 +3,38 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+from backpy.core.space.file_backup_space import FileBackupSpace
+from backpy.core.space.mysql_backup_space import MySQLBackupSpace
+from backpy.core.utils.enum import Enum
+
 if TYPE_CHECKING:
     from backpy.core.space import BackupSpace
 
+__all__ = ["BackupSpaceType"]
+
 
 @dataclass
-class BackupSpaceType:
-    name: str
+class BackupSpaceTypeData:
     full_name: str
     description: str
     use_exclusion: bool
     use_inclusion: bool
     child_class: Type[BackupSpace]
 
-    @classmethod
-    def from_name(cls, name):
-        for backup_space_type in get_backup_space_types():
-            if backup_space_type.name == name:
-                return backup_space_type
-        return None
 
+class BackupSpaceType(BackupSpaceTypeData, Enum):
 
-def get_backup_space_types() -> list[BackupSpaceType]:
-    from backpy.core.space.file_backup_space import FileBackupSpace
-    from backpy.core.space.mysql_backup_space import MySQLBackupSpace
-
-    return [
-        BackupSpaceType(
-            name="MySQL_DATABASE",
-            full_name="MySQL/MariaDB Database Backup Space",
-            description="Backup-Space of a MariaDB or MySQL database and its tables.",
-            use_inclusion=True,
-            use_exclusion=True,
-            child_class=MySQLBackupSpace,
-        ),
-        BackupSpaceType(
-            name="FILE_SYSTEM",
-            full_name="File System Backup Space",
-            description="Backup-Space of one or more files and/or directories.",
-            use_inclusion=True,
-            use_exclusion=True,
-            child_class=FileBackupSpace,
-        ),
-    ]
+    MYSQL_DATABASE = (
+        "MySQL/MariaDB Database Backup Space",
+        "Backup-Space of a MariaDB or MySQL database and its tables.",
+        True,
+        True,
+        MySQLBackupSpace,
+    )
+    FILE_SYSTEM = (
+        "File System Backup Space",
+        "Backup-Space of one or more files and/or directories.",
+        True,
+        True,
+        FileBackupSpace,
+    )

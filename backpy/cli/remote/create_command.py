@@ -13,12 +13,9 @@ from backpy.cli.elements import (
     print_error_message,
 )
 from backpy.core.remote import Protocol, Remote
-from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
 
 palette = get_default_palette()
-
-protocol_names = [protocol.name for protocol in protocols]
 
 
 def create_interactive(verbosity_level: int, debug: bool) -> None:
@@ -42,13 +39,13 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 
     protocol = TextInput(
         message=f"{palette.base}> Enter the desired transfer protocol "
-        f"({palette.overlay1}available: {', '.join(protocol_names)}{palette.base}):{RESET}",
+        f"({palette.overlay1}available: {', '.join(Protocol.names())}{palette.base}):{RESET}",
         suggest_matches=True,
-        suggestible_values=protocol_names,
+        suggestible_values=Protocol.names(),
         invalid_error_message=f"{palette.maroon}Invalid protocol! Please try again.{RESET}",
     ).prompt()
 
-    protocol = Protocol.from_name(name=protocol)
+    protocol = Protocol[protocol]
 
     hostname = TextInput(
         message=f"{palette.base}> Enter the hostname of the remote:{RESET}",
@@ -144,7 +141,7 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
 @click.option(
     "--protocol",
     "-p",
-    type=click.types.Choice(protocol_names),
+    type=click.types.Choice(Protocol.names()),
     default="scp",
     help="The transfer protocol to use for the file up- and download.",
 )

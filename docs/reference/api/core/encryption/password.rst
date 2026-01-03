@@ -8,7 +8,7 @@ Password (``backpy.core.remote.password``)
 
 The :mod:`backpy.core.encryption.password` submodule contains functions to handle encryption
 and decryption of passwords and passphrases so that they can be stored without immediate
-human readablity.
+human readability.
 
 
 .. automodapi:: backpy.core.encryption.password
