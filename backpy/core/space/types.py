@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Type
 
+from backpy.core.backup import RestoreMode
 from backpy.core.space.file_backup_space import FileBackupSpace
 from backpy.core.space.mysql_backup_space import MySQLBackupSpace
 from backpy.core.utils.enum import Enum
@@ -19,6 +20,7 @@ class BackupSpaceTypeData:
     description: str
     use_exclusion: bool
     use_inclusion: bool
+    supported_restore_modes: list[RestoreMode]
     child_class: Type[BackupSpace]
 
 
@@ -29,6 +31,7 @@ class BackupSpaceType(BackupSpaceTypeData, Enum):
         "Backup-Space of a MariaDB or MySQL database and its tables.",
         True,
         True,
+        [RestoreMode.OVERWRITE, RestoreMode.CLEAN],
         MySQLBackupSpace,
     )
     FILE_SYSTEM = (
@@ -36,5 +39,11 @@ class BackupSpaceType(BackupSpaceTypeData, Enum):
         "Backup-Space of one or more files and/or directories.",
         True,
         True,
+        [
+            RestoreMode.OVERWRITE,
+            RestoreMode.CLEAN,
+            RestoreMode.REPLACE,
+            RestoreMode.MERGE,
+        ],
         FileBackupSpace,
     )

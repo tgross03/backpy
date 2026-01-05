@@ -24,7 +24,6 @@ click.rich_click.THEME = (
 
 
 def _print_version(ctx, param, value):
-
     if not value or ctx.resilient_parsing:
         return
 
@@ -44,7 +43,6 @@ def _print_version(ctx, param, value):
 
 
 def _print_info(ctx, param, value):
-
     if not value or ctx.resilient_parsing:
         return
 
@@ -94,7 +92,7 @@ def _create_epilog(short):
 
 
 # Structure of the entry_point group and adding of the subcommands
-# taken from https://stackoverflow.com/a/39228156
+# inspired by the discussion https://stackoverflow.com/a/39228156
 @click.group(epilog=_create_epilog(short=True))
 @click.option(
     "--version",

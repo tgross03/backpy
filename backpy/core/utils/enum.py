@@ -2,7 +2,7 @@ from enum import Enum as PyEnum
 from enum import EnumMeta as PyEnumMeta
 
 
-# Based on: https://stackoverflow.com/a/24717640
+# Based on the concept from https://stackoverflow.com/a/24717640
 class EnumMeta(PyEnumMeta):
     def __getitem__(self, item: str):
         try:
@@ -15,7 +15,6 @@ class EnumMeta(PyEnumMeta):
 
 
 class Enum(PyEnum, metaclass=EnumMeta):
-
     @classmethod
     def names(cls):
         return list(cls.__members__.keys())

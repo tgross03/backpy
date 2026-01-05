@@ -33,7 +33,6 @@ class RestoreMode(Enum):
     MERGE = "Preserves existing objects and adds missing"
     REPLACE = "Replaces existing objects and does not add missing"
     CLEAN = "Deletes all existing objects and replaces with backup"
-    default = OVERWRITE
 
     def __init__(self, description: str):
         self.description = description
