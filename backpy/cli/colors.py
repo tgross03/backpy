@@ -4,6 +4,8 @@ from catppuccin.palette import PALETTE as _PALETTE
 
 from backpy import VariableLibrary
 
+__all__ = ["get_default_palette", "rgb_to_ansi"]
+
 
 # RGB to ANSI guide from
 # https://jakob-bagterp.github.io/colorist-for-python/ansi-escape-codes/rgb-colors/

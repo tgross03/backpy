@@ -4,16 +4,55 @@ from pathlib import Path
 
 from fuzzyfinder import fuzzyfinder
 
-from backpy import Backup, BackupSpace
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
-from backpy.core.backup import Schedule
+from backpy.core.backup import Backup, Schedule
 from backpy.core.remote import Remote
+from backpy.core.space import BackupSpace
 from backpy.core.utils.utils import str2bytes
 
 palette = get_default_palette()
 
+__all__ = [
+    "print_error_message",
+    "ConfirmInput",
+    "TextInput",
+    "PasswordInput",
+    "BackupSpaceInput",
+    "BackupInput",
+    "RemoteInput",
+    "ScheduleInput",
+    "EnumerationInput",
+    "FilePathInput",
+    "DirectoryPathInput",
+    "IntegerInput",
+    "FloatInput",
+    "MemorySizeInput",
+    "_validate_always",
+    "_validate_not_none",
+    "_validate_file_path",
+    "_validate_directory_path",
+    "_validate_memory",
+    "_validate_integer",
+    "_validate_float",
+]
+
 
 def print_error_message(error: Exception, debug: bool) -> None:
+    """
+    Print error messages depending on the debug mode.
+    If the debug mode is enabled, the exception is raised,
+    resulting in a stack trace. Otherwise, an error message is printed.
+
+    Parameters
+    ----------
+
+    error: Exception
+        The exception to raise / print.
+
+    debug: bool
+        Whether debug mode is enabled.
+
+    """
     if debug:
         raise error
     else:

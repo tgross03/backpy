@@ -20,9 +20,11 @@ from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
-    from backpy import BackupSpace
+    from backpy.core.space import BackupSpace
 
 palette = get_default_palette()
+
+__all__ = ["Backup"]
 
 
 class Backup:
@@ -161,7 +163,7 @@ class Backup:
         self._config.dump_dict(dict(merge({}, current_content, content)))
 
         if self.has_remote_archive():
-            with self._remote():
+            with self._remote(context_verbosity=verbosity_level):
                 self._remote.remove(
                     target=self.get_remote_config_path(),
                     verbosity_level=verbosity_level,
@@ -418,7 +420,6 @@ class Backup:
 
         cls._config.create()
         cls.update_config()
-        cls._config.prepend_no_edit_warning()
 
         if cls._backup_space.is_backup_limit_reached(post_creation=True):
             if cls._backup_space.is_auto_deletion_active():

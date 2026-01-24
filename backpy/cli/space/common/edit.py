@@ -3,11 +3,12 @@ from typing import Callable
 import rich_click as click
 from click_params import FirstOf
 
-from backpy import BackupSpace, BackupSpaceType, Remote
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import ConfirmInput, print_error_message
 from backpy.core.backup import compression
 from backpy.core.backup.compression import CompressionAlgorithm
+from backpy.core.remote import Remote
+from backpy.core.space import BackupSpace, BackupSpaceType
 from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import InvalidBackupSpaceError, InvalidRemoteError
 from backpy.core.utils.utils import str2bytes
@@ -90,7 +91,7 @@ def edit_backup_space(
         if isinstance(max_size, str):
             max_size = str2bytes(max_size)
 
-        if current_size > max_size:
+        if max_size != -1 and current_size > max_size:
             return print_error_message(
                 error=ValueError(
                     f"The given maximum disk usage of the backup space ({bytes2str(max_size)}) "
