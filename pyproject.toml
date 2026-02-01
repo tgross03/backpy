@@ -13,71 +13,64 @@ description = "A Python based CLI tool for backing up data and databases."
 readme = "README.md"
 authors = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
 maintainers = [{ name = "Tom Groß", email = "tom.gross@tu-dortmund.de" }]
-license = { text = "GPL-3.0", url = "https://www.gnu.org/licenses/gpl-3.0" }
+license = { text = "LGPL-3.0", url = "https://www.gnu.org/licenses/lgpl-3.0" }
 classifiers = [
-    "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.14",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.12",
-    "Environment :: Console",
-    "Operating System :: Unix",
-    "Natural Language :: English",
-    "Topic :: System :: Archiving :: Backup",
-    "Development Status :: 4 - Beta",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.12",
+  "Environment :: Console",
+  "Operating System :: Unix",
+  "Natural Language :: English",
+  "Topic :: System :: Archiving :: Backup",
+  "Development Status :: 4 - Beta",
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "numpy",
-    "tomli-w",
-    "rich",
-    "click",
-    "rich-click",
-    "click-params",
-    "fuzzyfinder",
-    "scp",
-    "paramiko",
-    "cryptography",
-    "mergedeep",
-    "python-crontab",
-    "catppuccin",
-    "mysql-connector-python",
+  "numpy",
+  "tomli-w",
+  "rich",
+  "click",
+  "rich-click",
+  "click-params",
+  "fuzzyfinder",
+  "scp",
+  "paramiko",
+  "cryptography",
+  "mergedeep",
+  "python-crontab",
+  "catppuccin",
+  "mysql-connector-python",
 ]
 
 [dependency-groups]
 
 all = [
-  {include-group = "dev"},
-  {include-group = "docs"},
-  {include-group = "tests"},
+  { include-group = "dev" },
+  { include-group = "docs" },
+  { include-group = "tests" },
 ]
 
-dev = [
-    "jupyterlab",
-    "pre-commit",
-]
+dev = ["jupyterlab", "pre-commit"]
 
 docs = [
-    "sphinx",
-    "sphinx-autobuild",
-    "sphinx-iconify",
-    "sphinx-design",
-    "sphinx-copybutton",
-    "sphinx-togglebutton",
-    "sphinx-click",
-    "sphinx-automodapi",
-    "numpydoc",
-    "shibuya",
-    "towncrier",
-    {include-group = "dev"},
+  "sphinx",
+  "sphinx-autobuild",
+  "sphinx-iconify",
+  "sphinx-design",
+  "sphinx-copybutton",
+  "sphinx-togglebutton",
+  "sphinx-click",
+  "sphinx-automodapi",
+  "numpydoc",
+  "shibuya",
+  "towncrier",
+  { include-group = "dev" },
 ]
 
-tests = [
-    "pytest >= 7.0",
-    "pytest-cov",
-    {include-group = "dev"}
-]
+tests = ["pytest >= 7.0", "pytest-cov", { include-group = "dev" }]
 
 [project.scripts]
 backpy = "backpy.cli.cli:entry_point"
