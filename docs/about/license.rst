@@ -5,7 +5,7 @@ License
 *******
 
 .. note::
-   This project is primarily licensed under the ``GNU GPL-3.0`` license.
+   This project is primarily licensed under the ``GNU LGPL-3.0`` license.
    However, certain files are licensed under the ``MIT`` license. The
    corresponding copyright notice is included in those file's headers.
 
