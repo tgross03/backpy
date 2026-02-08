@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from mergedeep import merge
 
@@ -7,7 +8,6 @@ from backpy.core.config.configuration import TOMLConfiguration
 
 
 class VariableLibrary:
-
     _instance = None
 
     def __new__(cls):
@@ -73,12 +73,12 @@ class VariableLibrary:
         return instance._path
 
     @classmethod
-    def get_variable(cls, key: str):
+    def get_variable(cls, key: str) -> Any:
         instance = cls()
         return instance._config[key]
 
     @classmethod
-    def set_variable(cls, key: str, value: str) -> None:
+    def set_variable(cls, key: str, value: Any) -> None:
         instance = cls()
         instance._config[key] = value
 
