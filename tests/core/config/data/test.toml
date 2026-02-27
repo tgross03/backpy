@@ -1,0 +1,80 @@
+int = 1
+float = 1.0
+
+int_list = [1, 2]
+float_list = [1.0, 2.0]
+
+string = "test"
+
+date = 2026-01-01T23:23:23+01:00
+
+true_bool = true
+false_bool = false
+
+dict = { a = 1.0, b = 2.0 }
+
+[sectionA]
+int = 1
+float = 1.0
+
+int_list = [1, 2]
+float_list = [1.0, 2.0]
+
+string = "test"
+
+date = 2026-01-01T23:23:23+01:00
+
+true_bool = true
+false_bool = false
+
+dict = { a = 1.0, b = 2.0 }
+
+[sectionA.subsectionA]
+
+int = 1
+float = 1.0
+
+int_list = [1, 2]
+float_list = [1.0, 2.0]
+
+string = "test"
+
+date = 2026-01-01T23:23:23+01:00
+
+true_bool = true
+false_bool = false
+
+dict = { a = 1.0, b = 2.0 }
+
+[sectionA.subsectionA.subsubsectionA]
+
+int = 1
+float = 1.0
+
+int_list = [1, 2]
+float_list = [1.0, 2.0]
+
+string = "test"
+
+date = 2026-01-01T23:23:23+01:00
+
+true_bool = true
+false_bool = false
+
+dict = { a = 1.0, b = 2.0 }
+
+[sectionB]
+int = 1
+float = 1.0
+
+int_list = [1, 2]
+float_list = [1.0, 2.0]
+
+string = "test"
+
+date = 2026-01-01T23:23:23+01:00
+
+true_bool = true
+false_bool = false
+
+dict = { a = 1.0, b = 2.0 }
