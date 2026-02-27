@@ -1,124 +1,171 @@
 import tomllib
+from enum import Enum
+from os import PathLike
 from pathlib import Path
+from typing import Any
 
 import tomli_w
 
 from backpy.core.utils.exceptions import InvalidTOMLConfigurationError
 
+__all__ = ["TOMLConfiguration", "MissingKeyPolicy"]
 
-def _parse_key(key: str):
-    key_components = key.split(".")
-    return key_components
+
+class MissingKeyPolicy(Enum):
+    ERROR = 1
+    RETURN_NONE = 2
 
 
 class TOMLConfiguration:
     def __init__(
         self,
-        path: str | Path,
+        path: PathLike | str,
         create_if_not_exists: bool = False,
-        none_if_unknown_key: bool = False,
+        missing_key_policy: MissingKeyPolicy = MissingKeyPolicy.ERROR,
     ):
-        self._path: Path = Path(path) if isinstance(path, str) else path
-        self._none_if_unknown_key: bool = none_if_unknown_key
+        """
+        Initializes a new TOML configuration.
 
-        if self._path.suffix != ".toml":
+        Parameters
+        ----------
+
+        path : PathLike | str
+            The path to the toml file.
+
+        create_if_not_exists : bool, optional
+            Whether to create the corresponding file if it does not exist.
+            Default is ``False``.
+
+        missing_key_policy : MissingKeyPolicy | str, optional
+            The policy to react to missing keys.
+            Default is ``MissingKeyPolicy.ERROR`` meaning that an error will be raised.
+
+        """
+
+        self._path: Path = Path(path)
+
+        if self._path.suffix.lower() != ".toml":
             raise InvalidTOMLConfigurationError(
-                "The given configuration file has to be a TOML file!"
+                "The given file has an incorrect file suffix "
+                f"(is '{self._path.suffix}')! Has to be 'toml'"
             )
 
-        if create_if_not_exists:
+        if not self.exists() and create_if_not_exists:
             self.create()
 
-    def is_valid(self) -> bool:
-        return self._path.is_file() and self._path.suffix == ".toml"
+        self._missing_key_policy: MissingKeyPolicy = (
+            missing_key_policy
+            if isinstance(missing_key_policy, MissingKeyPolicy)
+            else MissingKeyPolicy[missing_key_policy]
+        )
 
-    def __getitem__(self, item: str):
-        if not self.is_valid():
-            raise InvalidTOMLConfigurationError(
-                "The given configuration file is not valid!"
-            )
+    def create(self) -> None:
+        """
+        Creates an empty TOML file at the config path.
+        """
 
-        keys = _parse_key(item)
+        self._path.parent.mkdir(exist_ok=True, parents=True)
+        self._path.touch(exist_ok=True)
 
-        with open(self._path, "rb") as tomlf:
-            content_dict = tomllib.load(tomlf)
+    def exists(self) -> bool:
+        """
+        Checks whether the file exists.
 
-        content = content_dict
+        Returns
+        -------
+
+        bool : Whether the file exists.
+        """
+        return self._path.exists() and self._path.is_file()
+
+    def __getitem__(self, key: str) -> Any:
+        content = self.asdict()
+
+        keys = key.split(".")
+
         for key in keys:
-            if isinstance(content, dict):
-                try:
-                    content = content[key]
-                except KeyError as error:
-                    if self._none_if_unknown_key:
-                        return None
-                    else:
-                        raise error
-            else:
-                raise KeyError(
-                    f"The key component '{key}' is set to a non-dict value and "
-                    "therefore there cannot be a child value!"
-                )
+            if not isinstance(content, dict) or key not in content:
+                return self._handle_missing_key(key=key)
+
+            content = content[key]
 
         return content
 
-    def __setitem__(self, key: str, value: object):
-        if not self.is_valid():
-            raise InvalidTOMLConfigurationError(
-                "The variable configuration could not "
-                f"be found at location {str(self._path)}!"
-            )
+    def _handle_missing_key(self, key: str) -> None:
+        match self._missing_key_policy:
+            case MissingKeyPolicy.ERROR:
+                raise KeyError(f"Invalid key: '{key}'")
+            case MissingKeyPolicy.RETURN_NONE:
+                return None
 
-        keys = _parse_key(key)
-        with open(self._path, "rb") as tomlf:
-            content_dict = tomllib.load(tomlf)
+    def __setitem__(self, key: str, value: Any) -> None:
+        content = self.asdict()
 
-        content = content_dict
-        for i in range(len(keys)):
-            key = keys[i]
-            if i < len(keys) - 1:
-                if key not in content:
-                    content[key] = dict()
-                    content = content[key]
-                else:
-                    if isinstance(content[key], dict):
-                        content = content[key]
-                    else:
-                        raise KeyError(
-                            f"The key component '{key}' is already "
-                            "set to a non-dict value!"
+        keys = key.split(".")
+
+        content_dict = content
+        for kidx, key in zip(range(len(keys)), keys):
+            if not isinstance(content_dict, dict):
+                raise KeyError(f"Invalid key: '{key}'")
+
+            if kidx == len(keys) - 1:
+                if key in content_dict:
+                    if (
+                        isinstance(content_dict[key], dict)
+                        and not isinstance(value, dict)
+                    ) or (
+                        isinstance(value, dict)
+                        and not isinstance(content_dict[key], dict)
+                    ):
+                        raise TypeError(
+                            "The type of the value that to be set must be the "
+                            "same of the current value!"
                         )
+
+                if value is not None:
+                    content_dict[key] = value
+                else:
+                    del content_dict[key]
             else:
-                content[key] = value
+                content_dict = content_dict[key]
 
-        with open(self._path, "wb") as file:
-            tomli_w.dump(content_dict, file)
+        with open(self._path, "wb") as tomlf:
+            tomli_w.dump(content, tomlf)
 
-    def __contains__(self, item: str):
-        try:
-            value = self[item]
+    def __contains__(self, key: str) -> bool:
+        if not self.exists():
+            return False
 
-            if value is None:
+        content = self.asdict()
+        keys = key.split(".")
+
+        for key in keys:
+            if key not in content:
                 return False
 
-        except KeyError:
-            return False
+            content = content[key]
+
         return True
 
-    def create(self, create_parents: bool = True) -> None:
-        if create_parents:
-            self._path.parent.mkdir(exist_ok=True, parents=True)
+    def get_keys(self, non_dict_only: bool = False) -> list[str]:
+        """
+        Provides a list of all keys in the configuration file.
 
-        self._path.touch(exist_ok=True)
+        Parameters
+        ----------
 
-    def dump_dict(self, content: dict) -> None:
-        with open(self._path, "wb") as file:
-            tomli_w.dump(content, file)
+        non_dict_only : bool, optional
+            Whether only to show the keys for variables and not for
+            sections of the configuration file.
+            Default is ``True``.
 
-    def as_dict(self) -> dict:
-        with open(self._path, "rb") as tomlf:
-            return tomllib.load(tomlf)
+        Returns
+        -------
 
-    def get_keys(self, non_dict_only: bool = False):
+        list[str] : A list of keys in the file.
+
+        """
+
         def recursive_keys(dictionary: dict, parent: str | None = None) -> list[str]:
             keys = []
             for key, value in dictionary.items():
@@ -131,7 +178,31 @@ class TOMLConfiguration:
                     keys.append(parent_key)
             return keys
 
-        return recursive_keys(dictionary=self.as_dict())
+        return recursive_keys(dictionary=self.asdict())
 
-    def get_path(self) -> Path:
-        return self._path
+    def asdict(self) -> dict[str, Any]:
+        """
+        Provides the content of the TOML file as a dictionary.
+
+        Returns
+        -------
+
+        dict : The content of the TOML file.
+        """
+        with open(self._path, "rb") as tomlf:
+            content = tomllib.load(tomlf)
+
+        return content
+
+    def dump(self, content: dict[str, Any]) -> None:
+        """
+        Dumps the given dictionary as content into the TOML file.
+
+        Parameters
+        ----------
+
+        content : dict
+            The content to dump into the file.
+        """
+        with open(self._path, "wb") as tomlf:
+            tomli_w.dump(content, tomlf)

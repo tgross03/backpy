@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from rich.table import Table
 
-from backpy.core.backup import compression
+from backpy.core.backup import RestoreMode, compression
 from backpy.core.config import VariableLibrary
 from backpy.core.space.backup_space import BackupSpace
 from backpy.core.utils.exceptions import (
@@ -54,7 +54,7 @@ class FileBackupSpace(BackupSpace):
     def restore_backup(
         self,
         unique_id: str,
-        incremental: bool,
+        mode: RestoreMode,
         source: str = "local",
         force: bool = False,
         verbosity_level: int = 1,
@@ -99,12 +99,12 @@ class FileBackupSpace(BackupSpace):
 
         start_time = time.time()
 
-        if not incremental:
+        if mode == RestoreMode.CLEAN:
 
             if backup.is_full_backup():
                 if verbosity_level > 1:
                     print(
-                        "Mode is non-incremental and is full backup ... Attempting to "
+                        f"Restore mode is '{mode.name}' and is full backup ... Attempting to "
                         "delete all files ..."
                     )
 
@@ -155,7 +155,6 @@ class FileBackupSpace(BackupSpace):
                         "because its SHA256 sum could not be verified. "
                         "Use --force / -f flag to force the restoring."
                     )
-
         else:
             archive_path = backup.get_path()
 
@@ -233,7 +232,7 @@ class FileBackupSpace(BackupSpace):
         from backpy.core.space import BackupSpaceType
 
         parent = super(FileBackupSpace, cls).new(
-            name=name, space_type=BackupSpaceType.from_name("FILE_SYSTEM"), **kwargs
+            name=name, space_type=BackupSpaceType.FILE_SYSTEM, **kwargs
         )
         cls = cls.__new__(cls)
         cls.__dict__.update(parent.__dict__)

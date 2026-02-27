@@ -35,7 +35,7 @@ class VariableLibrary:
         if not self.exists():
             self._path.touch()
 
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "paths": {
@@ -43,6 +43,9 @@ class VariableLibrary:
                 "remote_directory": str(Path.home() / ".backpy/remotes"),
                 "schedule_directory": str(Path.home() / ".backpy/schedules"),
                 "temporary_directory": str(Path.home() / ".backpy/.temp"),
+            },
+            "database": {
+                "mysql_directory": str(Path.home() / ".backpy/databases/mysql"),
             },
             "backup": {
                 "states": {
@@ -54,11 +57,17 @@ class VariableLibrary:
             },
             "cli": {
                 "color_palette": "latte",
-                "rich": {"palette": "solarized", "style": "box"},
+                "rich": {
+                    "palette": "solarized",
+                    "style": "box",
+                },
+            },
+            "exceptions": {
+                "show_locals": False,
             },
         }
 
-        self._config.dump_dict(
+        self._config.dump(
             content if regenerate else dict(merge({}, content, current_content))
         )
 
@@ -85,4 +94,4 @@ class VariableLibrary:
     @classmethod
     def exists(cls) -> bool:
         instance = cls()
-        return instance._config.is_valid()
+        return instance._config.exists()

@@ -4,12 +4,9 @@ import rich_click as click
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.cli.elements import PasswordInput, print_error_message
+from backpy.core.encryption.password import encrypt
 from backpy.core.remote import Protocol, Remote
-from backpy.core.remote.password import encrypt
-from backpy.core.remote.remote import protocols
 from backpy.core.utils.exceptions import InvalidRemoteError
-
-protocol_names = [protocol.name for protocol in protocols]
 
 palette = get_default_palette()
 
@@ -23,7 +20,7 @@ palette = get_default_palette()
 @click.option(
     "--protocol",
     "-p",
-    type=click.types.Choice(protocol_names),
+    type=click.types.Choice(Protocol.names()),
     default=None,
     help="The transfer protocol to use for the file up- and download.",
 )
@@ -127,7 +124,7 @@ def edit(
                 debug=debug,
             )
 
-    prev_config = remote._config.as_dict().copy()
+    prev_config = remote._config.asdict().copy()
 
     remote.disconnect(verbosity_level=verbose)
 
@@ -135,7 +132,7 @@ def edit(
         remote._name = name
 
     if protocol is not None:
-        remote._protocol = Protocol.from_name(protocol)
+        remote._protocol = Protocol[protocol]
 
     if hostname is not None:
         remote._hostname = hostname
@@ -180,7 +177,7 @@ def edit(
 
     remote.update_config()
 
-    if remote._config.as_dict() == prev_config and verbose >= 1:
+    if remote._config.asdict() == prev_config and verbose >= 1:
         print(f"{palette.flamingo}Nothing to update. No changes applied.{RESET}")
     elif verbose >= 1:
         print(

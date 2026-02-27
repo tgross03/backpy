@@ -15,8 +15,10 @@ from rich.table import Table
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration
+from backpy.core.config.configuration import MissingKeyPolicy
 from backpy.core.remote import Remote
 from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
+from backpy.core.utils.enum import Enum
 from backpy.core.utils.exceptions import InvalidBackupError, InvalidChecksumError
 
 if TYPE_CHECKING:
@@ -24,7 +26,17 @@ if TYPE_CHECKING:
 
 palette = get_default_palette()
 
-__all__ = ["Backup"]
+__all__ = ["Backup", "RestoreMode"]
+
+
+class RestoreMode(Enum):
+    OVERWRITE = "Replaces existing objects and add missing"
+    MERGE = "Preserves existing objects and adds missing"
+    REPLACE = "Replaces existing objects and does not add missing"
+    CLEAN = "Deletes all existing objects and replaces with backup"
+
+    def __init__(self, description: str):
+        self.description = description
 
 
 class Backup:
@@ -146,7 +158,7 @@ class Backup:
         self.update_config(verbosity_level=verbosity_level)
 
     def update_config(self, verbosity_level: int = 1):
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "uuid": str(self._uuid),
@@ -160,7 +172,7 @@ class Backup:
             "locked": self._locked,
         }
 
-        self._config.dump_dict(dict(merge({}, current_content, content)))
+        self._config.dump(dict(merge({}, current_content, content)))
 
         if self.has_remote_archive():
             with self._remote(context_verbosity=verbosity_level):
@@ -173,11 +185,11 @@ class Backup:
                 )
 
     def restore(
-        self, incremental: bool, source: str, force: bool, verbosity_level: int = 1
+        self, mode: RestoreMode, source: str, force: bool, verbosity_level: int = 1
     ) -> None:
         self._backup_space.get_as_child_class().restore_backup(
             unique_id=str(self._uuid),
-            incremental=incremental,
+            mode=mode,
             source=source,
             force=force,
             verbosity_level=verbosity_level,
@@ -288,9 +300,11 @@ class Backup:
                 f"The Backup with UUID '{unique_id}' does not exist."
             )
 
-        config = TOMLConfiguration(config_path, none_if_unknown_key=True)
+        config = TOMLConfiguration(
+            config_path, missing_key_policy=MissingKeyPolicy.RETURN_NONE
+        )
 
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' could not be loaded because its"
                 "'config.toml' is invalid!"
@@ -524,7 +538,7 @@ class Backup:
         return self._created_at
 
     def get_config(self) -> dict:
-        return self._config.as_dict()
+        return self._config.asdict()
 
     def get_file_size(self, verbosity_level: int = 1) -> int:
         if self.has_local_archive():

@@ -25,7 +25,7 @@ def interactive() -> dict[str, Path]:
     help=f"Create a backup space with a {palette.sky}'NAME'{RESET} for a "
     f"file system at a {palette.sky}'FILE_PATH'{RESET}.",
 )
-@common_options(space_type=BackupSpaceType.from_name("FILE_SYSTEM"))
+@common_options(space_type=BackupSpaceType.FILE_SYSTEM)
 @click.argument(
     "file_path",
     default="./",

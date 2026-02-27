@@ -12,8 +12,10 @@ from rich.table import Table
 
 from backpy.cli.colors import RESET, get_default_palette
 from backpy.core.backup import compression
+from backpy.core.backup.backup import RestoreMode
 from backpy.core.backup.scheduling import Schedule
 from backpy.core.config import TOMLConfiguration, VariableLibrary
+from backpy.core.config.configuration import MissingKeyPolicy
 from backpy.core.remote import Remote
 from backpy.core.utils import bytes2str
 from backpy.core.utils.exceptions import (
@@ -86,7 +88,7 @@ class BackupSpace:
     def restore_backup(
         self,
         unique_id: str,
-        incremental: bool,
+        mode: RestoreMode,
         source: str = "local",
         force: bool = False,
         verbosity_level: int = 1,
@@ -135,7 +137,7 @@ class BackupSpace:
         return backups
 
     def update_config(self):
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "general": {
@@ -156,7 +158,7 @@ class BackupSpace:
             },
         }
 
-        self._config.dump_dict(dict(merge({}, current_content, content)))
+        self._config.dump(dict(merge({}, current_content, content)))
 
     def clear(self, verbosity_level: int = 1):
         if self._remote is not None:
@@ -307,7 +309,7 @@ class BackupSpace:
             VariableLibrary.get_variable("paths.backup_directory")
         ).glob("*"):
             tomlf = directory / "config.toml"
-            if directory.is_dir() and TOMLConfiguration(tomlf).is_valid():
+            if directory.is_dir() and TOMLConfiguration(tomlf).exists():
                 spaces.append(BackupSpace.load_by_uuid(directory.name))
 
         return spaces
@@ -328,9 +330,11 @@ class BackupSpace:
                 f"There is no BackupSpace present with the UUID '{unique_id}'."
             )
 
-        config = TOMLConfiguration(path=path / "config.toml", none_if_unknown_key=True)
+        config = TOMLConfiguration(
+            path=path / "config.toml", missing_key_policy=MissingKeyPolicy.RETURN_NONE
+        )
 
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidBackupSpaceError(
                 "The BackupSpace could not be loaded because its"
                 "'config.toml' is invalid or missing!"
@@ -345,7 +349,7 @@ class BackupSpace:
         cls = cls(
             name=config["general.name"],
             unique_id=unique_id,
-            space_type=BackupSpaceType.from_name(config["general.type"]),
+            space_type=BackupSpaceType[config["general.type"]],
             compression_algorithm=compression.CompressionAlgorithm.from_name(
                 config["general.compression_algorithm"]
             ),
@@ -367,7 +371,7 @@ class BackupSpace:
         ):
             config = TOMLConfiguration(tomlf, create_if_not_exists=False)
 
-            if not config.is_valid():
+            if not config.exists():
                 continue
 
             if name != config["general.name"]:
@@ -504,7 +508,7 @@ class BackupSpace:
         return self._backup_dir
 
     def get_config(self) -> dict:
-        return self._config.as_dict()
+        return self._config.asdict()
 
     def get_disk_usage(self, verbosity_level: int = 1) -> int:
         if self._remote is not None:
