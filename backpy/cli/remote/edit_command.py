@@ -124,7 +124,7 @@ def edit(
                 debug=debug,
             )
 
-    prev_config = remote._config.as_dict().copy()
+    prev_config = remote._config.asdict().copy()
 
     remote.disconnect(verbosity_level=verbose)
 
@@ -177,7 +177,7 @@ def edit(
 
     remote.update_config()
 
-    if remote._config.as_dict() == prev_config and verbose >= 1:
+    if remote._config.asdict() == prev_config and verbose >= 1:
         print(f"{palette.flamingo}Nothing to update. No changes applied.{RESET}")
     elif verbose >= 1:
         print(

@@ -22,6 +22,7 @@ from scp import SCPClient
 
 from backpy import TOMLConfiguration, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
+from backpy.core.config.configuration import MissingKeyPolicy
 from backpy.core.encryption.password import decrypt, encrypt
 from backpy.core.utils import Enum
 from backpy.core.utils.exceptions import (
@@ -123,7 +124,7 @@ class Remote:
         return False
 
     def update_config(self):
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "name": self._name,
@@ -141,7 +142,7 @@ class Remote:
             "sha256_cmd": self._sha256_cmd,
         }
 
-        self._config.dump_dict(dict(merge({}, current_content, content)))
+        self._config.dump(dict(merge({}, current_content, content)))
 
     def connect(self, verbosity_level: int = 1) -> None:
         if self._client is not None:
@@ -757,12 +758,12 @@ class Remote:
             create_if_not_exists=False,
         )
 
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidRemoteError(
                 f"The remote with UUID '{str(unique_id)}' could not be found!"
             )
 
-        config._none_if_unknown_key = True
+        config._missing_key_policy = MissingKeyPolicy.RETURN_NONE
 
         cls = cls(
             name=config["name"],
@@ -784,7 +785,7 @@ class Remote:
 
         cls._config = config
 
-        config._none_if_unknown_key = False
+        config._missing_key_policy = MissingKeyPolicy.ERROR
 
         cls.update_config()
         return cls
@@ -796,7 +797,7 @@ class Remote:
         ):
             config = TOMLConfiguration(tomlf, create_if_not_exists=False)
 
-            if not config.is_valid():
+            if not config.exists():
                 continue
 
             if name != config["name"]:

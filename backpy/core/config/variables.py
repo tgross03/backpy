@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from mergedeep import merge
 
@@ -7,7 +8,6 @@ from backpy.core.config.configuration import TOMLConfiguration
 
 
 class VariableLibrary:
-
     _instance = None
 
     def __new__(cls):
@@ -35,7 +35,7 @@ class VariableLibrary:
         if not self.exists():
             self._path.touch()
 
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "paths": {
@@ -67,7 +67,7 @@ class VariableLibrary:
             },
         }
 
-        self._config.dump_dict(
+        self._config.dump(
             content if regenerate else dict(merge({}, content, current_content))
         )
 
@@ -82,16 +82,16 @@ class VariableLibrary:
         return instance._path
 
     @classmethod
-    def get_variable(cls, key: str):
+    def get_variable(cls, key: str) -> Any:
         instance = cls()
         return instance._config[key]
 
     @classmethod
-    def set_variable(cls, key: str, value: str) -> None:
+    def set_variable(cls, key: str, value: Any) -> None:
         instance = cls()
         instance._config[key] = value
 
     @classmethod
     def exists(cls) -> bool:
         instance = cls()
-        return instance._config.is_valid()
+        return instance._config.exists()

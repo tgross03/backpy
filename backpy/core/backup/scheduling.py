@@ -70,7 +70,7 @@ class Schedule:
             print(f"Deleted config for schedule {self._uuid}")
 
     def update_config(self):
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "uuid": str(self._uuid),
@@ -82,7 +82,7 @@ class Schedule:
             "description": self._description,
         }
 
-        self._config.dump_dict(dict(merge({}, current_content, content)))
+        self._config.dump(dict(merge({}, current_content, content)))
 
     def get_info_table(self, include_command: bool = False) -> Table:
         table = Table(
@@ -145,7 +145,7 @@ class Schedule:
             path=Path(VariableLibrary.get_variable("paths.schedule_directory"))
             / (unique_id + ".toml")
         )
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidScheduleError("There is no schedule with this UUID.")
 
         return cls(

@@ -27,7 +27,7 @@ palette = get_default_palette()
 def list_variables(key: str | None, debug: bool) -> None:
     try:
         if key is None:
-            value = VariableLibrary.get_config().as_dict()
+            value = VariableLibrary.get_config().asdict()
         else:
             value = VariableLibrary.get_variable(key=key)
     except InvalidTOMLConfigurationError:

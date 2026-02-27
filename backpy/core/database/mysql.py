@@ -66,7 +66,7 @@ class MySQLServer:
 
     def update_config(self) -> None:
 
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "uuid": str(self._uuid),
@@ -78,7 +78,7 @@ class MySQLServer:
             "database": self._database,
         }
 
-        self._config.dump_dict(content=dict(merge({}, current_content, content)))
+        self._config.dump(content=dict(merge({}, current_content, content)))
 
     def connect(self, verbosity_level: int = 1) -> MySQLConnection:
         if self.is_connected():
@@ -151,7 +151,7 @@ class MySQLServer:
         ).rglob("*.toml"):
             config = TOMLConfiguration(path=tomlf, create_if_not_exists=False)
 
-            if not config.is_valid():
+            if not config.exists():
                 continue
 
             if name != config["name"]:
@@ -163,7 +163,7 @@ class MySQLServer:
                 break
 
         raise InvalidDatabaseException(
-            f"There is no valid MySQL server present" f"with the name '{name}'."
+            f"There is no valid MySQL server presentwith the name '{name}'."
         )
 
     @classmethod
@@ -176,9 +176,9 @@ class MySQLServer:
             create_if_not_exists=False,
         )
 
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidDatabaseException(
-                f"The MySQL server with UUID '{unique_id}' " "could not be found."
+                f"The MySQL server with UUID '{unique_id}' could not be found."
             )
 
         instance = cls(
@@ -233,7 +233,7 @@ class MySQLServer:
     #####################
 
     def is_connected(self) -> bool:
-        return self._connection is not None and self._connection.is_connected
+        return self._connection is not None and self._connection.is_connected()
 
     def get_connection(self) -> MySQLConnection | None:
         return self._connection

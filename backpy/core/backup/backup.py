@@ -15,6 +15,7 @@ from rich.table import Table
 from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.core.backup import compression
 from backpy.core.config import TOMLConfiguration
+from backpy.core.config.configuration import MissingKeyPolicy
 from backpy.core.remote import Remote
 from backpy.core.utils import TimeObject, bytes2str, calculate_sha256sum
 from backpy.core.utils.enum import Enum
@@ -157,7 +158,7 @@ class Backup:
         self.update_config(verbosity_level=verbosity_level)
 
     def update_config(self, verbosity_level: int = 1):
-        current_content = self._config.as_dict()
+        current_content = self._config.asdict()
 
         content = {
             "uuid": str(self._uuid),
@@ -171,7 +172,7 @@ class Backup:
             "locked": self._locked,
         }
 
-        self._config.dump_dict(dict(merge({}, current_content, content)))
+        self._config.dump(dict(merge({}, current_content, content)))
 
         if self.has_remote_archive():
             with self._remote(context_verbosity=verbosity_level):
@@ -299,9 +300,11 @@ class Backup:
                 f"The Backup with UUID '{unique_id}' does not exist."
             )
 
-        config = TOMLConfiguration(config_path, none_if_unknown_key=True)
+        config = TOMLConfiguration(
+            config_path, missing_key_policy=MissingKeyPolicy.RETURN_NONE
+        )
 
-        if not config.is_valid():
+        if not config.exists():
             raise InvalidBackupError(
                 f"The Backup with UUID '{unique_id}' could not be loaded because its"
                 "'config.toml' is invalid!"
@@ -535,7 +538,7 @@ class Backup:
         return self._created_at
 
     def get_config(self) -> dict:
-        return self._config.as_dict()
+        return self._config.asdict()
 
     def get_file_size(self, verbosity_level: int = 1) -> int:
         if self.has_local_archive():
