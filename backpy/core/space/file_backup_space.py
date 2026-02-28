@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import tempfile
 import time
 import warnings
 from datetime import timedelta
@@ -99,30 +100,20 @@ class FileBackupSpace(BackupSpace):
 
         start_time = time.time()
 
+        # Delete all affected files
         if mode == RestoreMode.CLEAN:
 
-            if backup.is_full_backup():
-                if verbosity_level > 1:
-                    print(
-                        f"Restore mode is '{mode.name}' and is full backup ... Attempting to "
-                        "delete all files ..."
-                    )
-
-                was_dir = self._file_path.is_dir()
-
-                shutil.rmtree(self._file_path)
-
-                if was_dir:
-                    self._file_path.mkdir(exist_ok=True, parents=True)
-
-            else:
-                files, _ = compression.filter_paths(
-                    root_path=self._file_path,
-                    include=backup.get_include(),
-                    exclude=backup.get_exclude(),
+            if verbosity_level > 1:
+                print(
+                    f"Restore mode is '{mode.name}' ... Attempting to delete all files ..."
                 )
-                for file in files:
-                    file.unlink(missing_ok=True)
+
+            was_dir = self._file_path.is_dir()
+
+            shutil.rmtree(self._file_path)
+
+            if was_dir:
+                self._file_path.mkdir(exist_ok=True, parents=True)
 
         if from_remote:
 
@@ -158,11 +149,47 @@ class FileBackupSpace(BackupSpace):
         else:
             archive_path = backup.get_path()
 
-        compression.unpack(
-            archive_path=archive_path,
-            target_path=self._file_path,
-            verbosity_level=verbosity_level,
-        )
+        if mode in [RestoreMode.MERGE, RestoreMode.REPLACE]:
+            with tempfile.TemporaryDirectory() as tempdir:
+                tempdir = Path(tempdir)
+                compression.unpack(
+                    archive_path=archive_path,
+                    target_path=tempdir,
+                    verbosity_level=verbosity_level,
+                )
+
+                existing_files, _ = compression.filter_paths(
+                    root_path=self._file_path, include=["*"], exclude=None
+                )  # get all files in the location to restore the backup to
+                existing_files = [
+                    str(file.relative_to(self._file_path)) for file in existing_files
+                ]
+
+                if mode == RestoreMode.REPLACE:
+                    move_files, _ = compression.filter_paths(
+                        root_path=tempdir, include=existing_files, exclude=None
+                    )  # select only existing files in the tempdir for getting restored
+                elif mode == RestoreMode.MERGE:
+                    move_files, _ = compression.filter_paths(
+                        root_path=tempdir, include=["*"], exclude=existing_files
+                    )  # select only non-existing files in the tempdir for getting restored
+
+                for file in move_files:
+                    dst = self._file_path / str(file.relative_to(tempdir))
+
+                    dst.parent.mkdir(exist_ok=True, parents=True)
+
+                    if dst.exists():
+                        dst.unlink()
+
+                    shutil.move(src=file, dst=dst)
+
+        else:
+            compression.unpack(
+                archive_path=archive_path,
+                target_path=self._file_path,
+                verbosity_level=verbosity_level,
+            )
 
         if verbosity_level >= 1:
             print(

@@ -206,3 +206,19 @@ class TOMLConfiguration:
         """
         with open(self._path, "wb") as tomlf:
             tomli_w.dump(content, tomlf)
+
+    def get_path(self) -> Path:
+        """
+        Returns
+        -------
+        Path : The path of the TOML file.
+        """
+        return self._path
+
+    def get_missing_key_policy(self) -> MissingKeyPolicy:
+        """
+        Returns
+        -------
+        MissingKeyPolicy : The missing key policy of the TOML file.
+        """
+        return self._missing_key_policy

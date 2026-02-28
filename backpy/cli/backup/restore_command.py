@@ -1,7 +1,7 @@
 import rich_click as click
 from rich.console import Console
 
-from backpy.cli.colors import RESET, get_default_palette
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.cli.elements import (
     BackupInput,
     BackupSpaceInput,
@@ -9,7 +9,7 @@ from backpy.cli.elements import (
     TextInput,
     print_error_message,
 )
-from backpy.core.backup import Backup
+from backpy.core.backup import Backup, RestoreMode
 from backpy.core.space import BackupSpace
 from backpy.core.utils.exceptions import (
     InvalidBackupError,
@@ -44,18 +44,29 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
     else:
         source = "local"
 
-    incremental = ConfirmInput(
-        message=f"{palette.base}> Do you want to restore the backup incrementally? "
-        "This means that only content, which is included in the backup "
-        "will be affected. If not, the contents will be deleted and replaced "
-        f"by the backed up content.{RESET}",
-        default_value=True,
+    modes = space.get_type().supported_restore_modes
+    mode_list = "\n".join(
+        [
+            f" - {palette.base}{EFFECTS.bold.on}{m.name}{RESET}{palette.maroon} -> "
+            f"{EFFECTS.dim.on}{m.description}{RESET}"
+            for m in modes
+        ]
+    )
+
+    mode = TextInput(
+        message=f"{palette.base}> Which mode should be used to restore the backup?"
+        "\nAvailable modes:\n"
+        f"{mode_list}\n",
+        suggest_matches=True,
+        suggestible_values=[m.name for m in modes],
     ).prompt()
+
+    mode = RestoreMode[mode]
 
     Console().print(backup.get_info_table())
     print(
-        f"{palette.base}Restore mode: "
-        f"{palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+        f"{palette.base}Restore mode: {palette.maroon}{mode.name} "
+        f"({EFFECTS.dim.on}{mode.description}{EFFECTS.dim.off}){RESET}"
     )
 
     if not force:
@@ -69,7 +80,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
         if confirm:
             try:
                 backup.restore(
-                    incremental=incremental,
+                    mode=mode,
                     source=source,
                     force=force,
                     verbosity_level=verbosity_level,
@@ -85,11 +96,18 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
                 f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        backup.restore(
-            incremental=incremental, source=source, verbosity_level=verbosity_level
-        )
+        backup.restore(mode=mode, source=source, verbosity_level=verbosity_level)
 
     return None
+
+
+all_mode_list = ", ".join(
+    [
+        f"{EFFECTS.bold.on}{mode.name}{RESET} -> "
+        f"{EFFECTS.dim.on}{mode.description}{RESET}"
+        for mode in list(RestoreMode.__members__.values())
+    ]
+)
 
 
 @click.command(
@@ -101,13 +119,12 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 @click.argument("backup_space", type=str, default=None, required=False)
 @click.argument("backup", type=str, default=None, required=False)
 @click.option(
-    "--incremental",
-    type=bool,
-    default=True,
-    help="Restore the backup "
-    "incrementally. This means that only content, which is included in the backup "
-    "will be affected. If this is 'False', the contents will be deleted and replaced "
-    "by the backed up content.",
+    "--mode",
+    "-m",
+    type=click.Choice(list(RestoreMode.__members__.keys())),
+    default=None,
+    help=f"The mode to restore the backup with. Available modes are:\n"
+    f"{all_mode_list}",
 )
 @click.option(
     "--source",
@@ -141,7 +158,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
 def restore(
     backup_space: str | None,
     backup: str | None,
-    incremental: bool,
+    mode: str | None,
     source: str,
     force: bool,
     verbose: int,
@@ -175,6 +192,35 @@ def restore(
                 debug=debug,
             )
 
+    modes = space.get_type().supported_restore_modes
+
+    mode_list = "\n".join(
+        [
+            f" - {EFFECTS.bold.on}{m.name}{RESET}{palette.maroon} -> {m.description}"
+            for m in modes
+        ]
+    )
+
+    if mode is None:
+        return print_error_message(
+            error=ValueError(
+                "If the '--interactive' flag is not given, you have to supply "
+                "a valid value for '--mode' option has to be provided!\nAvailable modes:\n"
+                f"{mode_list}"
+            ),
+            debug=debug,
+        )
+
+    if mode not in modes:
+        return print_error_message(
+            error=ValueError(
+                f"The given mode '{mode}' is not available for a backup "
+                f"space of type '{space.get_type().name}'!\nAvailable modes:\n"
+                f"{mode_list}"
+            ),
+            debug=debug,
+        )
+
     space = space.get_as_child_class()
 
     if len(space.get_backups(check_hash=False)) == 0:
@@ -206,6 +252,8 @@ def restore(
                     debug=debug,
                 )
 
+    mode = RestoreMode[mode]
+
     if source == "remote" and not backup.has_remote_archive():
         return print_error_message(
             InvalidBackupError(
@@ -223,8 +271,8 @@ def restore(
 
     Console().print(backup.get_info_table())
     print(
-        f"{palette.base}Restore mode: "
-        f"{palette.maroon}{'incremental' if incremental else 'non-incremental'}{RESET}"
+        f"{palette.base}Restore mode: {palette.maroon}{mode.name} "
+        f"({EFFECTS.dim.on}{mode.description}{EFFECTS.dim.off}){RESET}"
     )
 
     if not force:
@@ -237,7 +285,7 @@ def restore(
         if confirm:
             try:
                 backup.restore(
-                    incremental=incremental,
+                    mode=mode,
                     source=source,
                     force=force,
                     verbosity_level=verbose,
@@ -253,8 +301,6 @@ def restore(
                 f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        backup.restore(
-            incremental=incremental, source=source, force=force, verbosity_level=verbose
-        )
+        backup.restore(mode=mode, source=source, force=force, verbosity_level=verbose)
 
     return None

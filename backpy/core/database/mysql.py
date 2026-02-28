@@ -56,7 +56,7 @@ class MySQLServer:
         self._user: str = user
         self._token: str = token
         self._database: str = database if database is not None else ""
-        self._connection = None
+        self._connection: MySQLConnection | None = None
 
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=Path(VariableLibrary.get_variable("database.mysql_directory"))
@@ -117,7 +117,7 @@ class MySQLServer:
         except Exception:
             return False
 
-        if not self._connection.is_connected or self._connection is None:
+        if not self._connection.is_connected() or self._connection is None:
             return False
 
         self.disconnect(verbosity_level=verbosity_level)
