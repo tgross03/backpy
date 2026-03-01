@@ -81,7 +81,7 @@ class FileBackupSpace(BackupSpace):
 
         from_remote = source == "remote"
 
-        if verbosity_level >= 1:
+        if verbosity_level > 1:
             print(f"Restoring backup '{backup.get_uuid()}' ...")
 
         if not backup.check_hash(remote=from_remote):
@@ -105,7 +105,7 @@ class FileBackupSpace(BackupSpace):
 
             if verbosity_level > 1:
                 print(
-                    f"Restore mode is '{mode.name}' ... Attempting to delete all files ..."
+                    f"Restore mode is '{mode.name}' ... Deleting all files in {self._file_path} ..."
                 )
 
             was_dir = self._file_path.is_dir()
@@ -152,6 +152,10 @@ class FileBackupSpace(BackupSpace):
         if mode in [RestoreMode.MERGE, RestoreMode.REPLACE]:
             with tempfile.TemporaryDirectory() as tempdir:
                 tempdir = Path(tempdir)
+
+                if verbosity_level > 2:
+                    print(f"Created temporary folder at {tempdir}")
+
                 compression.unpack(
                     archive_path=archive_path,
                     target_path=tempdir,
@@ -194,7 +198,7 @@ class FileBackupSpace(BackupSpace):
         if verbosity_level >= 1:
             print(
                 f"Restored Backup with UUID '{unique_id}' from source {source} "
-                f"at location {self._file_path}\n"
+                f"at location {self._file_path}. "
                 f"Took {timedelta(seconds=time.time() - start_time).total_seconds()}"
                 " seconds!"
             )

@@ -30,7 +30,7 @@ __all__ = ["Backup", "RestoreMode"]
 
 
 class RestoreMode(Enum):
-    OVERWRITE = "Replaces existing objects and add missing"
+    OVERWRITE = "Replaces existing objects and adds missing"
     MERGE = "Preserves existing objects and adds missing"
     REPLACE = "Replaces existing objects and does not add missing"
     CLEAN = "Deletes all existing objects and replaces with backup"

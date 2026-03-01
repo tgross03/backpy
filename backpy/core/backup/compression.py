@@ -245,7 +245,7 @@ def unpack(
         target_path = archive_path.parent
 
     if verbosity_level >= 2:
-        print(f"Unpacking archive '{archive_path}' ...")
+        print(f"Unpacking archive '{archive_path}' into '{target_path}' ...")
 
     shutil.unpack_archive(
         filename=archive_path.absolute(), extract_dir=target_path.absolute()

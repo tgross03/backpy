@@ -211,6 +211,8 @@ def restore(
             debug=debug,
         )
 
+    mode = RestoreMode[mode]
+
     if mode not in modes:
         return print_error_message(
             error=ValueError(
@@ -251,8 +253,6 @@ def restore(
                     ),
                     debug=debug,
                 )
-
-    mode = RestoreMode[mode]
 
     if source == "remote" and not backup.has_remote_archive():
         return print_error_message(
