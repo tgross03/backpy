@@ -1,5 +1,6 @@
 import subprocess
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 
 from mergedeep import merge
@@ -8,7 +9,7 @@ from mysql.connector.connection import MySQLConnection
 from backpy import TOMLConfiguration, VariableLibrary
 from backpy.core.encryption.password import decrypt, encrypt
 
-__all__ = ["MySQLServer", "test_mysqldump"]
+__all__ = ["MySQLServer", "MySQLDump", "test_mysqldump"]
 
 from backpy.core.utils.exceptions import InvalidDatabaseException
 
@@ -130,6 +131,16 @@ class MySQLServer:
         tables: list[str],
         include_data: bool,
         include_routines: bool,
+        include_events: bool,
+        replace_data: bool,
+        clear_data_before_restore: bool,
+        force: bool,
+        custom_conditions: str | None = None,
+        include_create_options: bool = True,
+        exclude_databases: list[str] | None = None,
+        exclude_tables: list[str] | None = None,
+        exclude_table_data: list[str] | None = None,
+        flush_privileges: bool = False,
         verbosity_level: int = 1,
     ) -> None:
 
@@ -163,7 +174,7 @@ class MySQLServer:
                 break
 
         raise InvalidDatabaseException(
-            f"There is no valid MySQL server presentwith the name '{name}'."
+            f"There is no valid MySQL server present with the name '{name}'."
         )
 
     @classmethod
@@ -206,6 +217,12 @@ class MySQLServer:
         verbosity_level: int = 1,
     ) -> "MySQLServer":
 
+        try:
+            MySQLServer.load_by_name(name=name)
+            raise NameError("There is already a database with this name!")
+        except InvalidDatabaseException:
+            pass
+
         unique_id = uuid.uuid4()
 
         instance = cls(
@@ -221,10 +238,13 @@ class MySQLServer:
         if test_connection and not instance.test_connection(
             verbosity_level=verbosity_level
         ):
+            instance._config.get_path().unlink(missing_ok=True)
             raise ConnectionError(
                 f"Could not connect to MySQL server at {hostname}:{port} "
                 f"as user '{user}'."
             )
+
+        instance.update_config()
 
         return instance
 
@@ -252,3 +272,124 @@ class MySQLServer:
 
     def get_database(self) -> str:
         return self._database
+
+
+@dataclass
+class MySQLDump:
+    path: Path
+    databases: list[str]
+    tables: list[str]
+    lock_tables: bool
+    include_create_options: bool
+    include_data: bool
+    include_routines: bool
+    include_events: bool
+    include_triggers: bool
+    replace_data: bool
+    drop_databases_before_restore: bool
+    drop_tables_before_restore: bool
+    drop_triggers_before_restore: bool
+    force: bool
+    exclude_databases: list[str]
+    exclude_tables: list[str]
+    exclude_table_data: list[str]
+    flush_privileges: bool
+    custom_conditions: str | None
+
+    def create(self, server: MySQLServer, verbosity_level: int = 1) -> None:
+
+        cmd = (
+            f"mysqldump "
+            f"--host={server.get_hostname()} "
+            f"--user={server.get_user()} "
+            f"--password={decrypt(server._token)} "
+            f"--port={server.get_port()} "
+        )
+
+        all_databases = "*" in self.databases
+
+        if all_databases:
+            cmd += "--all-databases "
+        else:
+            cmd += f"--databases {' '.join(self.databases)} "
+
+        if (all_databases or len(self.databases) > 0) and len(self.tables) > 0:
+            raise ValueError(
+                "There cannot be specific tables given if "
+                "multiple databases are included in one dump."
+            )
+
+        if not self.lock_tables:
+            cmd += "--skip-lock-tables "
+
+        if len(self.databases) == 1:
+            cmd += f"--tables {' '.join(self.tables)} "
+
+        if not self.include_create_options:
+            cmd += "--skip-create-options "
+            cmd += "--no-create-db "
+            cmd += "--no-create-info "
+
+        if not self.include_data:
+            cmd += "--no-data "
+
+        if self.include_routines:
+            cmd += "--routines "
+
+        if self.include_events:
+            cmd += "--events "
+
+        if not self.include_triggers:
+            cmd += "--skip-triggers "
+
+        if self.replace_data:
+            cmd += "--replace "
+
+        if self.drop_databases_before_restore:
+            cmd += "--add-drop-database "
+
+        if self.drop_tables_before_restore:
+            cmd += "--add-drop-table "
+
+        if self.drop_triggers_before_restore:
+            cmd += "--add-drop-trigger "
+
+        if self.force:
+            cmd += "--force "
+
+        if (
+            len(self.databases) == 1
+            and not all_databases
+            and self.databases[0] in self.exclude_databases
+        ):
+            raise ValueError("There has to be at least one database in the dump.")
+
+        for database in self.exclude_databases:
+            cmd += f"--ignore-database={database} "
+
+        for table in self.exclude_tables:
+            cmd += f"--ignore-table={table} "
+
+        for table in self.exclude_table_data:
+            cmd += f"--ignore-table-data={table} "
+
+        if self.flush_privileges:
+            cmd += "--flush-privileges "
+
+        if self.custom_conditions is not None:
+            cmd += f'--where="{self.custom_conditions}" '
+
+        cmd += f"> {self.path}"
+
+        # try:
+        #     result = subprocess.run(
+        #         cmd,
+        #         shell=True,
+        #         check=True,
+        #         capture_output=True,
+        #         text=True,
+        #     )
+        # except subprocess.CalledProcessError as e:
+        #     pass
+
+        print(cmd)
