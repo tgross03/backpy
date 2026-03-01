@@ -1,16 +1,36 @@
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.table import Table
 
-from backpy.core.encryption.password import encrypt
+from backpy.core.database import MySQLDump, MySQLServer
 from backpy.core.space.backup_space import BackupSpace
 from backpy.core.utils.exceptions import InvalidBackupSpaceError
 
 if TYPE_CHECKING:
     from backpy.core.backup import Backup
+
+__all__ = ["MySQLBackupSpace"]
+
+
+# databases: no dot in the string (e.g. "database1", "website" ...)
+# tables: format `database.table` (e.g. "database1.table1", "website.users", ...)
+# table data: format `database.table:data` (e.g. "database1.table1:data", "website.users:data", ...)
+def _parse_exclusion_strings(
+    exclude: list[str] | None,
+) -> tuple[list[str], list[str], list[str]]:
+
+    if exclude is None:
+        return [], [], []
+
+    databases = [x for x in exclude if "." not in x]
+    tables = [x for x in exclude if "." in x and ":" not in x]
+    table_data = [x for x in exclude if "." in x and ":" in x]
+
+    return databases, tables, table_data
 
 
 class MySQLBackupSpace(BackupSpace):
@@ -23,7 +43,40 @@ class MySQLBackupSpace(BackupSpace):
         location: str = "all",
         verbosity_level: int = 1,
     ) -> Backup:
-        pass
+
+        from backpy.core.backup import Backup
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+
+            dump_path = temp_dir / f"{self._uuid}.sql"
+
+            exclude_databases, exclude_tables, exclude_table_data = (
+                _parse_exclusion_strings(exclude)
+            )
+
+            self._dump.create(
+                output_path=dump_path,
+                server=self._server,
+                exclude_databases=exclude_databases,
+                exclude_tables=exclude_tables,
+                exclude_table_data=exclude_table_data,
+                overwrite=True,
+                verbosity_level=verbosity_level,
+            )
+
+            backup = Backup.new(
+                source_path=dump_path,
+                backup_space=self,
+                comment=comment,
+                include=None,
+                exclude=exclude,
+                lock=lock,
+                location=location,
+                verbosity_level=verbosity_level,
+            )
+
+            return backup
 
     def restore_backup(
         self,
@@ -58,7 +111,8 @@ class MySQLBackupSpace(BackupSpace):
                 "The loaded BackupSpace is not a MySQLBackupSpace!"
             )
 
-        cls._file_path = Path(cls._config["file_system.path"])
+        cls._server = MySQLServer.load_by_uuid(cls._config["database.uuid"])
+        cls._dump = MySQLDump.from_dict(cls._config["database.dump"])
 
         return cls
 
@@ -74,7 +128,8 @@ class MySQLBackupSpace(BackupSpace):
                 "The loaded BackupSpace is not a MySQLBackupSpace!"
             )
 
-        cls._file_path = Path(cls._config["file_system.path"])
+        cls._server = MySQLServer.load_by_uuid(cls._config["database.uuid"])
+        cls._dump = MySQLDump.from_dict(cls._config["database.dump"])
 
         return cls
 
@@ -82,12 +137,8 @@ class MySQLBackupSpace(BackupSpace):
     def new(
         cls,
         name: str,
-        hostname: str,
-        port: int,
-        username: str,
-        password: str,
-        databases: list[str],
-        tables: list[str],
+        server: MySQLServer,
+        dump: MySQLDump,
         **kwargs,
     ) -> "MySQLBackupSpace":
 
@@ -101,17 +152,10 @@ class MySQLBackupSpace(BackupSpace):
         cls = cls.__new__(cls)
         cls.__dict__.update(parent.__dict__)
 
-        cls._hostname = hostname
-        cls._config["mysql.hostname"] = hostname
-        cls._port = port
-        cls._config["mysql.port"] = port
-        cls._username = username
-        cls._config["mysql.username"] = username
-        cls._password = password
-        cls._config["mysql.password"] = encrypt(password)
-        cls._databases = databases
-        cls._config["mysql.databases"] = tables
-        cls._tables = tables
-        cls._config["mysql.tables"] = tables
+        cls._server = server
+        cls._config["database.uuid"] = str(server.get_uuid())
+
+        cls._dump = dump
+        cls._config["database.dump"] = dump.asdict()
 
         return cls

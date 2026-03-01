@@ -30,7 +30,7 @@ class BackupSpaceType(BackupSpaceTypeData, Enum):
         "MySQL/MariaDB Database Backup Space",
         "Backup-Space of a MariaDB or MySQL database and its tables.",
         True,
-        True,
+        False,
         [RestoreMode.OVERWRITE, RestoreMode.CLEAN],
         MySQLBackupSpace,
     )

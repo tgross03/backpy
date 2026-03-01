@@ -294,7 +294,6 @@ class MySQLServer:
 
 @dataclass
 class MySQLDump:
-    path: PathLike
     databases: list[str]
     tables: list[str]
     lock_tables: bool
@@ -313,68 +312,37 @@ class MySQLDump:
     exclude_table_data: list[str]
     flush_privileges: bool
     custom_conditions: str | None
-
-    def restore(self, server: MySQLServer, verbosity_level: int = 1) -> None:
-
-        input_file = Path(self.path).expanduser()
-
-        if not input_file.exists():
-            raise FileNotFoundError(
-                f"The input file at {input_file} does not exist. "
-                f"You can create it using the MySQLDump.create method."
-            )
-
-        if not server.test_connection():
-            raise ConnectionError(
-                "No connection could be established with the MySQL server."
-            )
-
-        cmd = f"mysql {server.get_connection_args()} < {input_file}"
-
-        start_time = time.time()
-
-        result = subprocess.run(
-            cmd,
-            shell=True,
-            capture_output=True,
-            text=True,
-        )
-
-        proc_time = time.time() - start_time
-
-        if result.returncode != 0:
-
-            error = ""
-
-            if result.stdout != "":
-                error += f"STDOUT -> {result.stdout}"
-
-            if result.stderr != "":
-                if error != "":
-                    error += "\n\n"
-                error += f"STDERR -> {result.stderr}"
-
-            raise MySQLError(
-                f"An error occurred during the restoring of the MySQL dump at {input_file}.\n\n"
-                f"--- Reason (Code {result.returncode}) ---\n\n{error}"
-            )
-
-        if verbosity_level >= 1:
-            print(
-                f"Restored MySQL dump {input_file} to server '{server.get_hostname()}'. "
-                f"Took {np.round(proc_time, 3)} seconds!"
-            )
+    file_path: Path | None = None
 
     def create(
-        self, server: MySQLServer, overwrite: bool, verbosity_level: int = 1
+        self,
+        output_path: PathLike,
+        server: MySQLServer,
+        overwrite: bool,
+        exclude_databases: list[str] | None = None,
+        exclude_tables: list[str] | None = None,
+        exclude_table_data: list[str] | None = None,
+        verbosity_level: int = 1,
     ) -> None:
+
+        exclude_databases = exclude_databases if exclude_databases is not None else []
+        exclude_tables = exclude_tables if exclude_tables is not None else []
+        exclude_table_data = (
+            exclude_table_data if exclude_table_data is not None else []
+        )
+
+        exclude_databases.extend(self.exclude_databases)
+        exclude_tables.extend(self.exclude_tables)
+        exclude_table_data.extend(self.exclude_table_data)
+
+        self.file_path = Path(output_path)
 
         if not server.test_connection():
             raise ConnectionError(
                 "No connection could be established with the MySQL server."
             )
 
-        path = Path(self.path)
+        path = Path(self.file_path)
 
         cmd = f"mysqldump {server.get_connection_args()} "
 
@@ -436,13 +404,13 @@ class MySQLDump:
         ):
             raise ValueError("There has to be at least one database in the dump.")
 
-        for database in self.exclude_databases:
+        for database in exclude_databases:
             cmd += f"--ignore-database={database} "
 
-        for table in self.exclude_tables:
+        for table in exclude_tables:
             cmd += f"--ignore-table={table} "
 
-        for table in self.exclude_table_data:
+        for table in exclude_table_data:
             cmd += f"--ignore-table-data={table} "
 
         if self.flush_privileges:

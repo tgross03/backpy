@@ -45,23 +45,25 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
         source = "local"
 
     modes = space.get_type().supported_restore_modes
-    mode_list = "\n".join(
-        [
-            f" - {palette.base}{EFFECTS.bold.on}{m.name}{RESET}{palette.maroon} -> "
-            f"{EFFECTS.dim.on}{m.description}{RESET}"
-            for m in modes
-        ]
-    )
+    if len(modes) > 1:
+        mode_list = "\n".join(
+            [
+                f" - {palette.base}{EFFECTS.bold.on}{m.name}{RESET}{palette.maroon} -> "
+                f"{EFFECTS.dim.on}{m.description}{RESET}"
+                for m in modes
+            ]
+        )
 
-    mode = TextInput(
-        message=f"{palette.base}> Which mode should be used to restore the backup?"
-        "\nAvailable modes:\n"
-        f"{mode_list}\n",
-        suggest_matches=True,
-        suggestible_values=[m.name for m in modes],
-    ).prompt()
-
-    mode = RestoreMode[mode]
+        mode = TextInput(
+            message=f"{palette.base}> Which mode should be used to restore the backup?"
+            "\nAvailable modes:\n"
+            f"{mode_list}\n",
+            suggest_matches=True,
+            suggestible_values=[m.name for m in modes],
+        ).prompt()
+        mode = RestoreMode[mode]
+    else:
+        mode = modes[0]
 
     Console().print(backup.get_info_table())
     print(
@@ -201,7 +203,7 @@ def restore(
         ]
     )
 
-    if mode is None:
+    if mode is None and len(modes) > 1:
         return print_error_message(
             error=ValueError(
                 "If the '--interactive' flag is not given, you have to supply "
@@ -211,17 +213,20 @@ def restore(
             debug=debug,
         )
 
-    mode = RestoreMode[mode]
+    if len(modes) > 1 or mode is not None:
+        mode = RestoreMode[mode]
 
-    if mode not in modes:
-        return print_error_message(
-            error=ValueError(
-                f"The given mode '{mode}' is not available for a backup "
-                f"space of type '{space.get_type().name}'!\nAvailable modes:\n"
-                f"{mode_list}"
-            ),
-            debug=debug,
-        )
+        if mode not in modes:
+            return print_error_message(
+                error=ValueError(
+                    f"The given mode '{mode}' is not available for a backup "
+                    f"space of type '{space.get_type().name}'!\nAvailable modes:\n"
+                    f"{mode_list}"
+                ),
+                debug=debug,
+            )
+    elif len(modes) == 1 and mode is None:
+        mode = modes[0]
 
     space = space.get_as_child_class()
 
