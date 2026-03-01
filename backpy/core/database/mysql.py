@@ -1,8 +1,12 @@
 import subprocess
+import time
 import uuid
 from dataclasses import dataclass
+from os import PathLike
 from pathlib import Path
 
+import numpy as np
+from _mysql_connector import MySQLError
 from mergedeep import merge
 from mysql.connector.connection import MySQLConnection
 
@@ -12,6 +16,8 @@ from backpy.core.encryption.password import decrypt, encrypt
 __all__ = ["MySQLServer", "MySQLDump", "test_mysqldump"]
 
 from backpy.core.utils.exceptions import InvalidDatabaseException
+
+_DEFAULT_CONTEXT_VERBOSITY: int = 1
 
 
 def test_mysqldump(verbosity_level: int = 1) -> bool:
@@ -59,11 +65,35 @@ class MySQLServer:
         self._database: str = database if database is not None else ""
         self._connection: MySQLConnection | None = None
 
+        self._context_managed: bool = False
+        self._context_verbosity: int = _DEFAULT_CONTEXT_VERBOSITY
+
         self._config: TOMLConfiguration = TOMLConfiguration(
             path=Path(VariableLibrary.get_variable("database.mysql_directory"))
             / f"{self._uuid}.toml",
             create_if_not_exists=True,
         )
+
+    def __call__(self, context_verbosity: int = 1, *args, **kwargs):
+        self._context_verbosity = context_verbosity
+        return self
+
+    def __enter__(self) -> "MySQLServer":
+        if self._context_managed:
+            return self
+
+        self._context_managed = True
+        self.connect(verbosity_level=self._context_verbosity)
+        return self
+
+    def __exit__(self, *args, **kwargs) -> bool:
+        if not self._context_managed:
+            return False
+
+        self._context_managed = False
+        self.disconnect(verbosity_level=self._context_verbosity)
+        self._context_verbosity = _DEFAULT_CONTEXT_VERBOSITY
+        return False
 
     def update_config(self) -> None:
 
@@ -83,7 +113,7 @@ class MySQLServer:
 
     def connect(self, verbosity_level: int = 1) -> MySQLConnection:
         if self.is_connected():
-            self.disconnect()
+            self.disconnect(verbosity_level=verbosity_level)
 
         if verbosity_level > 1:
             print(
@@ -102,9 +132,10 @@ class MySQLServer:
 
     def disconnect(self, verbosity_level: int = 1) -> None:
         if self.is_connected():
-            print(
-                f"Closing MySQL connection for server '{self._hostname}:{self._port}'..."
-            )
+            if verbosity_level > 1:
+                print(
+                    f"Closing MySQL connection for server '{self._hostname}:{self._port}'..."
+                )
             self._connection.close()
 
         if verbosity_level > 1:
@@ -123,32 +154,6 @@ class MySQLServer:
 
         self.disconnect(verbosity_level=verbosity_level)
         return True
-
-    def create_dump(
-        self,
-        output_directory: Path | str,
-        databases: list[str],
-        tables: list[str],
-        include_data: bool,
-        include_routines: bool,
-        include_events: bool,
-        replace_data: bool,
-        clear_data_before_restore: bool,
-        force: bool,
-        custom_conditions: str | None = None,
-        include_create_options: bool = True,
-        exclude_databases: list[str] | None = None,
-        exclude_tables: list[str] | None = None,
-        exclude_table_data: list[str] | None = None,
-        flush_privileges: bool = False,
-        verbosity_level: int = 1,
-    ) -> None:
-
-        output_directory = (
-            Path(output_directory)
-            if isinstance(output_directory, str)
-            else output_directory
-        )
 
     #####################
     #    CLASSMETHODS   #
@@ -176,6 +181,19 @@ class MySQLServer:
         raise InvalidDatabaseException(
             f"There is no valid MySQL server present with the name '{name}'."
         )
+
+    def get_connection_args(self) -> str:
+        result = (
+            f"--host={self._hostname} "
+            f"--user={self._user} "
+            f"--password={decrypt(self._token)} "
+            f"--port={self._port} "
+        )
+
+        if self.get_database() is not None:
+            result += f"--database={self._database} "
+
+        return result
 
     @classmethod
     def load_by_uuid(cls, unique_id: str | uuid.UUID) -> "MySQLServer":
@@ -270,13 +288,13 @@ class MySQLServer:
     def get_uuid(self) -> uuid.UUID:
         return self._uuid
 
-    def get_database(self) -> str:
-        return self._database
+    def get_database(self) -> str | None:
+        return self._database if self._database != "" else None
 
 
 @dataclass
 class MySQLDump:
-    path: Path
+    path: PathLike
     databases: list[str]
     tables: list[str]
     lock_tables: bool
@@ -296,15 +314,69 @@ class MySQLDump:
     flush_privileges: bool
     custom_conditions: str | None
 
-    def create(self, server: MySQLServer, verbosity_level: int = 1) -> None:
+    def restore(self, server: MySQLServer, verbosity_level: int = 1) -> None:
 
-        cmd = (
-            f"mysqldump "
-            f"--host={server.get_hostname()} "
-            f"--user={server.get_user()} "
-            f"--password={decrypt(server._token)} "
-            f"--port={server.get_port()} "
+        input_file = Path(self.path).expanduser()
+
+        if not input_file.exists():
+            raise FileNotFoundError(
+                f"The input file at {input_file} does not exist. "
+                f"You can create it using the MySQLDump.create method."
+            )
+
+        if not server.test_connection():
+            raise ConnectionError(
+                "No connection could be established with the MySQL server."
+            )
+
+        cmd = f"mysql {server.get_connection_args()} < {input_file}"
+
+        start_time = time.time()
+
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
         )
+
+        proc_time = time.time() - start_time
+
+        if result.returncode != 0:
+
+            error = ""
+
+            if result.stdout != "":
+                error += f"STDOUT -> {result.stdout}"
+
+            if result.stderr != "":
+                if error != "":
+                    error += "\n\n"
+                error += f"STDERR -> {result.stderr}"
+
+            raise MySQLError(
+                f"An error occurred during the restoring of the MySQL dump at {input_file}.\n\n"
+                f"--- Reason (Code {result.returncode}) ---\n\n{error}"
+            )
+
+        if verbosity_level >= 1:
+            print(
+                f"Restored MySQL dump {input_file} to server '{server.get_hostname()}'. "
+                f"Took {np.round(proc_time, 3)} seconds!"
+            )
+
+    def create(
+        self, server: MySQLServer, overwrite: bool, verbosity_level: int = 1
+    ) -> None:
+
+        if not server.test_connection():
+            raise ConnectionError(
+                "No connection could be established with the MySQL server."
+            )
+
+        path = Path(self.path)
+
+        cmd = f"mysqldump {server.get_connection_args()} "
 
         all_databases = "*" in self.databases
 
@@ -379,17 +451,108 @@ class MySQLDump:
         if self.custom_conditions is not None:
             cmd += f'--where="{self.custom_conditions}" '
 
-        cmd += f"> {self.path}"
+        start_time = time.time()
 
-        # try:
-        #     result = subprocess.run(
-        #         cmd,
-        #         shell=True,
-        #         check=True,
-        #         capture_output=True,
-        #         text=True,
-        #     )
-        # except subprocess.CalledProcessError as e:
-        #     pass
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+        )
 
-        print(cmd)
+        proc_time = time.time() - start_time
+
+        exception = None
+        text = None
+
+        match result.returncode:
+            case 1:
+                exception = SyntaxError
+                text = "A syntax error occurred during the MySQL dump."
+            case 2:
+                exception = MySQLError
+                text = "A MySQL error occurred during the dump."
+            case 3:
+                exception = RuntimeError
+                text = "A consistency error occurred during the dump."
+            case 4:
+                exception = MemoryError
+                text = "A memory error occurred during the dump."
+            case 5:
+                exception = IOError
+                text = "A file error occurred during the dump."
+            case 6:
+                exception = MySQLError
+                text = "An illegal table error occurred during the dump."
+
+        if verbosity_level > 2:
+            print(f"Command STDOUT:\n\n{result.stdout}")
+            print(f"Command STDERR:\n\n{result.stderr}")
+
+        if result.returncode > 0 and exception is not None and text is not None:
+            error = ""
+
+            if "Error" in result.stdout:
+                error += "\n\nSTDOUT -> Error" + result.stdout.split("Error")[1]
+
+            if len(result.stderr) > 0:
+                if error != "":
+                    error += "\n\n"
+                error += "STDERR -> " + result.stderr
+
+            else:
+                error += "\n\nTo show the full output of the execution, set the verbosity > 2!"
+            raise exception(
+                f"{text} (Code {result.returncode}).\n\n" f"--- Reason ---\n\n{error}"
+            )
+
+        if overwrite and path.exists():
+            if verbosity_level > 1:
+                print(f"Overwriting existing MySQL dump ... Deleting {path} ...")
+
+            path.unlink(missing_ok=True)
+
+        with open(path, "a") as file:
+            file.write(result.stdout)
+
+        if verbosity_level >= 1:
+            print(
+                f"Created MySQL dump to file {path}. "
+                f"Took {np.round(proc_time, 3)} seconds!"
+            )
+
+    def asdict(self) -> dict:
+        keys = [
+            "databases",
+            "tables",
+            "lock_tables",
+            "include_create_options",
+            "include_data",
+            "include_routines",
+            "include_events",
+            "include_triggers",
+            "replace_data",
+            "drop_databases_before_restore",
+            "drop_tables_before_restore",
+            "drop_triggers_before_restore",
+            "force",
+            "exclude_databases",
+            "exclude_tables",
+            "exclude_table_data",
+            "flush_privileges",
+            "custom_conditions",
+        ]
+
+        result = self.__dict__
+
+        result_copy = result.copy()
+
+        for key in result.keys():
+            if key not in keys:
+                del result_copy[key]
+
+        return result_copy
+
+    @classmethod
+    def from_dict(cls, dictionary: dict) -> "MySQLDump":
+        return cls(**dictionary)

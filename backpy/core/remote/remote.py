@@ -114,7 +114,7 @@ class Remote:
         self.connect(verbosity_level=self._context_verbosity)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(self, *args, **kwargs) -> bool:
         if not self._context_managed:
             return False
 
