@@ -48,7 +48,7 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
     if len(modes) > 1:
         mode_list = "\n".join(
             [
-                f" - {palette.base}{EFFECTS.bold.on}{m.name}{RESET}{palette.maroon} -> "
+                f" - {palette.base}{EFFECTS.bold.on}{m.name}{RESET}{palette.base} -> "
                 f"{EFFECTS.dim.on}{m.description}{RESET}"
                 for m in modes
             ]
@@ -64,6 +64,32 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
         mode = RestoreMode[mode]
     else:
         mode = modes[0]
+
+    if mode == RestoreMode.CLEAN:
+        warn_text = (
+            f"{palette.red}DANGER-ZONE:{palette.maroon} The 'CLEAN' restore mode will delete "
+            f"{EFFECTS.bold.on}all{RESET}{palette.maroon} objects in the restore target scope "
+            f"of this Backup Space (e.g. a directory, database(s) or table set) "
+            f"before restoring the backup!\n\n"
+            f"Everything within that scope will be removed, even if it is currently "
+            f"{EFFECTS.bold.on}not{RESET}{palette.maroon} "
+            f"part of the backup. Use this mode only if you are sure there is no important data "
+            f"in the target scope that isn't covered by the backup.{RESET}"
+        )
+        if force:
+            print(warn_text)
+        else:
+            confirm = ConfirmInput(
+                message=warn_text,
+                default_value=False,
+            ).prompt()
+
+            if not confirm:
+                print(
+                    f"{palette.red}Canceled restoring of backup "
+                    f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
+                )
+                return None
 
     Console().print(backup.get_info_table())
     print(
@@ -98,7 +124,9 @@ def restore_interactive(force: bool, debug: bool, verbosity_level: int):
                 f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
             )
     else:
-        backup.restore(mode=mode, source=source, verbosity_level=verbosity_level)
+        backup.restore(
+            mode=mode, source=source, force=force, verbosity_level=verbosity_level
+        )
 
     return None
 
@@ -139,7 +167,7 @@ all_mode_list = ", ".join(
     "--force",
     "-f",
     is_flag=True,
-    help="Force the deletion of the backup. This will skip the confirmation step.",
+    help="Force the restoring of the backup. This will skip the confirmation step.",
 )
 @click.option(
     "--verbose",
@@ -155,7 +183,7 @@ all_mode_list = ", ".join(
     "mode to print full error traces in case of a problem.",
 )
 @click.option(
-    "--interactive", "-i", is_flag=True, help="Delete the backup in interactive mode."
+    "--interactive", "-i", is_flag=True, help="Restore the backup in interactive mode."
 )
 def restore(
     backup_space: str | None,
@@ -258,6 +286,32 @@ def restore(
                     ),
                     debug=debug,
                 )
+
+    if mode == RestoreMode.CLEAN:
+        warn_text = (
+            f"{palette.red}DANGER-ZONE:{palette.maroon} The 'CLEAN' restore mode will delete "
+            f"{EFFECTS.bold.on}all{RESET}{palette.maroon} objects in the restore target scope "
+            f"of this Backup Space (e.g. a directory, database(s) or table set) "
+            f"before restoring the backup!\n\n"
+            f"Everything within that scope will be removed, even if it is currently "
+            f"{EFFECTS.bold.on}not{RESET}{palette.maroon} "
+            f"part of the backup. Use this mode only if you are sure there is no important data "
+            f"in the target scope that isn't covered by the backup.{RESET}"
+        )
+        if force:
+            print(warn_text)
+        if not force:
+            confirm = ConfirmInput(
+                message=warn_text,
+                default_value=False,
+            ).prompt()
+
+            if not confirm:
+                print(
+                    f"{palette.red}Canceled restoring of backup "
+                    f"{palette.maroon}{str(backup.get_uuid())}{palette.red}.{RESET}"
+                )
+                return None
 
     if source == "remote" and not backup.has_remote_archive():
         return print_error_message(

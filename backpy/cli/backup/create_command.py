@@ -1,6 +1,6 @@
 import rich_click as click
 
-from backpy.cli.colors import RESET, get_default_palette
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.cli.elements import (
     BackupSpaceInput,
     ConfirmInput,
@@ -17,14 +17,17 @@ from backpy.core.utils.exceptions import (
 palette = get_default_palette()
 
 
-def create_interactive(verbosity_level: int) -> None:
+def create_interactive(verbosity_level: int, debug: bool) -> None:
 
     space = BackupSpaceInput(suggest_matches=True).prompt()
 
     if space.is_backup_limit_reached():
-        raise BackupLimitExceededError(
-            "The given Backup Space has reached its maximum number of backups. "
-            "Delete a backup or raise the limit."
+        return print_error_message(
+            error=BackupLimitExceededError(
+                "The given Backup Space has reached its maximum number of backups. "
+                "Delete a backup or raise the limit."
+            ),
+            debug=debug,
         )
 
     def _validate_location(value: str):
@@ -52,8 +55,8 @@ def create_interactive(verbosity_level: int) -> None:
     if space.get_type().use_inclusion:
         include = EnumerationInput(
             message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
-            f"elements that should be {palette.maroon}included{palette.lavender} in the "
-            f"backup{palette.base} "
+            f"elements that should be {palette.maroon}additionally "
+            f"included{palette.lavender} in the backup{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (if empty every non-excluded element "
             f"will be used):{RESET}",
             default_value="",
@@ -64,8 +67,8 @@ def create_interactive(verbosity_level: int) -> None:
     if space.get_type().use_exclusion:
         exclude = EnumerationInput(
             message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
-            f"elements that should be {palette.maroon}excluded{palette.lavender} from the "
-            f"backup{palette.base} "
+            f"elements that should be {palette.maroon}additionally excluded{palette.lavender} "
+            f"from the backup{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (can be empty):{RESET}",
             default_value="",
         ).prompt()
@@ -113,7 +116,8 @@ def create_interactive(verbosity_level: int) -> None:
     type=str,
     multiple=True,
     default=None,
-    help="A list of elements (e.g. paths, patterns, tables, databases) to include. "
+    help="A list of elements (e.g. paths, patterns, tables, databases) to "
+    f"{EFFECTS.bold.on}additionally{RESET} include. "
     "If not set, every non-excluded element will be used backed up. "
     "Depending on the Backup Space this might not have an effect. "
     "Important: Symbols like ',' and '\"' have to be escaped!",
@@ -124,7 +128,8 @@ def create_interactive(verbosity_level: int) -> None:
     type=str,
     multiple=True,
     default=None,
-    help="A list of elements (e.g. paths, patterns, tables, databases) to exclude. "
+    help="A list of elements (e.g. paths, patterns, tables, databases) to "
+    f"{EFFECTS.bold.on}additionally{RESET} exclude. "
     "Depending on the Backup Space this might not have an effect. "
     "Important: Symbols like ',' and '\"' have to be escaped!",
 )
@@ -148,7 +153,11 @@ def create_interactive(verbosity_level: int) -> None:
     "mode to print full error traces in case of a problem.",
 )
 @click.option(
-    "--interactive", "-i", is_flag=True, help="Create the backup in interactive mode."
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Create the backup in interactive mode. "
+    "WARNING: In this mode, there is no automatic deletion.",
 )
 def create(
     backup_space: str | None,
@@ -165,7 +174,7 @@ def create(
     verbose += 1
 
     if interactive:
-        return create_interactive(verbosity_level=verbose)
+        return create_interactive(verbosity_level=verbose, debug=debug)
 
     if backup_space is None:
         return print_error_message(
@@ -194,6 +203,17 @@ def create(
     if space.is_backup_limit_reached():
         if space.is_auto_deletion_active():
             space.perform_auto_deletion(verbosity_level=verbose)
+
+            if space.is_backup_limit_reached():
+                return print_error_message(
+                    error=BackupLimitExceededError(
+                        "The given Backup Space has reached its maximum number of backups. "
+                        "The automatic deletion did not clear enough space. Check the locked "
+                        "backups and the backup limit."
+                    ),
+                    debug=debug,
+                )
+
         else:
             return print_error_message(
                 error=BackupLimitExceededError(

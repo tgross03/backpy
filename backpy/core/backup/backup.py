@@ -30,10 +30,18 @@ __all__ = ["Backup", "RestoreMode"]
 
 
 class RestoreMode(Enum):
-    OVERWRITE = "Replaces existing objects and adds missing"
-    MERGE = "Preserves existing objects and adds missing"
-    REPLACE = "Replaces existing objects and does not add missing"
-    CLEAN = "Deletes all existing objects and replaces with backup"
+    OVERWRITE = (
+        "Overwrite existing objects from the backup and add missing ones "
+        "(does not delete extra objects)."
+    )
+    MERGE = "Only add missing objects from the backup (never overwrite existing ones)."
+    REPLACE = (
+        "Only overwrite objects that already exist in the target "
+        "(does not add missing ones and does not delete extra objects)."
+    )
+    CLEAN = "Remove existing objects in the target first, then restore the backup (destructive)."
+
+    # TODO: Add a DRY_RUN mode
 
     def __init__(self, description: str):
         self.description = description

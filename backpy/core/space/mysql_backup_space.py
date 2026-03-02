@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import tempfile
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from rich.table import Table
 
+from backpy import VariableLibrary
+from backpy.core.backup import RestoreMode, compression
 from backpy.core.database import MySQLDump, MySQLServer
 from backpy.core.space.backup_space import BackupSpace
-from backpy.core.utils.exceptions import InvalidBackupSpaceError
+from backpy.core.utils.exceptions import (
+    InvalidBackupError,
+    InvalidBackupSpaceError,
+    InvalidChecksumError,
+)
 
 if TYPE_CHECKING:
     from backpy.core.backup import Backup
@@ -49,14 +56,13 @@ class MySQLBackupSpace(BackupSpace):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = Path(temp_dir)
 
-            dump_path = temp_dir / f"{self._uuid}.sql"
+            backup_dir = temp_dir / str(self._uuid)
 
             exclude_databases, exclude_tables, exclude_table_data = (
                 _parse_exclusion_strings(exclude)
             )
 
-            self._dump.create(
-                output_path=dump_path,
+            common_args = dict(
                 server=self._server,
                 exclude_databases=exclude_databases,
                 exclude_tables=exclude_tables,
@@ -65,8 +71,24 @@ class MySQLBackupSpace(BackupSpace):
                 verbosity_level=verbosity_level,
             )
 
+            replace_path = temp_dir / "replace.sql"
+            self._dump.create(
+                output_path=replace_path,
+                replace_data=True,
+                insert_ignore=False,
+                **common_args,
+            )
+
+            insert_path = temp_dir / "insert.sql"
+            self._dump.create(
+                output_path=insert_path,
+                replace_data=False,
+                insert_ignore=True,
+                **common_args,
+            )
+
             backup = Backup.new(
-                source_path=dump_path,
+                source_path=backup_dir,
                 backup_space=self,
                 comment=comment,
                 include=None,
@@ -76,17 +98,111 @@ class MySQLBackupSpace(BackupSpace):
                 verbosity_level=verbosity_level,
             )
 
+            # TODO: Add dump info to backup config
+
             return backup
 
     def restore_backup(
         self,
         unique_id: str,
-        incremental: bool,
+        mode: RestoreMode,
         source: str = "local",
         force: bool = False,
         verbosity_level: int = 1,
     ) -> None:
-        pass
+
+        from backpy.core.backup import Backup
+
+        backup = Backup.load_by_uuid(
+            unique_id=unique_id, backup_space=self, verbosity_level=verbosity_level
+        )
+
+        if source == "remote" and not backup.has_remote_archive():
+            raise InvalidBackupError(
+                f"The backup '{backup.get_uuid()}' does not have a remote backup file."
+            )
+        elif source == "local" and not backup.has_local_archive():
+            raise InvalidBackupError(
+                f"The backup '{backup.get_uuid()}' does not have a local backup file."
+            )
+
+        from_remote = source == "remote"
+
+        if verbosity_level > 1:
+            print(f"Restoring backup '{backup.get_uuid()}' ...")
+
+        if not backup.check_hash(remote=from_remote):
+            if force:
+                warnings.warn(
+                    "Forcing restore of possibly corrupted "
+                    f"backup '{backup.get_uuid()}'. This can lead "
+                    f"to unwanted behavior."
+                )
+            else:
+                raise InvalidChecksumError(
+                    "The backup could not be restored,"
+                    "because its SHA256 sum could not be verified. "
+                    "Use --force / -f flag to force the restoring."
+                )
+
+        # start_time = time.time()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+
+            if from_remote:
+
+                archive_path = Path(
+                    VariableLibrary.get_variable("paths.temporary_directory")
+                )
+                archive_path.mkdir(exist_ok=True, parents=True)
+                archive_path /= backup.get_path().name
+
+                if verbosity_level > 1:
+                    print(
+                        f"Creating temporary copy of remote archive at '{archive_path}'."
+                    )
+
+                try:
+                    with backup.get_remote()(context_verbosity=verbosity_level):
+                        backup.get_remote().download(
+                            source=backup.get_remote_archive_path(),
+                            check_hash=True,
+                            target=archive_path,
+                        )
+                except InvalidChecksumError:
+                    if force:
+                        warnings.warn(
+                            "Forcing restore of possibly corrupted "
+                            f"backup '{backup.get_uuid()}'. This can lead "
+                            f"to unwanted behavior."
+                        )
+                    else:
+                        raise InvalidChecksumError(
+                            "The backup could not be restored,"
+                            "because its SHA256 sum could not be verified. "
+                            "Use --force / -f flag to force the restoring."
+                        )
+            else:
+                archive_path = backup.get_path()
+
+            compression.unpack(
+                archive_path=archive_path,
+                target_path=temp_dir,
+                verbosity_level=verbosity_level,
+            )
+
+            if mode == RestoreMode.CLEAN:
+                # If multiple databases
+                if self._dump:
+                    pass
+
+            if from_remote:
+                if verbosity_level > 1:
+                    print(
+                        f"Removing temporary copy of remote archive '{archive_path}'."
+                    )
+                archive_path.unlink()
 
     def get_info_table(self, verbosity_level: int = 1) -> Table:
         return super()._get_info_table(

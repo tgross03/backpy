@@ -263,7 +263,7 @@ def common_options(space_type: BackupSpaceType) -> Callable:
                 multiple=True,
                 default=None,
                 help="A list of elements (e.g. paths, patterns, tables, databases) to include. "
-                "If not set, every non-excluded element will be used backed up. "
+                "If not set, every non-excluded element will be included in the backup. "
                 "Depending on the Backup Space this might not have an effect. "
                 "Important: Symbols like ',' and '\"' have to be escaped!",
             )(func)

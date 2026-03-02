@@ -100,7 +100,6 @@ class FileBackupSpace(BackupSpace):
 
         start_time = time.time()
 
-        # Delete all affected files
         if mode == RestoreMode.CLEAN:
 
             if verbosity_level > 1:

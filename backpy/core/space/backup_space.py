@@ -136,7 +136,7 @@ class BackupSpace:
 
         return backups
 
-    def update_config(self):
+    def update_config(self) -> None:
         current_content = self._config.asdict()
 
         content = {
@@ -160,7 +160,7 @@ class BackupSpace:
 
         self._config.dump(dict(merge({}, current_content, content)))
 
-    def clear(self, verbosity_level: int = 1):
+    def clear(self, verbosity_level: int = 1) -> None:
         if self._remote is not None:
             with self._remote(context_verbosity=verbosity_level):
                 for backup in self.get_backups(check_hash=False):
@@ -174,7 +174,7 @@ class BackupSpace:
                 f"Deleted all backups from backup space {self._name} (UUID: {self._uuid})"
             )
 
-    def delete(self, verbosity_level: int = 1):
+    def delete(self, verbosity_level: int = 1) -> None:
         shutil.rmtree(self._backup_dir)
 
         schedules = Schedule.load_by_backup_space(backup_space=self)
@@ -202,9 +202,9 @@ class BackupSpace:
         if verbosity_level >= 1:
             print(f"Deleted backup space (UUID: {self._uuid})")
 
-    def perform_auto_deletion(self, verbosity_level: int = 1):
+    def perform_auto_deletion(self, verbosity_level: int = 1) -> None:
 
-        if verbosity_level > 1:
+        if verbosity_level >= 1:
             print(
                 f"Performing automatic deletion of '{self._auto_deletion_rule}' backup."
             )
