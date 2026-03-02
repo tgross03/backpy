@@ -12,6 +12,7 @@ from rich.table import Table
 
 from backpy import TOMLConfiguration, VariableLibrary
 from backpy.cli.colors import RESET, get_default_palette
+from backpy.core.backup import RestoreMode
 from backpy.core.utils.exceptions import InvalidScheduleError
 
 COMMENT_SUFFIX = "(MANAGED BY BACKPY)"
@@ -249,10 +250,10 @@ class Schedule:
             f'--comment "Scheduled backup (Schedule-UUID: {self._uuid})"'
         )
 
-        for exclusion in self._exclude:
+        for exclusion in self._exclude and self._backup_space.get_type().use_exclusion:
             command += f' -X "{exclusion}"'
 
-        for inclusion in self._include:
+        for inclusion in self._include and self._backup_space.get_type().use_inclusion:
             command += f' -I "{inclusion}"'
 
         command = command.split(" ")

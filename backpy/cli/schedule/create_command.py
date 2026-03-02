@@ -2,7 +2,7 @@ import crontab
 import rich_click as click
 from crontab import CronSlices
 
-from backpy.cli.colors import RESET, get_default_palette
+from backpy.cli.colors import EFFECTS, RESET, get_default_palette
 from backpy.cli.elements import (
     BackupSpaceInput,
     ConfirmInput,
@@ -63,8 +63,8 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     if space.get_type().use_inclusion:
         include = EnumerationInput(
             message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
-            f"elements that should be {palette.maroon}included{palette.lavender} in the "
-            f"backups{palette.base} "
+            f"elements that should be {palette.maroon}additionally included{palette.lavender} "
+            f"in the backups{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (if empty every non-excluded element "
             f"will be used):{RESET}",
             default_value="",
@@ -75,8 +75,8 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     if space.get_type().use_exclusion:
         exclude = EnumerationInput(
             message=f"{palette.base}> Enter a comma-seperated enumeration of {palette.lavender}"
-            f"elements that should be {palette.maroon}excluded{palette.lavender} from the "
-            f"backups{palette.base} "
+            f"elements that should be {palette.maroon}additionally excluded{palette.lavender} "
+            f"from the backups{palette.base} "
             f"(e.g. paths, patterns, tables, databases) (can be empty):{RESET}",
             default_value="",
         ).prompt()
@@ -135,7 +135,8 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     type=str,
     multiple=True,
     default=None,
-    help="A list of elements (e.g. paths, patterns, tables, databases) to include. "
+    help="A list of elements (e.g. paths, patterns, tables, databases) to"
+    f"{EFFECTS.bold.on}additionally{RESET} include. "
     "If not set, every non-excluded element will be used backed up. "
     "Depending on the Backup Space this might not have an effect. "
     "Important: Symbols like ',' and '\"' have to be escaped!",
@@ -146,7 +147,8 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
     type=str,
     multiple=True,
     default=None,
-    help="A list of elements (e.g. paths, patterns, tables, databases) to exclude. "
+    help="A list of elements (e.g. paths, patterns, tables, databases) to "
+    f"{EFFECTS.bold.on}additionally{RESET} exclude. "
     "Depending on the Backup Space this might not have an effect. "
     "Important: Symbols like ',' and '\"' have to be escaped!",
 )
