@@ -45,6 +45,29 @@ def test_mysqldump(verbosity_level: int = 1) -> bool:
     return True
 
 
+def test_mysql(verbosity_level: int = 1) -> bool:
+    try:
+        result = subprocess.run(
+            ["mysql --version"],
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as e:
+        if verbosity_level > 0:
+            print(
+                "'mysql' command not found or not working properly. Return code:",
+                e.returncode,
+            )
+        return False
+
+    if verbosity_level > 1:
+        print("Found 'mysql' command with version info:", result.stdout)
+
+    return True
+
+
 class MySQLServer:
     def __init__(
         self,
@@ -325,8 +348,7 @@ class MySQLServer:
         ):
             instance._config.get_path().unlink(missing_ok=True)
             raise ConnectionError(
-                f"Could not connect to MySQL server at {hostname}:{port} "
-                f"as user '{user}'."
+                f"Could not connect to MySQL server at {hostname}:{port} as user '{user}'."
             )
 
         instance.update_config()
