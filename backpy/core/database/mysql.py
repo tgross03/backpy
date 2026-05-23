@@ -318,6 +318,7 @@ class MySQLServer:
         hostname: str = "localhost",
         port: int = 3306,
         database: str | None = None,
+        load_if_exists: bool = True,
         test_connection: bool = True,
         verbosity_level: int = 1,
     ) -> "MySQLServer":
@@ -327,7 +328,10 @@ class MySQLServer:
 
         try:
             MySQLServer.load_by_name(name=name)
-            raise NameError("There is already a database with this name!")
+            if not load_if_exists:
+                raise NameError("There is already a database with this name!")
+            else:
+                return MySQLServer.load_by_name(name=name)
         except InvalidDatabaseException:
             pass
 
