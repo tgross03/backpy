@@ -18,17 +18,7 @@ palette = get_default_palette()
 
 
 def create_interactive(verbosity_level: int, debug: bool) -> None:
-
     space = BackupSpaceInput(suggest_matches=True).prompt()
-
-    if space.is_backup_limit_reached():
-        return print_error_message(
-            error=BackupLimitExceededError(
-                "The given Backup Space has reached its maximum number of backups. "
-                "Delete a backup or raise the limit."
-            ),
-            debug=debug,
-        )
 
     def _validate_location(value: str):
         return value in ["all", "local", "remote"]
@@ -76,9 +66,33 @@ def create_interactive(verbosity_level: int, debug: bool) -> None:
         exclude = []
 
     lock = ConfirmInput(
-        message="Should the backup be locked? This means that it cannot be deleted automatically.",
+        message=f"{palette.base}> Should the backup be locked? This means that it cannot be "
+        f"deleted automatically.",
         default_value=False,
     ).prompt()
+
+    if space.is_backup_limit_reached():
+        if space.is_auto_deletion_active():
+            space.perform_auto_deletion(verbosity_level=verbosity_level)
+
+            if space.is_backup_limit_reached():
+                return print_error_message(
+                    error=BackupLimitExceededError(
+                        "The given Backup Space has reached its maximum number of backups. "
+                        "The automatic deletion did not clear enough space. Check the locked "
+                        "backups and the backup limit."
+                    ),
+                    debug=debug,
+                )
+
+        else:
+            return print_error_message(
+                error=BackupLimitExceededError(
+                    "The given Backup Space has reached its maximum number of backups. "
+                    "Delete a backup or raise the limit."
+                ),
+                debug=debug,
+            )
 
     space.create_backup(
         location=location,
@@ -170,7 +184,6 @@ def create(
     debug: bool,
     interactive: bool,
 ) -> None:
-
     verbose += 1
 
     if interactive:

@@ -100,7 +100,6 @@ class TOMLConfiguration:
 
     def __setitem__(self, key: str, value: Any) -> None:
         content = self.asdict()
-
         keys = key.split(".")
 
         content_dict = content
@@ -127,6 +126,8 @@ class TOMLConfiguration:
                 else:
                     del content_dict[key]
             else:
+                if key not in content_dict:
+                    content_dict[key] = {}
                 content_dict = content_dict[key]
 
         with open(self._path, "wb") as tomlf:
@@ -146,6 +147,13 @@ class TOMLConfiguration:
             content = content[key]
 
         return True
+
+    def __repr__(self) -> str:
+        return (
+            f"TOMLConfiguration @ '{self._path.absolute()}' "
+            f"(file {'exists' if self.exists() else 'does not exist'})\n\n"
+            f"{self.asdict().__repr__()}"
+        )
 
     def get_keys(self, non_dict_only: bool = False) -> list[str]:
         """

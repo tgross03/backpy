@@ -19,6 +19,10 @@ __all__ = [
     "_compression_methods",
 ]
 
+# Version control directories and Python cache directories are excluded by default,
+# except explicitly included, to avoid permission problems
+DEFAULT_EXCLUDED_PATHS = [".git", ".svn", ".hg", "__pycache__", ".DS_Store"]
+
 
 @dataclass
 class CompressionAlgorithm:
@@ -33,7 +37,7 @@ class CompressionAlgorithm:
         for algorithm in _compression_methods:
             if algorithm.name == name:
                 return algorithm
-        return None
+        raise NameError(f"Compression algorithm '{name}' is not available!")
 
 
 _compression_methods = [
@@ -81,6 +85,15 @@ def compress(
     verbosity_level: int = 1,
     overwrite: bool = False,
 ) -> Path:
+    default_excludes = DEFAULT_EXCLUDED_PATHS.copy()
+
+    if include is not None:
+        for inc in include:
+            if inc in default_excludes:
+                default_excludes.remove(inc)
+
+    exclude = [] if exclude is None else exclude
+    exclude.extend(default_excludes)
 
     if isinstance(root_path, str):
         root_path = Path(root_path)
@@ -117,7 +130,6 @@ def filter_paths(
     include: list[str] | None,
     exclude: list[str] | None = None,
 ) -> tuple[list[Path], float]:
-
     if isinstance(root_path, str):
         root_path = Path(root_path)
 
@@ -153,7 +165,6 @@ def _compress_zip(
     verbosity_level: int,
     overwrite: bool = False,
 ) -> Path:
-
     target_path = root_path.absolute().parent / (archive_name + ".zip")
 
     if verbosity_level > 1:
@@ -201,7 +212,6 @@ def _compress_tar(
     verbosity_level: int,
     overwrite: bool = False,
 ) -> Path:
-
     target_path = root_path.parent / (archive_name + compression_algorithm.extension)
 
     if verbosity_level > 1:
