@@ -76,7 +76,14 @@ def delete_interactive(force: bool, verbosity_level: int, debug: bool):
     f"backup space to the {palette.sky}--backup-space{RESET} option.",
 )
 @click.argument("schedule", type=str, default=None, required=False)
-@click.option("--backup-space", "-b", type=str, default=None, required=False)
+@click.option(
+    "--backup-space",
+    "-b",
+    type=str,
+    default=None,
+    required=False,
+    help="Select a backup space for which to delete ALL schedules.",
+)
 @click.option(
     "--force",
     "-f",
