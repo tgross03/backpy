@@ -402,14 +402,20 @@ class BackupSpace:
         max_backups: int = -1,
         max_size: int = -1,
         auto_deletion: bool = False,
-        auto_deletion_rule: str = False,
-        remote: Remote = None,
+        auto_deletion_rule: str = "oldest",
+        remote: Remote | None = None,
         verbosity_level: int = 1,
     ) -> "BackupSpace":
         if not compression.is_algorithm_available(compression_algorithm):
             raise UnsupportedCompressionAlgorithmError(
                 f"The compression algorithm '{compression_algorithm}' is not available!"
             )
+
+        try:
+            BackupSpace.load_by_name(name=name)
+            raise NameError(f"There is already a BackupSpace with the name '{name}'.")
+        except InvalidBackupSpaceError:
+            pass
 
         cls = cls(
             name=name,
@@ -432,7 +438,7 @@ class BackupSpace:
         cls._config.create()
         cls.update_config()
 
-        if cls._remote:
+        if cls._remote is not None:
             with cls._remote(context_verbosity=verbosity_level):
                 cls._remote.mkdir(
                     target=cls.get_remote_path(),

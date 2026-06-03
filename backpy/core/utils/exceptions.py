@@ -8,6 +8,11 @@ class InvalidBackupSpaceError(Exception):
         super().__init__(message)
 
 
+class InvalidBackupSpaceTypeError(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class UnsupportedCompressionAlgorithmError(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -48,6 +53,6 @@ class BackupLimitExceededError(Exception):
         super().__init__(message)
 
 
-class InvalidDatabaseException(Exception):
+class InvalidDatabaseServerException(Exception):
     def __init__(self, message: str) -> None:
         super().__init__(message)

@@ -381,7 +381,7 @@ class Remote:
                 f"Downloading {source}", visible=verbosity_level >= 1
             )
 
-            match self._protocol.name:
+            match self._protocol.name.lower():
                 case "sftp":
                     _progress = lambda received, total: progress.update(
                         task, total=total, completed=received
@@ -401,6 +401,11 @@ class Remote:
                         self._client.get_transport(), progress=_progress
                     )
                     scp_client.get(remote_path=source, local_path=str(target))
+
+                case _:
+                    raise ValueError(
+                        f"Command not implemented for {self._protocol.name}"
+                    )
 
         if not self._context_managed:
             self.disconnect(verbosity_level=verbosity_level)
@@ -445,7 +450,7 @@ class Remote:
 
         subdirs = target.split("/")
 
-        match self._protocol.name:
+        match self._protocol.name.lower():
             case "sftp":
                 sftp_client = (
                     client
@@ -498,6 +503,9 @@ class Remote:
 
                 # delete the temporary tree
                 shutil.rmtree(path)
+
+            case _:
+                raise ValueError(f"Command not implemented for {self._protocol.name}")
 
         if close_afterwards and not self._context_managed:
             self.disconnect(verbosity_level=verbosity_level)
@@ -832,6 +840,13 @@ class Remote:
         verbosity_level: int = 1,
         test_connection: bool = True,
     ) -> "Remote":
+
+        try:
+            Remote.load_by_name(name=name)
+            raise NameError(f"The remote with name '{name}' already exists!")
+        except InvalidRemoteError:
+            pass
+
         if name == "None":
             raise NameError("Remotes may not be named 'None'.")
 

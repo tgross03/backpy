@@ -14,6 +14,7 @@ from backpy.core.space.backup_space import BackupSpace
 from backpy.core.utils.exceptions import (
     InvalidBackupError,
     InvalidBackupSpaceError,
+    InvalidBackupSpaceTypeError,
     InvalidChecksumError,
 )
 
@@ -57,6 +58,7 @@ class MySQLBackupSpace(BackupSpace):
             temp_dir = Path(temp_dir)
 
             backup_dir = temp_dir / str(self._uuid)
+            backup_dir.mkdir()
 
             exclude_databases, exclude_tables, exclude_table_data = (
                 _parse_exclusion_strings(exclude)
@@ -71,7 +73,7 @@ class MySQLBackupSpace(BackupSpace):
                 verbosity_level=verbosity_level,
             )
 
-            replace_path = temp_dir / "replace.sql"
+            replace_path = backup_dir / "replace.sql"
             self._dump.create(
                 output_path=replace_path,
                 replace_data=True,
@@ -79,7 +81,7 @@ class MySQLBackupSpace(BackupSpace):
                 **common_args,
             )
 
-            insert_path = temp_dir / "insert.sql"
+            insert_path = backup_dir / "insert.sql"
             self._dump.create(
                 output_path=insert_path,
                 replace_data=False,
@@ -239,8 +241,8 @@ class MySQLBackupSpace(BackupSpace):
         cls = cls.__new__(cls)
         cls.__dict__.update(parent.__dict__)
 
-        if cls._type.name != "MySQL_DATABASE":
-            raise InvalidBackupSpaceError(
+        if cls._type.name != "MYSQL_DATABASE":
+            raise InvalidBackupSpaceTypeError(
                 "The loaded BackupSpace is not a MySQLBackupSpace!"
             )
 

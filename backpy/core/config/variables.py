@@ -58,7 +58,9 @@ class VariableLibrary:
             "cli": {
                 "color_palette": "latte",
                 "rich": {
-                    "palette": "solarized",
+                    # For available themes refer to
+                    # https://ewels.github.io/rich-click/latest/documentation/themes/
+                    "palette": "dracula",
                     "style": "box",
                 },
             },

@@ -15,7 +15,7 @@ from backpy.core.encryption.password import decrypt, encrypt
 
 __all__ = ["MySQLServer", "MySQLDump", "test_mysqldump"]
 
-from backpy.core.utils.exceptions import InvalidDatabaseException
+from backpy.core.utils.exceptions import InvalidDatabaseServerException
 
 _DEFAULT_CONTEXT_VERBOSITY: int = 1
 
@@ -260,6 +260,23 @@ class MySQLServer:
     #####################
 
     @classmethod
+    def get_servers(cls) -> list[MySQLServer]:
+
+        servers = []
+
+        for tomlf in Path(
+            VariableLibrary.get_variable("database.mysql_directory")
+        ).rglob("*.toml"):
+            config = TOMLConfiguration(path=tomlf, create_if_not_exists=False)
+
+            if not config.exists():
+                continue
+
+            servers.append(MySQLServer.load_by_uuid(unique_id=config["uuid"]))
+
+        return servers
+
+    @classmethod
     def load_by_name(cls, name: str) -> "MySQLServer":
 
         for tomlf in Path(
@@ -275,10 +292,10 @@ class MySQLServer:
 
             try:
                 return MySQLServer.load_by_uuid(unique_id=config["uuid"])
-            except InvalidDatabaseException:
+            except InvalidDatabaseServerException:
                 break
 
-        raise InvalidDatabaseException(
+        raise InvalidDatabaseServerException(
             f"There is no valid MySQL server present with the name '{name}'."
         )
 
@@ -293,7 +310,7 @@ class MySQLServer:
         )
 
         if not config.exists():
-            raise InvalidDatabaseException(
+            raise InvalidDatabaseServerException(
                 f"The MySQL server with UUID '{unique_id}' could not be found."
             )
 
@@ -332,7 +349,7 @@ class MySQLServer:
                 raise NameError("There is already a database with this name!")
             else:
                 return MySQLServer.load_by_name(name=name)
-        except InvalidDatabaseException:
+        except InvalidDatabaseServerException:
             pass
 
         unique_id = uuid.uuid4()
@@ -400,7 +417,7 @@ class MySQLDump:
     exclude_table_data: list[str]
     flush_privileges: bool
     include_create_options: bool = True
-    custom_condition: str | None = None
+    custom_condition: str = ""
 
     def get_databases(self, server: MySQLServer) -> list[str]:
         with server() as s:
@@ -470,6 +487,7 @@ class MySQLDump:
         exclude_databases: list[str] | None = None,
         exclude_tables: list[str] | None = None,
         exclude_table_data: list[str] | None = None,
+        dry_run: bool = False,
         verbosity_level: int = 1,
     ) -> None:
 
@@ -556,13 +574,16 @@ class MySQLDump:
         if insert_ignore:
             cmd += "--insert-ignore "
 
-        if self.custom_condition is not None:
+        if self.custom_condition != "":
             cmd += f'--where="{self.custom_condition}" '
 
         if verbosity_level > 3:
             cmd += "--verbose"
 
         start_time = time.time()
+
+        if verbosity_level > 2:
+            print(cmd)
 
         result = subprocess.run(
             cmd,
@@ -619,22 +640,25 @@ class MySQLDump:
                 f"{text} (Code {result.returncode}).\n\n" f"--- Reason ---\n\n{error}"
             )
 
-        if overwrite and file_path.exists():
-            if verbosity_level > 1:
-                print(f"Overwriting existing MySQL dump ... Deleting {file_path} ...")
+        if not dry_run:
+            if overwrite and file_path.exists():
+                if verbosity_level > 1:
+                    print(
+                        f"Overwriting existing MySQL dump ... Deleting {file_path} ..."
+                    )
 
-            file_path.unlink(missing_ok=True)
+                file_path.unlink(missing_ok=True)
 
-        with open(file_path, "a") as file:
-            file.write(result.stdout)
+            with open(file_path, "a") as file:
+                file.write(result.stdout)
 
-        if verbosity_level >= 1:
-            print(
-                f"Created MySQL dump to file {file_path}. "
-                f"Took {np.round(proc_time, 3)} seconds!"
-            )
-
-        print(cmd)
+            if verbosity_level >= 1:
+                print(
+                    f"Created MySQL dump to file {file_path}. "
+                    f"Took {np.round(proc_time, 3)} seconds!"
+                )
+        else:
+            print("DRY RUN SUCCESSFUL -> NO OUTPUT FILE GENERATED")
 
     def asdict(self) -> dict:
         keys = [
