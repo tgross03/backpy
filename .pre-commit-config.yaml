@@ -12,7 +12,7 @@ repos:
       - id: name-tests-test
       - id: trailing-whitespace
   - repo: https://github.com/pycqa/isort
-    rev: 9.0.0a3
+    rev: 9.0.1
     hooks:
       - id: isort
         args: [ "--profile", "black", "--filter-files" ]
@@ -28,6 +28,6 @@ repos:
         args: [ --max-line-length=100, "--extend-ignore=E203,E741,E731" ]
         exclude: "version.py|__init__.py"
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
